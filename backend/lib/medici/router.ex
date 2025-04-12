@@ -1,5 +1,4 @@
 defmodule Medici.Router do
-  alias Medici.Serializer
   alias Medici.Queries
   use Plug.Router
   plug(Plug.Logger)
@@ -15,16 +14,11 @@ defmodule Medici.Router do
 
   get "/pools" do
     pools = Medici.Repo.all(Medici.Pool)
-
     json(conn, %{pools: pools})
   end
 
   get "/members" do
-    members = Queries.get_members()
-
-    IO.inspect(members, label: "Members from DB")
-
-    json(conn, %{members: Serializer.serialize(members)})
+    json(conn, Queries.get_members())
   end
 
   get "/expenses" do
