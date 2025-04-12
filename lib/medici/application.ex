@@ -1,9 +1,9 @@
 defmodule Medici.Application do
   use Application
 
-  @spec start(any(), any()) :: {:error, any()} | {:ok, pid()}
   def start(_type, _args) do
     children = [
+      Medici.Repo,
       {Plug.Cowboy, scheme: :http, plug: Medici.Router, options: [port: 4000]}
     ]
 

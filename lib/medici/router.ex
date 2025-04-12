@@ -24,6 +24,12 @@ defmodule Medici.Router do
     json(conn, %{you_sent: conn.body_params})
   end
 
+  get "/users" do
+    users = Medici.Repo.all(Medici.User)
+
+    json(conn, %{users: users})
+  end
+
   match _ do
     send_resp(conn, 404, "Not Found")
   end
