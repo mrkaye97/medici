@@ -3,7 +3,10 @@ defmodule Medici.PoolMembership do
   import Ecto.Changeset
 
   @roles ~w(participant admin)a
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
 
+  @derive {Jason.Encoder, only: [:id, :role, :member_id, :pool_id, :inserted_at, :updated_at]}
   schema "pool_membership" do
     field(:role, Ecto.Enum, values: @roles)
 

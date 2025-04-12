@@ -2,6 +2,10 @@ defmodule Medici.Member do
   use Ecto.Schema
   import Ecto.Changeset
 
+  @primary_key {:id, :binary_id, autogenerate: true}
+  @foreign_key_type :binary_id
+
+  @derive {Jason.Encoder, only: [:id, :first_name, :last_name, :email, :inserted_at, :updated_at]}
   schema "member" do
     field(:first_name, :string)
     field(:last_name, :string)

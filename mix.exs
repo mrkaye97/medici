@@ -25,6 +25,7 @@ defmodule Medici.MixProject do
     [
       {:plug_cowboy, "~> 2.5"},
       {:jason, "~> 1.4"},
+      {:ecto, "~> 3.10"},
       {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
       {:lettuce, ">= 0.2.0", only: :dev}
