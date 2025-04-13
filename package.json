@@ -1,0 +1,24 @@
+{
+  "main": "index.js",
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "@trpc/client": "^11.1.0",
+    "@trpc/server": "^11.1.0",
+    "express": "^5.1.0",
+    "zod": "^3.24.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.1",
+    "@types/node": "^22.14.1",
+    "@types/cors": "^2.8.13",
+    "nodemon": "^3.1.9",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "dev": "ts-node-dev ./server/index.ts",
+    "start": "node ./dist/app.js",
+    "build": "tsc"
+  }
+}
