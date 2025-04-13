@@ -10,6 +10,8 @@
     "lint": "eslint app"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "@radix-ui/react-dialog": "^1.1.7",
     "@radix-ui/react-label": "^2.1.3",
     "@radix-ui/react-slot": "^1.2.0",
     "@tanstack/react-query": "^5.73.3",
@@ -28,6 +30,7 @@
     "lucide-react": "^0.488.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-hook-form": "^7.55.0",
     "superjson": "^1.13.3",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",

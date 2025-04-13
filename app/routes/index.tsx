@@ -28,8 +28,6 @@ function Home() {
     trpc.listPoolsForMember.queryOptions(id)
   );
 
-  console.log(data);
-
   if (isLoading || isFetching) {
     return (
       <div className="flex flex-col items-center">
@@ -42,8 +40,7 @@ function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="w-1/2">
-        Pools
+      <div className="w-1/2 mt-8">
         <div className="flex flex-col gap-y-4">
           {pools.map((p) => (
             <PoolSummary key={p.id} pool={p} />

@@ -52,6 +52,7 @@ WITH debts_owed AS (
 )
 
 SELECT
+    pm.member_id,
     p.id, p.name, p.description, p.inserted_at, p.updated_at,
     COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
     COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses
@@ -64,6 +65,7 @@ export interface ListPoolsForMemberArgs {
 }
 
 export interface ListPoolsForMemberRow {
+    memberId: string;
     id: string;
     name: string;
     description: string | null;
@@ -81,13 +83,14 @@ export async function listPoolsForMember(client: Client, args: ListPoolsForMembe
     });
     return result.rows.map(row => {
         return {
-            id: row[0],
-            name: row[1],
-            description: row[2],
-            insertedAt: row[3],
-            updatedAt: row[4],
-            totalDebt: row[5],
-            recentExpenses: row[6]
+            memberId: row[0],
+            id: row[1],
+            name: row[2],
+            description: row[3],
+            insertedAt: row[4],
+            updatedAt: row[5],
+            totalDebt: row[6],
+            recentExpenses: row[7]
         };
     });
 }
@@ -202,5 +205,101 @@ export async function createMember(client: Client, args: CreateMemberArgs): Prom
         insertedAt: row[5],
         updatedAt: row[6]
     };
+}
+
+export const createExpenseQuery = `-- name: CreateExpense :one
+INSERT INTO expense (pool_id, paid_by_member_id, name, amount)
+VALUES ($1, $2, $3, $4::DOUBLE PRECISION)
+RETURNING id, pool_id, paid_by_member_id, name, amount, is_settled, inserted_at, updated_at`;
+
+export interface CreateExpenseArgs {
+    poolId: string;
+    paidByMemberId: string;
+    name: string;
+    amount: number;
+}
+
+export interface CreateExpenseRow {
+    id: string;
+    poolId: string;
+    paidByMemberId: string;
+    name: string;
+    amount: string;
+    isSettled: boolean;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function createExpense(client: Client, args: CreateExpenseArgs): Promise<CreateExpenseRow | null> {
+    const result = await client.query({
+        text: createExpenseQuery,
+        values: [args.poolId, args.paidByMemberId, args.name, args.amount],
+        rowMode: "array"
+    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        poolId: row[1],
+        paidByMemberId: row[2],
+        name: row[3],
+        amount: row[4],
+        isSettled: row[5],
+        insertedAt: row[6],
+        updatedAt: row[7]
+    };
+}
+
+export const createExpenseLineItemsQuery = `-- name: CreateExpenseLineItems :many
+WITH input AS (
+    SELECT
+        UNNEST($1::UUID[]) AS expense_ids,
+        UNNEST($2::UUID[]) AS debtor_member_ids,
+        UNNEST($3::DOUBLE PRECISION[]) AS amounts
+)
+
+INSERT INTO expense_line_item (expense_id, debtor_member_id, amount)
+SELECT
+    i.expense_ids,
+    i.debtor_member_ids,
+    i.amounts
+FROM input i
+RETURNING id, expense_id, debtor_member_id, is_settled, amount, inserted_at, updated_at`;
+
+export interface CreateExpenseLineItemsArgs {
+    expenseids: string[];
+    debtormemberids: string[];
+    amounts: number[];
+}
+
+export interface CreateExpenseLineItemsRow {
+    id: string;
+    expenseId: string;
+    debtorMemberId: string;
+    isSettled: boolean;
+    amount: string;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function createExpenseLineItems(client: Client, args: CreateExpenseLineItemsArgs): Promise<CreateExpenseLineItemsRow[]> {
+    const result = await client.query({
+        text: createExpenseLineItemsQuery,
+        values: [args.expenseids, args.debtormemberids, args.amounts],
+        rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            expenseId: row[1],
+            debtorMemberId: row[2],
+            isSettled: row[3],
+            amount: row[4],
+            insertedAt: row[5],
+            updatedAt: row[6]
+        };
+    });
 }
 

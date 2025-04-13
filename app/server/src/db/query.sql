@@ -17,6 +17,7 @@ WITH debts_owed AS (
 )
 
 SELECT
+    pm.member_id,
     p.*,
     COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
     COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses
@@ -43,4 +44,25 @@ WHERE id = $2;
 -- name: CreateMember :one
 INSERT INTO member (first_name, last_name, email, password_hash)
 VALUES ($1, $2, $3, $4)
+RETURNING *;
+
+-- name: CreateExpense :one
+INSERT INTO expense (pool_id, paid_by_member_id, name, amount)
+VALUES ($1, $2, $3, sqlc.arg(amount)::DOUBLE PRECISION)
+RETURNING *;
+
+-- name: CreateExpenseLineItems :many
+WITH input AS (
+    SELECT
+        UNNEST(sqlc.arg(expenseIds)::UUID[]) AS expense_ids,
+        UNNEST(sqlc.arg(debtorMemberIds)::UUID[]) AS debtor_member_ids,
+        UNNEST(sqlc.arg(amounts)::DOUBLE PRECISION[]) AS amounts
+)
+
+INSERT INTO expense_line_item (expense_id, debtor_member_id, amount)
+SELECT
+    i.expense_ids,
+    i.debtor_member_ids,
+    i.amounts
+FROM input i
 RETURNING *;

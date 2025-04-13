@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from './init';
 import { pool } from '../server/src/db/pool'
-import { checkAuth, createMember, listMembers, listPoolsForMember, loginMember } from '../server/src/db/query_sql';
+import { checkAuth, createExpense, createExpenseLineItems, createMember, listMembers, listPoolsForMember, loginMember } from '../server/src/db/query_sql';
 import bcrypt from 'bcrypt';
 
 const PASSWORD_SALT = "$2b$10$dBUuuGRQ9bl2nOu/FkgVUe"
@@ -35,6 +35,45 @@ export const trpcRouter = createTRPCRouter({
       const conn = await pool.connect();
 
       return await listPoolsForMember(conn, { memberId: input });
+    }),
+    addExpense: publicProcedure
+    .input(z.object({
+      paidByMemberId: z.string(),
+      poolId: z.string(),
+      name: z.string(),
+      amount: z.number(),
+      lineItems: z.array(z.object({
+        debtor_member_id: z.string(),
+        amount: z.number(),
+      }))
+    }))
+    .mutation(async ({ input }) => {
+      const conn = await pool.connect()
+
+      console.log("Creating expense", input)
+
+      const expense = await createExpense(conn, {
+        poolId: input.poolId,
+        paidByMemberId: input.paidByMemberId,
+        name: input.name,
+        amount: input.amount,
+      })
+
+      if (!expense) {
+        throw new Error("Failed to create expense");
+      }
+
+      const expenseIds = input.lineItems.map((_) => expense.id)
+      const debtorMemberIds = input.lineItems.map((li) => li.debtor_member_id)
+      const amounts = input.lineItems.map((li) => li.amount)
+
+      const lineItems = await createExpenseLineItems(conn, {
+        expenseids: expenseIds,
+        debtormemberids: debtorMemberIds,
+        amounts: amounts,
+      })
+
+      console.log(expense, lineItems)
     }),
     signup: publicProcedure.input(z.object({
       firstName: z.string(),
