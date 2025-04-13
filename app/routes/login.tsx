@@ -1,9 +1,8 @@
 import { LoginForm } from "~/components/login-form";
 
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "~/hooks/auth";
 import { z } from "zod";
-import { useTRPC } from "~/trpc/react";
 
 const fallback = "/" as const;
 
@@ -12,15 +11,14 @@ export const Route = createFileRoute("/login")({
   validateSearch: z.object({
     redirect: z.string().optional().catch(""),
   }),
-  beforeLoad: ({ context, search }) => {
-    if (context.auth.isAuthenticated) {
-      throw redirect({ to: search.redirect || fallback });
-    }
-  },
 });
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { isAuthenticated, login } = useAuth();
+
+  if (isAuthenticated) {
+    return <Navigate to={fallback} />;
+  }
 
   return (
     <div className="flex flex-col justify-center items-center h-full mt-24">
