@@ -36,7 +36,9 @@ function Home() {
     );
   }
 
-  const pools = data || [];
+  const { pools: poolsRaw, poolMembers: poolMembersRaw } = data || {};
+  const pools = poolsRaw || [];
+  const poolMembers = poolMembersRaw || [];
 
   return (
     <div className="flex flex-col items-center">

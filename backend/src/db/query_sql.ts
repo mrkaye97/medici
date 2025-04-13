@@ -4,8 +4,49 @@ interface Client {
     query: (config: QueryArrayConfig) => Promise<QueryArrayResult>;
 }
 
+export const getMemberQuery = `-- name: GetMember :one
+SELECT m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at, p.password_hash
+FROM member m
+JOIN member_password p ON m.id = p.member_id
+WHERE m.id = $1`;
+
+export interface GetMemberArgs {
+    id: string;
+}
+
+export interface GetMemberRow {
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    insertedAt: Date;
+    updatedAt: Date;
+    passwordHash: string;
+}
+
+export async function getMember(client: Client, args: GetMemberArgs): Promise<GetMemberRow | null> {
+    const result = await client.query({
+        text: getMemberQuery,
+        values: [args.id],
+        rowMode: "array"
+    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        firstName: row[1],
+        lastName: row[2],
+        email: row[3],
+        insertedAt: row[4],
+        updatedAt: row[5],
+        passwordHash: row[6]
+    };
+}
+
 export const listMembersQuery = `-- name: ListMembers :many
-SELECT id, first_name, last_name, email, password_hash, inserted_at, updated_at
+SELECT id, first_name, last_name, email, inserted_at, updated_at
 FROM member`;
 
 export interface ListMembersRow {
@@ -13,7 +54,6 @@ export interface ListMembersRow {
     firstName: string;
     lastName: string;
     email: string;
-    passwordHash: string;
     insertedAt: Date;
     updatedAt: Date;
 }
@@ -30,9 +70,8 @@ export async function listMembers(client: Client): Promise<ListMembersRow[]> {
             firstName: row[1],
             lastName: row[2],
             email: row[3],
-            passwordHash: row[4],
-            insertedAt: row[5],
-            updatedAt: row[6]
+            insertedAt: row[4],
+            updatedAt: row[5]
         };
     });
 }
@@ -100,7 +139,7 @@ export async function listPoolDetailsForMember(client: Client, args: ListPoolDet
 }
 
 export const listMembersOfPoolQuery = `-- name: ListMembersOfPool :many
-SELECT m.id, m.first_name, m.last_name, m.email, m.password_hash, m.inserted_at, m.updated_at
+SELECT m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at
 FROM member m
 JOIN pool_membership pm ON m.id = pm.member_id
 WHERE pm.pool_id = $1`;
@@ -114,7 +153,6 @@ export interface ListMembersOfPoolRow {
     firstName: string;
     lastName: string;
     email: string;
-    passwordHash: string;
     insertedAt: Date;
     updatedAt: Date;
 }
@@ -131,20 +169,20 @@ export async function listMembersOfPool(client: Client, args: ListMembersOfPoolA
             firstName: row[1],
             lastName: row[2],
             email: row[3],
-            passwordHash: row[4],
-            insertedAt: row[5],
-            updatedAt: row[6]
+            insertedAt: row[4],
+            updatedAt: row[5]
         };
     });
 }
 
 export const loginMemberQuery = `-- name: LoginMember :one
 SELECT
-    id,
-    email,
-    password_hash = $2 AS is_authenticated
-FROM member
-WHERE email = $1`;
+    m.id,
+    m.email,
+    p.password_hash = $2 AS is_authenticated
+FROM member m
+JOIN member_password p ON m.id = p.member_id
+WHERE m.email = $1`;
 
 export interface LoginMemberArgs {
     email: string;
@@ -178,12 +216,12 @@ export const checkAuthQuery = `-- name: CheckAuth :one
 SELECT
     id,
     password_hash = $1 AS is_authenticated
-FROM member
-WHERE id = $2`;
+FROM member_password
+WHERE member_id = $2`;
 
 export interface CheckAuthArgs {
     passwordHash: string;
-    id: string;
+    memberId: string;
 }
 
 export interface CheckAuthRow {
@@ -194,7 +232,7 @@ export interface CheckAuthRow {
 export async function checkAuth(client: Client, args: CheckAuthArgs): Promise<CheckAuthRow | null> {
     const result = await client.query({
         text: checkAuthQuery,
-        values: [args.passwordHash, args.id],
+        values: [args.passwordHash, args.memberId],
         rowMode: "array"
     });
     if (result.rows.length !== 1) {
@@ -208,31 +246,33 @@ export async function checkAuth(client: Client, args: CheckAuthArgs): Promise<Ch
 }
 
 export const createMemberQuery = `-- name: CreateMember :one
-INSERT INTO member (first_name, last_name, email, password_hash)
-VALUES ($1, $2, $3, $4)
-RETURNING id, first_name, last_name, email, password_hash, inserted_at, updated_at`;
+WITH m AS (
+    INSERT INTO member (first_name, last_name, email)
+    VALUES ($1, $2, $3)
+    RETURNING id
+)
+INSERT INTO member_password (member_id, password_hash)
+VALUES (
+    (SELECT id FROM m),
+    $4::TEXT
+)
+RETURNING member_id`;
 
 export interface CreateMemberArgs {
     firstName: string;
     lastName: string;
     email: string;
-    passwordHash: string;
+    passwordhash: string;
 }
 
 export interface CreateMemberRow {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    passwordHash: string;
-    insertedAt: Date;
-    updatedAt: Date;
+    memberId: string;
 }
 
 export async function createMember(client: Client, args: CreateMemberArgs): Promise<CreateMemberRow | null> {
     const result = await client.query({
         text: createMemberQuery,
-        values: [args.firstName, args.lastName, args.email, args.passwordHash],
+        values: [args.firstName, args.lastName, args.email, args.passwordhash],
         rowMode: "array"
     });
     if (result.rows.length !== 1) {
@@ -240,13 +280,7 @@ export async function createMember(client: Client, args: CreateMemberArgs): Prom
     }
     const row = result.rows[0];
     return {
-        id: row[0],
-        firstName: row[1],
-        lastName: row[2],
-        email: row[3],
-        passwordHash: row[4],
-        insertedAt: row[5],
-        updatedAt: row[6]
+        memberId: row[0]
     };
 }
 

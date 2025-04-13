@@ -1,3 +1,9 @@
+-- name: GetMember :one
+SELECT m.*, p.password_hash
+FROM member m
+JOIN member_password p ON m.id = p.member_id
+WHERE m.id = $1;
+
 -- name: ListMembers :many
 SELECT *
 FROM member;
@@ -38,23 +44,32 @@ WHERE pm.pool_id = $1;
 
 -- name: LoginMember :one
 SELECT
-    id,
-    email,
-    password_hash = $2 AS is_authenticated
-FROM member
-WHERE email = $1;
+    m.id,
+    m.email,
+    p.password_hash = $2 AS is_authenticated
+FROM member m
+JOIN member_password p ON m.id = p.member_id
+WHERE m.email = $1;
 
 -- name: CheckAuth :one
 SELECT
     id,
     password_hash = $1 AS is_authenticated
-FROM member
-WHERE id = $2;
+FROM member_password
+WHERE member_id = $2;
 
 -- name: CreateMember :one
-INSERT INTO member (first_name, last_name, email, password_hash)
-VALUES ($1, $2, $3, $4)
-RETURNING *;
+WITH m AS (
+    INSERT INTO member (first_name, last_name, email)
+    VALUES ($1, $2, $3)
+    RETURNING id
+)
+INSERT INTO member_password (member_id, password_hash)
+VALUES (
+    (SELECT id FROM m),
+    sqlc.arg(passwordHash)::TEXT
+)
+RETURNING member_id;
 
 -- name: CreateExpense :one
 INSERT INTO expense (pool_id, paid_by_member_id, name, amount)

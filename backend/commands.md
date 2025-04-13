@@ -39,3 +39,10 @@ SELECT p.id, m.id, 'ADMIN'
 FROM pool p, member m
 ;
 ```
+
+### Connec to db
+
+```bash
+psql -d postgres://postgres:postgres@localhost:5442/medici
+
+```

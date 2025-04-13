@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from './init';
 import { pool } from "../backend/src/db/pool"
-import { checkAuth, createExpense, createExpenseLineItems, createMember, listMembers, listPoolDetailsForMember, loginMember } from '../backend/src/db/query_sql';
+import { checkAuth, createExpense, createExpenseLineItems, createMember, getMember, listMembers, listMembersOfPool, listPoolDetailsForMember, loginMember } from '../backend/src/db/query_sql';
 import bcrypt from 'bcrypt';
 
 const PASSWORD_SALT = "$2b$10$dBUuuGRQ9bl2nOu/FkgVUe"
@@ -34,7 +34,17 @@ export const trpcRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const conn = await pool.connect();
 
-      return await listPoolDetailsForMember(conn, { memberid: input });
+      const pools = await listPoolDetailsForMember(conn, { memberid: input });
+      const poolMembers = await Promise.all(pools.map(async (p) => {
+        const m = await listMembersOfPool(conn, {poolId: p.id})
+
+        return {
+          poolId: p,
+          members: m,
+        }
+      }));
+
+      return { pools, poolMembers: poolMembers.map(pm => JSON.stringify(pm)) };
     }),
     addExpense: publicProcedure
     .input(z.object({
@@ -84,12 +94,18 @@ export const trpcRouter = createTRPCRouter({
       const passwordHash = await hashPassword(input.password);
       const conn = await pool.connect()
 
-      return await createMember(conn, {
+      const createdMember = await createMember(conn, {
         firstName: input.firstName,
         lastName: input.lastName,
         email: input.email,
-        passwordHash
+        passwordhash: passwordHash,
       })
+
+      if (!createdMember) {
+        throw new Error("Failed to create member");
+      }
+
+      return await getMember(conn, {id: createdMember.memberId})
     }),
     login: publicProcedure.input(z.object({
       email: z.string(),
@@ -127,7 +143,7 @@ export const trpcRouter = createTRPCRouter({
       const conn = await pool.connect()
 
       const auth = await checkAuth(conn, {
-        id: input.id,
+        memberId: input.id,
         passwordHash: input.token,
       })
 
