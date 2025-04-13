@@ -1,17 +1,10 @@
-import { TRPCError, TRPCRouterRecord } from '@trpc/server';
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from './init';
 import { pool } from '../server/src/db/pool'
 import { listMembers, listPoolsForMember } from '../server/src/db/query_sql';
 
-type Post = {
-  id: string;
-  title: string;
-  body: string;
-};
-
 export const trpcRouter = createTRPCRouter({
-  listMembers: publicProcedure.query(async ({ input }) => {
+  listMembers: publicProcedure.query(async () => {
     const conn = await pool.connect();
 
     return await listMembers(conn);

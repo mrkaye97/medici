@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { useTRPC } from "~/trpc/react";
 
@@ -13,13 +13,13 @@ export const Route = createFileRoute("/posts")({
 
 function PostsComponent() {
   const trpc = useTRPC();
-  const membersQuery = useSuspenseQuery(trpc.listMembers.queryOptions());
+  const membersQuery = useQuery(trpc.listMembers.queryOptions());
 
   return (
     <div className="flex gap-2 p-2">
       <ul className="list-disc pl-4">
         {[
-          ...membersQuery.data,
+          ...(membersQuery.data ?? []),
           { id: "i-do-not-exist", title: "Non-existent Post" },
         ].map((post) => {
           return (

@@ -1,4 +1,4 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, ErrorComponent, Link } from "@tanstack/react-router";
 import { NotFound } from "~/components/NotFound";
 import { useTRPC } from "~/trpc/react";
@@ -22,9 +22,7 @@ function PostComponent() {
   const { postId } = Route.useParams();
   const trpc = useTRPC();
 
-  const membersQuery = useSuspenseQuery(
-    trpc.listPoolsForMember.queryOptions(postId)
-  );
+  const membersQuery = useQuery(trpc.listPoolsForMember.queryOptions(postId));
 
   return (
     <div className="space-y-2">
