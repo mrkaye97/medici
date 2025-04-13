@@ -23,7 +23,7 @@ async function main() {
     },
   });
 
-  // Then use it with the path
+  // @ts-ignore
   app.use("/api/trpc", trpcMiddleware as RequestHandler);
 
   app.use((req, res, next) => {
