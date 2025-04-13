@@ -13,6 +13,7 @@
     "@trpc/client": "npm:@trpc/client",
     "@trpc/react-query": "npm:@trpc/react-query",
     "@trpc/server": "npm:@trpc/server",
+    "cors": "^2.8.5",
     "express": "^5.0.0",
     "pg": "^8.14.1",
     "zod": "^3.24.2"
@@ -21,6 +22,7 @@
     "scheduler/tracing": "../../node_modules/scheduler/tracing-profiling"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.13.5",
     "@types/pg": "^8.11.12",

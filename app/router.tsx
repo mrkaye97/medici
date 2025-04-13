@@ -12,10 +12,6 @@ import { TRPCRouter } from "./trpc/router";
 
 function getUrl() {
   const base = (() => {
-    if (typeof window !== "undefined") return "";
-    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-
-    console.log(process.env.PORT);
     return `http://localhost:${process.env.PORT ?? 8000}`;
   })();
   return base + "/api/trpc";

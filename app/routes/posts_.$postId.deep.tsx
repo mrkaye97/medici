@@ -1,4 +1,4 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, ErrorComponent, Link } from "@tanstack/react-router";
 import { useTRPC } from "~/trpc/react";
 
@@ -18,9 +18,7 @@ function PostDeepComponent() {
   const { postId } = Route.useParams();
   const trpc = useTRPC();
 
-  const membersQuery = useQuery(
-    trpc.listPoolsForMember.queryOptions(postId)
-  );
+  const membersQuery = useQuery(trpc.listPoolsForMember.queryOptions(postId));
 
   console.log("membersQuery", membersQuery);
 
