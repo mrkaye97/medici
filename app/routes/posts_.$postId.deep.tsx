@@ -20,8 +20,6 @@ function PostDeepComponent() {
 
   const membersQuery = useQuery(trpc.listPoolsForMember.queryOptions(postId));
 
-  console.log("membersQuery", membersQuery);
-
   return (
     <div className="space-y-2 p-2">
       <Link

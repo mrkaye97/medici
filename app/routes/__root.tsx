@@ -36,9 +36,13 @@ export const Route = createRootRouteWithContext<{
   },
   notFoundComponent: () => <NotFound />,
   component: () => {
-    <RootDocument>
-      <Outlet />
-    </RootDocument>;
+    return (
+      <AuthProvider>
+        <RootDocument>
+          <Outlet />
+        </RootDocument>
+      </AuthProvider>
+    );
   },
 });
 

@@ -21,14 +21,6 @@ export const Route = createFileRoute("/login")({
 
 export default function LoginPage() {
   const { login } = useAuth();
-  const trpc = useTRPC();
-
-  const key = trpc.authenticate.queryKey({
-    id: "uuid",
-    token: "token",
-    expiresAt: "expiresAt",
-  });
-  console.log("Query key", key);
 
   return (
     <div className="flex flex-col justify-center items-center h-full mt-24">

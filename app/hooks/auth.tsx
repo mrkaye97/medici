@@ -82,8 +82,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     expiresAt: metadata?.expiresAt || "",
   });
 
-  console.log("Query key", key);
-
   const authenticateQuery = useQuery(
     trpc.authenticate.queryOptions(
       {
