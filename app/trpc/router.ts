@@ -4,18 +4,20 @@ import { pool } from '../server/src/db/pool'
 import { checkAuth, createMember, listMembers, listPoolsForMember, loginMember } from '../server/src/db/query_sql';
 import bcrypt from 'bcrypt';
 
-const PASSWORD_SALT = "62bed4d2bc97"
+const PASSWORD_SALT = "$2b$10$dBUuuGRQ9bl2nOu/FkgVUe"
 const DAYS = 1000 * 60 * 60 * 24;
 
-const hashPassword = async (password: string) => {
+export const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, PASSWORD_SALT);
 };
 
 type AuthResult = {
+  id: string;
   token: string;
   isAuthenticated: true;
   expiresAt: string;
 } | {
+  id: null;
   token: null;
   isAuthenticated: false;
   expiresAt: null;
@@ -64,6 +66,7 @@ export const trpcRouter = createTRPCRouter({
 
       if (!auth || !auth.isAuthenticated) {
         return {
+          id: null,
           token: null,
           isAuthenticated: false,
           expiresAt: null,
@@ -71,6 +74,7 @@ export const trpcRouter = createTRPCRouter({
       }
 
       return {
+        id: auth.id,
         token: passwordHash,
         isAuthenticated: true,
         expiresAt: new Date(Date.now() + DAYS * 7).toISOString(),
@@ -80,7 +84,7 @@ export const trpcRouter = createTRPCRouter({
       id: z.string(),
       token: z.string(),
       expiresAt: z.string(),
-    })).mutation(async ({input}): Promise<AuthResult> => {
+    })).query(async ({input}): Promise<AuthResult> => {
       const conn = await pool.connect()
 
       const auth = await checkAuth(conn, {
@@ -90,6 +94,7 @@ export const trpcRouter = createTRPCRouter({
 
       if (!auth || !auth.isAuthenticated) {
         return {
+          id: null,
           token: null,
           isAuthenticated: false,
           expiresAt: null,
@@ -97,6 +102,7 @@ export const trpcRouter = createTRPCRouter({
       }
 
       return {
+        id: auth.id,
         token: input.token,
         isAuthenticated: true,
         expiresAt: new Date(Date.now() + DAYS * 7).toISOString(),

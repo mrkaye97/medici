@@ -13,7 +13,7 @@ import { FormEvent, useCallback } from "react";
 
 type LoginFormProps = {
   className?: string;
-  onSubmit?: (
+  onSubmit: (
     e: FormEvent<HTMLFormElement>,
     formData: { email: string; password: string }
   ) => void;
@@ -27,8 +27,6 @@ export function LoginForm({ className, onSubmit }: LoginFormProps) {
       const formData = new FormData(e.currentTarget);
       const email = formData.get("email") as string;
       const password = formData.get("password") as string;
-
-      console.log(email, password, formData);
 
       if (onSubmit) {
         onSubmit(e, { email, password });
@@ -53,6 +51,7 @@ export function LoginForm({ className, onSubmit }: LoginFormProps) {
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="anna@thekarenin.as"
                   required
@@ -68,7 +67,7 @@ export function LoginForm({ className, onSubmit }: LoginFormProps) {
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" name="password" type="password" required />
               </div>
               <Button type="submit" className="w-full">
                 Login

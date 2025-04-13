@@ -40,7 +40,7 @@ export function createRouter() {
   });
 
   const router = createTanStackRouter({
-    context: { queryClient, trpc: serverHelpers },
+    context: { queryClient, trpc: serverHelpers, auth: undefined! },
     routeTree,
     defaultPreload: "intent",
     defaultErrorComponent: DefaultCatchBoundary,

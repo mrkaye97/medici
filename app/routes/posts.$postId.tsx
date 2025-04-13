@@ -1,5 +1,5 @@
-import { useQuery, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, ErrorComponent, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, ErrorComponent } from "@tanstack/react-router";
 import { NotFound } from "~/components/NotFound";
 import { useTRPC } from "~/trpc/react";
 
