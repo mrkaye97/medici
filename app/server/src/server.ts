@@ -3,7 +3,7 @@ import * as trpcExpress from "@trpc/server/adapters/express";
 import express from "express";
 import { z } from "zod";
 import { pool } from "./db/pool";
-import { listMembers } from "./db/query_sql";
+import { listMembers, listPoolsForMember } from "./db/query_sql";
 
 const t = initTRPC.context().create();
 
@@ -11,14 +11,18 @@ const router = t.router;
 const publicProcedure = t.procedure;
 
 const appRouter = router({
-  members: publicProcedure.query(async ({ input }) => {
-    const conn = await pool.connect()
+  listMembers: publicProcedure.query(async ({ input }) => {
+    const conn = await pool.connect();
 
-    return await listMembers(conn)
+    return await listMembers(conn);
   }),
-  pools: publicProcedure.input(z.string()).query(({ memberId }) => {
-    return `hello ${input ?? "world"}`;
-  }),
+  listPoolsForMember: publicProcedure
+    .input(z.string())
+    .query(async ({ input }) => {
+      const conn = await pool.connect();
+
+      return await listPoolsForMember(conn, { memberId: input });
+    }),
 });
 
 export type AppRouter = typeof appRouter;
