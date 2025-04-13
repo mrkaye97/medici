@@ -1,12 +1,12 @@
-import { useSuspenseQuery } from '@tanstack/react-query';
-import { createFileRoute, ErrorComponent, Link } from '@tanstack/react-router';
-import { NotFound } from '~/components/NotFound';
-import { useTRPC } from '~/trpc/react';
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, ErrorComponent, Link } from "@tanstack/react-router";
+import { NotFound } from "~/components/NotFound";
+import { useTRPC } from "~/trpc/react";
 
-export const Route = createFileRoute('/posts/$postId')({
+export const Route = createFileRoute("/posts/$postId")({
   loader: async ({ params: { postId }, context }) => {
     const data = await context.queryClient.ensureQueryData(
-      context.trpc.post.byId.queryOptions({ id: postId }),
+      context.trpc.post.byId.queryOptions({ id: postId })
     );
 
     return { title: data.title };
@@ -26,7 +26,7 @@ function PostComponent() {
   const trpc = useTRPC();
 
   const postQuery = useSuspenseQuery(
-    trpc.post.byId.queryOptions({ id: postId }),
+    trpc.post.byId.queryOptions({ id: postId })
   );
 
   return (
@@ -38,7 +38,7 @@ function PostComponent() {
         params={{
           postId: postQuery.data.id,
         }}
-        activeProps={{ className: 'text-black font-bold' }}
+        activeProps={{ className: "text-black font-bold" }}
         className="block py-1 text-blue-800 hover:text-blue-600"
       >
         Deep View
