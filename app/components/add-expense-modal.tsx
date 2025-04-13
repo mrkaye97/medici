@@ -12,7 +12,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTRPC } from "../../trpc/react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
@@ -105,6 +105,7 @@ export function AddExpenseModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const trpc = useTRPC();
+  const queryClient = useQueryClient();
   const { id } = useAuth();
   const { mutate: addExpense } = useMutation(trpc.addExpense.mutationOptions());
   const { data } = useQuery(trpc.listMembersOfPool.queryOptions(pool.id));
@@ -171,7 +172,12 @@ export function AddExpenseModal({
                   lineItems: memberLineItemAmounts,
                 },
                 {
-                  onSuccess: () => setIsOpen(false),
+                  onSuccess: () => {
+                    setIsOpen(false);
+                    queryClient.invalidateQueries({
+                      queryKey: trpc.getPoolRecentExpenses.queryKey(),
+                    });
+                  },
                   onError: (err) =>
                     alert("Failed to add expense: " + err.message),
                 },
