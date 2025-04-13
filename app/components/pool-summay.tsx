@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
 import { ListPoolDetailsForMemberRow } from "../../backend/src/db/query_sql";
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
+import { Label } from "./ui/label";
 
 const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -35,28 +37,6 @@ const formatCurrency = (amount: number) => {
     currency: "USD",
   }).format(amount);
 };
-
-type SplitMethodType = "percentage" | "amount";
-
-export function SplitMethod({ method }: { method: SplitMethodType }) {
-  switch (method) {
-    case "percentage":
-      return (
-        <div>
-          <CirclePercent className="size-8 text-red-200 mr-1" />
-        </div>
-      );
-    case "amount":
-      return (
-        <div>
-          <CircleDollarSign className="w-4 h-4 mr-1" />
-        </div>
-      );
-    default:
-      const exhaustiveness: never = method;
-      throw new Error(`Unknown split method: ${exhaustiveness}`);
-  }
-}
 
 export function PoolSummary({ pool }: { pool: ListPoolDetailsForMemberRow }) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -137,7 +117,6 @@ export function PoolSummary({ pool }: { pool: ListPoolDetailsForMemberRow }) {
           </Button>
         </CardFooter>
       </Card>
-      <SplitMethod method="percentage" />
     </>
   );
 }

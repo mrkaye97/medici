@@ -13,6 +13,12 @@ function Home() {
   const trpc = useTRPC();
   const { isAuthenticated, id, token } = useAuth();
 
+  const { data, isLoading, isFetching } = useQuery(
+    trpc.listPoolsForMember.queryOptions(id || "", {
+      enabled: !!id,
+    })
+  );
+
   if (!isAuthenticated || !id || !token) {
     return (
       <Navigate
@@ -24,10 +30,6 @@ function Home() {
     );
   }
 
-  const { data, isLoading, isFetching } = useQuery(
-    trpc.listPoolsForMember.queryOptions(id)
-  );
-
   if (isLoading || isFetching) {
     return (
       <div className="flex flex-col items-center">
@@ -38,7 +40,9 @@ function Home() {
 
   const { pools: poolsRaw, poolMembers: poolMembersRaw } = data || {};
   const pools = poolsRaw || [];
-  const poolMembers = poolMembersRaw || [];
+  const poolMembers = (poolMembersRaw || []).map((pm) => JSON.parse(pm));
+
+  console.log(pools, poolMembers);
 
   return (
     <div className="flex flex-col items-center">

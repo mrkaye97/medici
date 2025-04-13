@@ -76,11 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, metadata } = isAlreadyAuthenticated();
 
   const trpc = useTRPC();
-  const key = trpc.authenticate.queryKey({
-    id: metadata?.id || "",
-    token: metadata?.token || "",
-    expiresAt: metadata?.expiresAt || "",
-  });
 
   const authenticateQuery = useQuery(
     trpc.authenticate.queryOptions(
@@ -121,7 +116,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      const { data, isLoading, isError } = authenticateQuery;
+      const { data } = authenticateQuery;
 
       return data?.isAuthenticated || false;
     } catch (error) {

@@ -34,6 +34,9 @@ export const trpcRouter = createTRPCRouter({
   listMembers: publicProcedure.query(async ({ctx}) => {
     return await listMembers(ctx.db);
   }),
+  listMembersOfPool: publicProcedure.input(z.string()).query(async ({ctx, input}) => {
+    return await listMembersOfPool(ctx.db, { poolId: input });
+  }),
   listPoolsForMember: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
