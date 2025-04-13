@@ -59,7 +59,7 @@ CREATE TABLE expense_line_item (
     expense_id UUID NOT NULL,
     is_settled BOOLEAN NOT NULL DEFAULT FALSE,
     amount NUMERIC NOT NULL,
-    inserted_at TIMESTAMP NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP NOT NULL DEFAULT now(),
+    inserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     FOREIGN KEY (expense_id, is_settled) REFERENCES expense(id, is_settled) ON DELETE CASCADE
 );

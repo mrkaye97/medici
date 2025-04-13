@@ -33,4 +33,4 @@ PARTITION OF expense
 FOR VALUES IN (FALSE);
 
 -- Create "expense_line_item" table
-CREATE TABLE "public"."expense_line_item" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "expense_id" uuid NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "amount" numeric NOT NULL, "inserted_at" timestamp NOT NULL DEFAULT now(), "updated_at" timestamp NOT NULL DEFAULT now(), PRIMARY KEY ("id"), CONSTRAINT "expense_line_item_expense_id_is_settled_fkey" FOREIGN KEY ("expense_id", "is_settled") REFERENCES "public"."expense" ("id", "is_settled"));
+CREATE TABLE "public"."expense_line_item" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "expense_id" uuid NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "amount" numeric NOT NULL, "inserted_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), PRIMARY KEY ("id"), CONSTRAINT "expense_line_item_expense_id_is_settled_fkey" FOREIGN KEY ("expense_id", "is_settled") REFERENCES "public"."expense" ("id", "is_settled"));
