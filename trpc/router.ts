@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "./init";
-import { pool, withConnection } from "../backend/src/db/pool";
 import {
   checkAuth,
   createExpense,

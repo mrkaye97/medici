@@ -1,5 +1,5 @@
 import * as trpcExpress from "@trpc/server/adapters/express";
-import express from "express";
+import express, { RequestHandler } from "express";
 import { trpcRouter } from "../../trpc/router";
 import cors from "cors";
 
@@ -8,7 +8,7 @@ async function main() {
 
   app.use(
     cors({
-      origin: "http://localhost:3001", // more restrictive than "*"
+      origin: "http://localhost:3001",
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "trpc-accept"],
     }),
@@ -16,15 +16,15 @@ async function main() {
 
   app.options("*", cors());
 
-  app.use(
-    "/api/trpc",
-    trpcExpress.createExpressMiddleware({
-      router: trpcRouter,
-      onError({ error, path, type }) {
-        console.error(`tRPC Error on ${type} ${path}:`, error);
-      },
-    }),
-  );
+  const trpcMiddleware = trpcExpress.createExpressMiddleware({
+    router: trpcRouter,
+    onError({ error, path, type }) {
+      console.error(`tRPC Error on ${type} ${path}:`, error);
+    },
+  });
+
+  // Then use it with the path
+  app.use("/api/trpc", trpcMiddleware as RequestHandler);
 
   app.use((req, res, next) => {
     const timeout = setTimeout(() => {

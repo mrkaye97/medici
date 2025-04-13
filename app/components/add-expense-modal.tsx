@@ -239,7 +239,6 @@ export function AddExpenseModal({
                             };
                           });
                         }}
-                        pool={pool}
                       />
                       <div className="flex flex-col gap-y-2 border border-[#00000025] p-4 rounded-lg mt-4">
                         {members.map((m, ix) => (
