@@ -6,14 +6,11 @@ import { useTRPC } from "~/trpc/react";
 export const Route = createFileRoute("/posts/$postId")({
   loader: async ({ params: { postId }, context }) => {
     const data = await context.queryClient.ensureQueryData(
-      context.trpc.post.byId.queryOptions({ id: postId })
+      context.trpc.listPoolsForMember.queryOptions(postId)
     );
 
-    return { title: data.title };
+    return { pools: data };
   },
-  head: ({ loaderData }) => ({
-    meta: [{ title: loaderData.title }],
-  }),
   errorComponent: ({ error }) => <ErrorComponent error={error} />,
   notFoundComponent: () => {
     return <NotFound>Post not found</NotFound>;
@@ -25,24 +22,15 @@ function PostComponent() {
   const { postId } = Route.useParams();
   const trpc = useTRPC();
 
-  const postQuery = useSuspenseQuery(
-    trpc.post.byId.queryOptions({ id: postId })
+  const membersQuery = useSuspenseQuery(
+    trpc.listPoolsForMember.queryOptions(postId)
   );
 
   return (
     <div className="space-y-2">
-      <h4 className="text-xl font-bold underline">{postQuery.data.title}</h4>
-      <div className="text-sm">{postQuery.data.body}</div>
-      <Link
-        to="/posts/$postId/deep"
-        params={{
-          postId: postQuery.data.id,
-        }}
-        activeProps={{ className: "text-black font-bold" }}
-        className="block py-1 text-blue-800 hover:text-blue-600"
-      >
-        Deep View
-      </Link>
+      <h4 className="text-xl font-bold underline">
+        {JSON.stringify(membersQuery.data)}
+      </h4>
     </div>
   );
 }
