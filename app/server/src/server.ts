@@ -125,8 +125,8 @@ async function main() {
   app.get('/', (_req, res) => {
     res.send('hello');
   });
-  app.listen(2021, () => {
-    console.log('listening on port 2021');
+  app.listen(8000, () => {
+    console.log('listening on port 8000');
   });
 }
 
