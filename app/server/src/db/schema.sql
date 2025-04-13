@@ -1,6 +1,6 @@
 CREATE TABLE pool (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(255),
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -37,6 +37,8 @@ CREATE INDEX ix_pool_membership_pool_id ON pool_membership (pool_id);
 
 CREATE TABLE expense (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
+    pool_id UUID NOT NULL REFERENCES pool(id) ON DELETE CASCADE,
+    paid_by_member_id UUID NOT NULL REFERENCES member(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     amount NUMERIC NOT NULL,
     is_settled BOOLEAN NOT NULL DEFAULT FALSE,
@@ -57,6 +59,7 @@ FOR VALUES IN (FALSE);
 CREATE TABLE expense_line_item (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     expense_id UUID NOT NULL,
+    debtor_member_id UUID NOT NULL REFERENCES member(id) ON DELETE CASCADE,
     is_settled BOOLEAN NOT NULL DEFAULT FALSE,
     amount NUMERIC NOT NULL,
     inserted_at TIMESTAMPTZ NOT NULL DEFAULT now(),

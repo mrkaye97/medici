@@ -38,9 +38,26 @@ export async function listMembers(client: Client): Promise<ListMembersRow[]> {
 }
 
 export const listPoolsForMemberQuery = `-- name: ListPoolsForMember :many
-SELECT p.id, name, description, p.inserted_at, p.updated_at, pm.id, pool_id, member_id, role, pm.inserted_at, pm.updated_at
+WITH debts_owed AS (
+    SELECT
+        eli.debtor_member_id,
+        e.pool_id,
+        SUM(eli.amount)::DOUBLE PRECISION AS total_debt,
+        ARRAY_AGG(eli.amount)::DOUBLE PRECISION[] AS recent_expenses
+    FROM expense_line_item eli
+    JOIN expense e ON (e.id, eli.is_settled) = (eli.expense_id, false)
+    WHERE
+        eli.debtor_member_id = $1
+    GROUP BY eli.debtor_member_id, e.pool_id
+)
+
+SELECT
+    p.id, p.name, p.description, p.inserted_at, p.updated_at,
+    COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
+    COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses
 FROM pool p
-JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = $1`;
+JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = $1
+LEFT JOIN debts_owed d ON d.pool_id = p.id`;
 
 export interface ListPoolsForMemberArgs {
     memberId: string;
@@ -48,16 +65,12 @@ export interface ListPoolsForMemberArgs {
 
 export interface ListPoolsForMemberRow {
     id: string;
-    name: string | null;
+    name: string;
     description: string | null;
     insertedAt: Date;
     updatedAt: Date;
-    id_2: string;
-    poolId: string;
-    memberId: string;
-    role: string;
-    insertedAt_2: Date;
-    updatedAt_2: Date;
+    totalDebt: number;
+    recentExpenses: number[];
 }
 
 export async function listPoolsForMember(client: Client, args: ListPoolsForMemberArgs): Promise<ListPoolsForMemberRow[]> {
@@ -73,12 +86,8 @@ export async function listPoolsForMember(client: Client, args: ListPoolsForMembe
             description: row[2],
             insertedAt: row[3],
             updatedAt: row[4],
-            id_2: row[5],
-            poolId: row[6],
-            memberId: row[7],
-            role: row[8],
-            insertedAt_2: row[9],
-            updatedAt_2: row[10]
+            totalDebt: row[5],
+            recentExpenses: row[6]
         };
     });
 }

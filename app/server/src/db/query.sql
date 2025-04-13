@@ -3,9 +3,27 @@ SELECT *
 FROM member;
 
 -- name: ListPoolsForMember :many
-SELECT *
+WITH debts_owed AS (
+    SELECT
+        eli.debtor_member_id,
+        e.pool_id,
+        SUM(eli.amount)::DOUBLE PRECISION AS total_debt,
+        ARRAY_AGG(eli.amount)::DOUBLE PRECISION[] AS recent_expenses
+    FROM expense_line_item eli
+    JOIN expense e ON (e.id, eli.is_settled) = (eli.expense_id, false)
+    WHERE
+        eli.debtor_member_id = $1
+    GROUP BY eli.debtor_member_id, e.pool_id
+)
+
+SELECT
+    p.*,
+    COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
+    COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses
 FROM pool p
-JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = $1;
+JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = $1
+LEFT JOIN debts_owed d ON d.pool_id = p.id
+;
 
 -- name: LoginMember :one
 SELECT
