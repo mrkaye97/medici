@@ -12,24 +12,14 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as RedirectImport } from './routes/redirect'
-import { Route as PostsImport } from './routes/posts'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
-import { Route as PostsIndexImport } from './routes/posts.index'
-import { Route as PostsPostIdImport } from './routes/posts.$postId'
-import { Route as PostsPostIdDeepImport } from './routes/posts_.$postId.deep'
 
 // Create/Update Routes
 
 const RedirectRoute = RedirectImport.update({
   id: '/redirect',
   path: '/redirect',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const PostsRoute = PostsImport.update({
-  id: '/posts',
-  path: '/posts',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -42,24 +32,6 @@ const LoginRoute = LoginImport.update({
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const PostsIndexRoute = PostsIndexImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => PostsRoute,
-} as any)
-
-const PostsPostIdRoute = PostsPostIdImport.update({
-  id: '/$postId',
-  path: '/$postId',
-  getParentRoute: () => PostsRoute,
-} as any)
-
-const PostsPostIdDeepRoute = PostsPostIdDeepImport.update({
-  id: '/posts_/$postId/deep',
-  path: '/posts/$postId/deep',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -81,13 +53,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/posts': {
-      id: '/posts'
-      path: '/posts'
-      fullPath: '/posts'
-      preLoaderRoute: typeof PostsImport
-      parentRoute: typeof rootRoute
-    }
     '/redirect': {
       id: '/redirect'
       path: '/redirect'
@@ -95,118 +60,49 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RedirectImport
       parentRoute: typeof rootRoute
     }
-    '/posts/$postId': {
-      id: '/posts/$postId'
-      path: '/$postId'
-      fullPath: '/posts/$postId'
-      preLoaderRoute: typeof PostsPostIdImport
-      parentRoute: typeof PostsImport
-    }
-    '/posts/': {
-      id: '/posts/'
-      path: '/'
-      fullPath: '/posts/'
-      preLoaderRoute: typeof PostsIndexImport
-      parentRoute: typeof PostsImport
-    }
-    '/posts_/$postId/deep': {
-      id: '/posts_/$postId/deep'
-      path: '/posts/$postId/deep'
-      fullPath: '/posts/$postId/deep'
-      preLoaderRoute: typeof PostsPostIdDeepImport
-      parentRoute: typeof rootRoute
-    }
   }
 }
 
 // Create and export the route tree
 
-interface PostsRouteChildren {
-  PostsPostIdRoute: typeof PostsPostIdRoute
-  PostsIndexRoute: typeof PostsIndexRoute
-}
-
-const PostsRouteChildren: PostsRouteChildren = {
-  PostsPostIdRoute: PostsPostIdRoute,
-  PostsIndexRoute: PostsIndexRoute,
-}
-
-const PostsRouteWithChildren = PostsRoute._addFileChildren(PostsRouteChildren)
-
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/posts': typeof PostsRouteWithChildren
   '/redirect': typeof RedirectRoute
-  '/posts/$postId': typeof PostsPostIdRoute
-  '/posts/': typeof PostsIndexRoute
-  '/posts/$postId/deep': typeof PostsPostIdDeepRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/redirect': typeof RedirectRoute
-  '/posts/$postId': typeof PostsPostIdRoute
-  '/posts': typeof PostsIndexRoute
-  '/posts/$postId/deep': typeof PostsPostIdDeepRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
-  '/posts': typeof PostsRouteWithChildren
   '/redirect': typeof RedirectRoute
-  '/posts/$postId': typeof PostsPostIdRoute
-  '/posts/': typeof PostsIndexRoute
-  '/posts_/$postId/deep': typeof PostsPostIdDeepRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/posts'
-    | '/redirect'
-    | '/posts/$postId'
-    | '/posts/'
-    | '/posts/$postId/deep'
+  fullPaths: '/' | '/login' | '/redirect'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/redirect'
-    | '/posts/$postId'
-    | '/posts'
-    | '/posts/$postId/deep'
-  id:
-    | '__root__'
-    | '/'
-    | '/login'
-    | '/posts'
-    | '/redirect'
-    | '/posts/$postId'
-    | '/posts/'
-    | '/posts_/$postId/deep'
+  to: '/' | '/login' | '/redirect'
+  id: '__root__' | '/' | '/login' | '/redirect'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
-  PostsRoute: typeof PostsRouteWithChildren
   RedirectRoute: typeof RedirectRoute
-  PostsPostIdDeepRoute: typeof PostsPostIdDeepRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-  PostsRoute: PostsRouteWithChildren,
   RedirectRoute: RedirectRoute,
-  PostsPostIdDeepRoute: PostsPostIdDeepRoute,
 }
 
 export const routeTree = rootRoute
@@ -221,9 +117,7 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/login",
-        "/posts",
-        "/redirect",
-        "/posts_/$postId/deep"
+        "/redirect"
       ]
     },
     "/": {
@@ -232,26 +126,8 @@ export const routeTree = rootRoute
     "/login": {
       "filePath": "login.tsx"
     },
-    "/posts": {
-      "filePath": "posts.tsx",
-      "children": [
-        "/posts/$postId",
-        "/posts/"
-      ]
-    },
     "/redirect": {
       "filePath": "redirect.tsx"
-    },
-    "/posts/$postId": {
-      "filePath": "posts.$postId.tsx",
-      "parent": "/posts"
-    },
-    "/posts/": {
-      "filePath": "posts.index.tsx",
-      "parent": "/posts"
-    },
-    "/posts_/$postId/deep": {
-      "filePath": "posts_.$postId.deep.tsx"
     }
   }
 }

@@ -24,7 +24,7 @@ function Home() {
     );
   }
 
-  const { data, isLoading, isFetching, isError } = useQuery(
+  const { data, isLoading, isFetching } = useQuery(
     trpc.listPoolsForMember.queryOptions(id)
   );
 

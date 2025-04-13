@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from './init';
-import { pool } from "../backend/src/db/pool"
+import { pool, withConnection } from "../backend/src/db/pool"
 import { checkAuth, createExpense, createExpenseLineItems, createMember, getMember, listMembers, listMembersOfPool, listPoolDetailsForMember, loginMember } from '../backend/src/db/query_sql';
 import bcrypt from 'bcrypt';
 
@@ -23,28 +23,31 @@ type AuthResult = {
   expiresAt: null;
 }
 
-export const trpcRouter = createTRPCRouter({
-  listMembers: publicProcedure.query(async () => {
-    const conn = await pool.connect();
+export const healthRouter = createTRPCRouter({
+  get: publicProcedure.query(() => {
+    return { status: 'ok' };
+  }),
+});
 
-    return await listMembers(conn);
+export const trpcRouter = createTRPCRouter({
+  health: healthRouter,
+  listMembers: publicProcedure.query(async ({ctx}) => {
+    return await listMembers(ctx.db);
   }),
   listPoolsForMember: publicProcedure
     .input(z.string())
-    .query(async ({ input }) => {
-      const conn = await pool.connect();
+    .query(async ({ ctx, input }) => {
+        const pools = await listPoolDetailsForMember(ctx.db, { memberid: input });
+        const poolMembers = await Promise.all(pools.map(async (p) => {
+          const m = await listMembersOfPool(ctx.db, {poolId: p.id})
 
-      const pools = await listPoolDetailsForMember(conn, { memberid: input });
-      const poolMembers = await Promise.all(pools.map(async (p) => {
-        const m = await listMembersOfPool(conn, {poolId: p.id})
+          return {
+            poolId: p,
+            members: m,
+          }
+        }));
 
-        return {
-          poolId: p,
-          members: m,
-        }
-      }));
-
-      return { pools, poolMembers: poolMembers.map(pm => JSON.stringify(pm)) };
+        return { pools, poolMembers: poolMembers.map(pm => JSON.stringify(pm)) };
     }),
     addExpense: publicProcedure
     .input(z.object({
@@ -57,12 +60,8 @@ export const trpcRouter = createTRPCRouter({
         amount: z.number(),
       }))
     }))
-    .mutation(async ({ input }) => {
-      const conn = await pool.connect()
-
-      console.log("Creating expense", input)
-
-      const expense = await createExpense(conn, {
+    .mutation(async ({ ctx, input }) => {
+      const expense = await createExpense(ctx.db, {
         poolId: input.poolId,
         paidByMemberId: input.paidByMemberId,
         name: input.name,
@@ -77,7 +76,7 @@ export const trpcRouter = createTRPCRouter({
       const debtorMemberIds = input.lineItems.map((li) => li.debtor_member_id)
       const amounts = input.lineItems.map((li) => li.amount)
 
-      const lineItems = await createExpenseLineItems(conn, {
+      const lineItems = await createExpenseLineItems(ctx.db, {
         expenseids: expenseIds,
         debtormemberids: debtorMemberIds,
         amounts: amounts,
@@ -90,11 +89,10 @@ export const trpcRouter = createTRPCRouter({
       lastName: z.string(),
       email: z.string(),
       password: z.string(),
-    })).mutation(async ({input}) => {
+    })).mutation(async ({ctx, input}) => {
       const passwordHash = await hashPassword(input.password);
-      const conn = await pool.connect()
 
-      const createdMember = await createMember(conn, {
+      const createdMember = await createMember(ctx.db, {
         firstName: input.firstName,
         lastName: input.lastName,
         email: input.email,
@@ -105,16 +103,14 @@ export const trpcRouter = createTRPCRouter({
         throw new Error("Failed to create member");
       }
 
-      return await getMember(conn, {id: createdMember.memberId})
+      return await getMember(ctx.db, {id: createdMember.memberId})
     }),
     login: publicProcedure.input(z.object({
       email: z.string(),
       password: z.string(),
-    })).mutation(async ({input}): Promise<AuthResult> => {
-      const conn = await pool.connect()
-
+    })).mutation(async ({ctx, input}): Promise<AuthResult> => {
       const passwordHash = await hashPassword(input.password);
-      const auth = await loginMember(conn, {
+      const auth = await loginMember(ctx.db, {
         email: input.email,
         passwordHash,
       })
@@ -139,30 +135,28 @@ export const trpcRouter = createTRPCRouter({
       id: z.string(),
       token: z.string(),
       expiresAt: z.string(),
-    })).query(async ({input}): Promise<AuthResult> => {
-      const conn = await pool.connect()
+    })).query(async ({ctx, input}): Promise<AuthResult> => {
+        const auth = await checkAuth(ctx.db, {
+          memberId: input.id,
+          passwordHash: input.token,
+        })
 
-      const auth = await checkAuth(conn, {
-        memberId: input.id,
-        passwordHash: input.token,
-      })
-
-      if (!auth || !auth.isAuthenticated) {
-        return {
-          id: null,
-          token: null,
-          isAuthenticated: false,
-          expiresAt: null,
+        if (!auth || !auth.isAuthenticated) {
+          return {
+            id: null,
+            token: null,
+            isAuthenticated: false,
+            expiresAt: null,
+          }
         }
-      }
 
-      return {
-        id: auth.id,
-        token: input.token,
-        isAuthenticated: true,
-        expiresAt: new Date(Date.now() + DAYS * 7).toISOString(),
-      }
-    })
+        return {
+          id: auth.id,
+          token: input.token,
+          isAuthenticated: true,
+          expiresAt: new Date(Date.now() + DAYS * 7).toISOString(),
+        }
+      })
   });
 
 export type TRPCRouter = typeof trpcRouter;

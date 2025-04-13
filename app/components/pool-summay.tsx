@@ -41,9 +41,17 @@ type SplitMethodType = "percentage" | "amount";
 export function SplitMethod({ method }: { method: SplitMethodType }) {
   switch (method) {
     case "percentage":
-      return <div>Percent</div>;
+      return (
+        <div>
+          <CirclePercent className="size-8 text-red-200 mr-1" />
+        </div>
+      );
     case "amount":
-      return <div>Amount</div>;
+      return (
+        <div>
+          <CircleDollarSign className="w-4 h-4 mr-1" />
+        </div>
+      );
     default:
       const exhaustiveness: never = method;
       throw new Error(`Unknown split method: ${exhaustiveness}`);
