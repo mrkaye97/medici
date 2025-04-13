@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
 import { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
-import appCss from "../app.css?url";
+import appCss from "~/app.css?url";
 import { DefaultCatchBoundary } from "../components/DefaultCatchBoundary";
 import { NotFound } from "../components/NotFound";
 import { TRPCRouter } from "../../trpc/router";

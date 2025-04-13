@@ -10,8 +10,8 @@
     "skipLibCheck": true,
     "allowJs": true,
     "paths": {
-      "@/components/*": ["./app/components/*"],
-      "@/lib/*": ["./app/lib/*"]
+      "@/components/*": ["./frontend/components/*"],
+      "@/lib/*": ["./frontend/lib/*"]
     },
     "types": ["vite/client"]
   },
