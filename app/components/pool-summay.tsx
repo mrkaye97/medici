@@ -15,13 +15,16 @@ import {
   Calendar,
   DollarSign,
   ScrollText,
-  CirclePercent,
-  CircleDollarSign,
 } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { ListPoolDetailsForMemberRow } from "../../backend/src/db/query_sql";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Label } from "./ui/label";
+import {
+  ListPoolRecentExpensesRow,
+  ListPoolsForMemberRow,
+} from "../../backend/src/db/query_sql";
+import { useQuery } from "@tanstack/react-query";
+import { useTRPC } from "../../trpc/react";
+import { useAuth } from "../hooks/auth";
+import { Spinner } from "./ui/spinner";
 
 const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -38,9 +41,78 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-export function PoolSummary({ pool }: { pool: ListPoolDetailsForMemberRow }) {
+function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
+  const trpc = useTRPC();
+  const { data } = useQuery(
+    trpc.listMembersOfPool.queryOptions(expense.poolId)
+  );
+
+  return (
+    <div className="flex flex-col items-start py-2 border-b border-gray-100 last:border-0">
+      <div className="flex flex-row justify-between items-center w-full">
+        <span>
+          {expense.name} on{" "}
+          {expense.insertedAt.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+        <span>
+          Paid by{" "}
+          {data?.find((m) => m.id === expense.paidByMemberId)?.firstName}
+        </span>
+      </div>
+      <div className="flex flex-row justify-between items-center w-full">
+        <span>{formatCurrency(expense.amount)}</span>
+        <span>You owe {formatCurrency(expense.amountOwed)}</span>
+      </div>
+    </div>
+  );
+}
+
+export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
+  const trpc = useTRPC();
+  const { id } = useAuth();
+
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const { data: poolDetails, isLoading: isPoolDetailsLoading } = useQuery(
+    trpc.getPoolDetails.queryOptions(
+      {
+        memberId: id || "",
+        poolId: pool.id,
+      },
+      {
+        enabled: !!id && !!pool.id,
+      }
+    )
+  );
+  const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
+    useQuery(
+      trpc.getPoolRecentExpenses.queryOptions(
+        {
+          memberId: id || "",
+          poolId: pool.id,
+        },
+        {
+          enabled: !!id && !!pool.id,
+        }
+      )
+    );
+
+  if (
+    isPoolDetailsLoading ||
+    !poolDetails ||
+    isPoolRecentExpensesLoading ||
+    !poolRecentExpenses
+  ) {
+    return (
+      <div className="flex flex-col items-center">
+        <Spinner className="mt-8" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -61,10 +133,10 @@ export function PoolSummary({ pool }: { pool: ListPoolDetailsForMemberRow }) {
               )}
             </div>
             <Badge
-              className={`ml-2 ${pool.totalDebt >= 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+              className={`ml-2 ${poolDetails.totalDebt >= 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
             >
               <DollarSign className="w-3 h-3 mr-1" />
-              {formatCurrency(pool.totalDebt)}
+              {formatCurrency(poolDetails.totalDebt)}
             </Badge>
           </div>
         </CardHeader>
@@ -77,32 +149,29 @@ export function PoolSummary({ pool }: { pool: ListPoolDetailsForMemberRow }) {
             <span>Updated {formatDate(pool.updatedAt)}</span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsExpanded((prev) => !prev)}
-            className="flex items-center p-0 h-auto hover:bg-transparent"
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4 mr-1" />
-            ) : (
-              <ChevronRight className="w-4 h-4 mr-1" />
-            )}
-            <span className="flex items-center">
-              <ScrollText className="w-4 h-4 mr-1" />
-              {pool.recentExpenses?.length} Recent Expenses
-            </span>
-          </Button>
+          {poolRecentExpenses.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsExpanded((prev) => !prev)}
+              className="flex items-center p-0 h-auto hover:bg-transparent"
+            >
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4 mr-1" />
+              ) : (
+                <ChevronRight className="w-4 h-4 mr-1" />
+              )}
+              <span className="flex items-center">
+                <ScrollText className="w-4 h-4 mr-1" />
+                {poolRecentExpenses?.length} Recent Expenses
+              </span>
+            </Button>
+          )}
 
           {isExpanded && (
             <div className="mt-3 pl-6 border-l-2 border-gray-200">
-              {pool.recentExpenses.map((expense, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0"
-                >
-                  <span className="font-medium">{formatCurrency(expense)}</span>
-                </div>
+              {poolRecentExpenses.map((expense, index) => (
+                <Expense key={index} expense={expense} />
               ))}
             </div>
           )}

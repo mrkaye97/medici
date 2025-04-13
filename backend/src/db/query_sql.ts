@@ -76,13 +76,47 @@ export async function listMembers(client: Client): Promise<ListMembersRow[]> {
     });
 }
 
-export const listPoolDetailsForMemberQuery = `-- name: ListPoolDetailsForMember :many
+export const listPoolsForMemberQuery = `-- name: ListPoolsForMember :many
+SELECT p.id, p.name, p.description, p.inserted_at, p.updated_at
+FROM pool p
+JOIN pool_membership pm ON p.id = pm.pool_id
+WHERE pm.member_id = $1`;
+
+export interface ListPoolsForMemberArgs {
+    memberId: string;
+}
+
+export interface ListPoolsForMemberRow {
+    id: string;
+    name: string;
+    description: string | null;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function listPoolsForMember(client: Client, args: ListPoolsForMemberArgs): Promise<ListPoolsForMemberRow[]> {
+    const result = await client.query({
+        text: listPoolsForMemberQuery,
+        values: [args.memberId],
+        rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            name: row[1],
+            description: row[2],
+            insertedAt: row[3],
+            updatedAt: row[4]
+        };
+    });
+}
+
+export const getPoolDetailsQuery = `-- name: GetPoolDetails :one
 WITH debts_owed AS (
     SELECT
         eli.debtor_member_id,
         e.pool_id,
-        SUM(eli.amount)::DOUBLE PRECISION AS total_debt,
-        ARRAY_AGG(eli.amount)::DOUBLE PRECISION[] AS recent_expenses
+        SUM(eli.amount)::DOUBLE PRECISION AS total_debt
     FROM expense_line_item eli
     JOIN expense e ON (e.id, eli.is_settled) = (eli.expense_id, false)
     WHERE
@@ -96,46 +130,47 @@ SELECT
     p.name,
     p.description,
     COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
-    COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses,
     p.inserted_at,
     p.updated_at
 FROM pool p
 JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = $1::UUID
-LEFT JOIN debts_owed d ON d.pool_id = p.id`;
+LEFT JOIN debts_owed d ON d.pool_id = p.id
+WHERE p.id = $2::UUID`;
 
-export interface ListPoolDetailsForMemberArgs {
+export interface GetPoolDetailsArgs {
     memberid: string;
+    poolid: string;
 }
 
-export interface ListPoolDetailsForMemberRow {
+export interface GetPoolDetailsRow {
     memberId: string;
     id: string;
     name: string;
     description: string | null;
     totalDebt: number;
-    recentExpenses: number[];
     insertedAt: Date;
     updatedAt: Date;
 }
 
-export async function listPoolDetailsForMember(client: Client, args: ListPoolDetailsForMemberArgs): Promise<ListPoolDetailsForMemberRow[]> {
+export async function getPoolDetails(client: Client, args: GetPoolDetailsArgs): Promise<GetPoolDetailsRow | null> {
     const result = await client.query({
-        text: listPoolDetailsForMemberQuery,
-        values: [args.memberid],
+        text: getPoolDetailsQuery,
+        values: [args.memberid, args.poolid],
         rowMode: "array"
     });
-    return result.rows.map(row => {
-        return {
-            memberId: row[0],
-            id: row[1],
-            name: row[2],
-            description: row[3],
-            totalDebt: row[4],
-            recentExpenses: row[5],
-            insertedAt: row[6],
-            updatedAt: row[7]
-        };
-    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        memberId: row[0],
+        id: row[1],
+        name: row[2],
+        description: row[3],
+        totalDebt: row[4],
+        insertedAt: row[5],
+        updatedAt: row[6]
+    };
 }
 
 export const listMembersOfPoolQuery = `-- name: ListMembersOfPool :many
@@ -171,6 +206,64 @@ export async function listMembersOfPool(client: Client, args: ListMembersOfPoolA
             email: row[3],
             insertedAt: row[4],
             updatedAt: row[5]
+        };
+    });
+}
+
+export const listPoolRecentExpensesQuery = `-- name: ListPoolRecentExpenses :many
+SELECT
+    e.id,
+    e.name,
+    e.amount::DOUBLE PRECISION AS amount,
+    e.is_settled,
+    e.inserted_at,
+    e.updated_at,
+    e.pool_id,
+    e.paid_by_member_id,
+    eli.amount::DOUBLE PRECISION AS amount_owed
+FROM expense e
+JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = $1
+WHERE
+    e.pool_id = $2
+    AND e.is_settled = FALSE
+ORDER BY e.inserted_at DESC
+LIMIT $3::INTEGER`;
+
+export interface ListPoolRecentExpensesArgs {
+    debtorMemberId: string;
+    poolId: string;
+    expenselimit: number;
+}
+
+export interface ListPoolRecentExpensesRow {
+    id: string;
+    name: string;
+    amount: number;
+    isSettled: boolean;
+    insertedAt: Date;
+    updatedAt: Date;
+    poolId: string;
+    paidByMemberId: string;
+    amountOwed: number;
+}
+
+export async function listPoolRecentExpenses(client: Client, args: ListPoolRecentExpensesArgs): Promise<ListPoolRecentExpensesRow[]> {
+    const result = await client.query({
+        text: listPoolRecentExpensesQuery,
+        values: [args.debtorMemberId, args.poolId, args.expenselimit],
+        rowMode: "array"
+    });
+    return result.rows.map(row => {
+        return {
+            id: row[0],
+            name: row[1],
+            amount: row[2],
+            isSettled: row[3],
+            insertedAt: row[4],
+            updatedAt: row[5],
+            poolId: row[6],
+            paidByMemberId: row[7],
+            amountOwed: row[8]
         };
     });
 }

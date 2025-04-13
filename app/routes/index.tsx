@@ -14,10 +14,14 @@ function Home() {
   const { isAuthenticated, id, token } = useAuth();
 
   const { data, isLoading, isFetching } = useQuery(
-    trpc.listPoolsForMember.queryOptions(id || "", {
-      enabled: !!id,
-    })
+    trpc.listPoolsForMember.queryOptions(
+      { memberId: id || "" },
+      {
+        enabled: !!id,
+      }
+    )
   );
+  const pools = data || [];
 
   if (!isAuthenticated || !id || !token) {
     return (
@@ -37,13 +41,6 @@ function Home() {
       </div>
     );
   }
-
-  const { pools: poolsRaw, poolMembers: poolMembersRaw } = data || {};
-  const pools = poolsRaw || [];
-  const poolMembers = (poolMembersRaw || []).map((pm) => JSON.parse(pm));
-
-  console.log(pools, poolMembers);
-
   return (
     <div className="flex flex-col items-center">
       <div className="w-1/2 mt-8">

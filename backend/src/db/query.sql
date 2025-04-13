@@ -8,13 +8,18 @@ WHERE m.id = $1;
 SELECT *
 FROM member;
 
--- name: ListPoolDetailsForMember :many
+-- name: ListPoolsForMember :many
+SELECT p.*
+FROM pool p
+JOIN pool_membership pm ON p.id = pm.pool_id
+WHERE pm.member_id = $1;
+
+-- name: GetPoolDetails :one
 WITH debts_owed AS (
     SELECT
         eli.debtor_member_id,
         e.pool_id,
-        SUM(eli.amount)::DOUBLE PRECISION AS total_debt,
-        ARRAY_AGG(eli.amount)::DOUBLE PRECISION[] AS recent_expenses
+        SUM(eli.amount)::DOUBLE PRECISION AS total_debt
     FROM expense_line_item eli
     JOIN expense e ON (e.id, eli.is_settled) = (eli.expense_id, false)
     WHERE
@@ -28,12 +33,12 @@ SELECT
     p.name,
     p.description,
     COALESCE(d.total_debt, 0.0)::DOUBLE PRECISION AS total_debt,
-    COALESCE(d.recent_expenses, '{}')::DOUBLE PRECISION[] AS recent_expenses,
     p.inserted_at,
     p.updated_at
 FROM pool p
 JOIN pool_membership pm ON p.id = pm.pool_id AND pm.member_id = sqlc.arg(memberId)::UUID
 LEFT JOIN debts_owed d ON d.pool_id = p.id
+WHERE p.id = sqlc.arg(poolId)::UUID
 ;
 
 -- name: ListMembersOfPool :many
@@ -41,6 +46,26 @@ SELECT m.*
 FROM member m
 JOIN pool_membership pm ON m.id = pm.member_id
 WHERE pm.pool_id = $1;
+
+-- name: ListPoolRecentExpenses :many
+SELECT
+    e.id,
+    e.name,
+    e.amount::DOUBLE PRECISION AS amount,
+    e.is_settled,
+    e.inserted_at,
+    e.updated_at,
+    e.pool_id,
+    e.paid_by_member_id,
+    eli.amount::DOUBLE PRECISION AS amount_owed
+FROM expense e
+JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = $1
+WHERE
+    e.pool_id = $2
+    AND e.is_settled = FALSE
+ORDER BY e.inserted_at DESC
+LIMIT sqlc.arg(expenseLimit)::INTEGER
+;
 
 -- name: LoginMember :one
 SELECT

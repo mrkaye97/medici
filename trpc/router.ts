@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { createTRPCRouter, publicProcedure } from './init';
 import { pool, withConnection } from "../backend/src/db/pool"
-import { checkAuth, createExpense, createExpenseLineItems, createMember, getMember, listMembers, listMembersOfPool, listPoolDetailsForMember, loginMember } from '../backend/src/db/query_sql';
+import { checkAuth, createExpense, createExpenseLineItems, createMember, getMember, getPoolDetails, listMembers, listMembersOfPool, listPoolRecentExpenses, listPoolsForMember, loginMember } from '../backend/src/db/query_sql';
 import bcrypt from 'bcrypt';
 
 const PASSWORD_SALT = "$2b$10$dBUuuGRQ9bl2nOu/FkgVUe"
@@ -38,19 +38,23 @@ export const trpcRouter = createTRPCRouter({
     return await listMembersOfPool(ctx.db, { poolId: input });
   }),
   listPoolsForMember: publicProcedure
-    .input(z.string())
+    .input(z.object({
+      memberId: z.string(),
+    }))
     .query(async ({ ctx, input }) => {
-        const pools = await listPoolDetailsForMember(ctx.db, { memberid: input });
-        const poolMembers = await Promise.all(pools.map(async (p) => {
-          const m = await listMembersOfPool(ctx.db, {poolId: p.id})
-
-          return {
-            poolId: p,
-            members: m,
-          }
-        }));
-
-        return { pools, poolMembers: poolMembers.map(pm => JSON.stringify(pm)) };
+        return await listPoolsForMember(ctx.db, { memberId: input.memberId });
+    }),
+    getPoolDetails: publicProcedure.input(z.object({
+      poolId: z.string(),
+      memberId: z.string(),
+    })).query(async ({ctx, input}) => {
+      return await getPoolDetails(ctx.db, { poolid: input.poolId, memberid: input.memberId });
+    }),
+    getPoolRecentExpenses: publicProcedure.input(z.object({
+      poolId: z.string(),
+      memberId: z.string(),
+    })).query(async ({ctx, input}) => {
+      return await listPoolRecentExpenses(ctx.db, { poolId: input.poolId, debtorMemberId: input.memberId, expenselimit: 5 });
     }),
     addExpense: publicProcedure
     .input(z.object({
