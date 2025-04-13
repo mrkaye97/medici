@@ -3,18 +3,18 @@ import express from "express";
 import { trpcRouter } from "../../trpc/router";
 import cors from "cors";
 
-
 async function main() {
   const app = express();
 
-  app.use(cors({
-    origin: "http://localhost:3001", // more restrictive than "*"
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "trpc-accept"],
-  }));
+  app.use(
+    cors({
+      origin: "http://localhost:3001", // more restrictive than "*"
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization", "trpc-accept"],
+    }),
+  );
 
-  app.options('*', cors());
-
+  app.options("*", cors());
 
   app.use(
     "/api/trpc",
@@ -31,7 +31,7 @@ async function main() {
       console.warn(`⚠️  Slow request: ${req.method} ${req.path}`);
     }, 2000);
 
-    res.on('finish', () => clearTimeout(timeout));
+    res.on("finish", () => clearTimeout(timeout));
     next();
   });
 
@@ -45,9 +45,9 @@ main().catch((err) => {
   process.exit(1);
 });
 
-process.on('unhandledRejection', (reason) => {
-  console.error('Unhandled Rejection:', reason)
-})
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught Exception:', err)
-})
+process.on("unhandledRejection", (reason) => {
+  console.error("Unhandled Rejection:", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception:", err);
+});

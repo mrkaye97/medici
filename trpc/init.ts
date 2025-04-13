@@ -1,7 +1,7 @@
-import { initTRPC } from '@trpc/server';
-import superjson from 'superjson';
-import type { CreateExpressContextOptions } from '@trpc/server/adapters/express';
-import { pool } from '../backend/src/db/pool';
+import { initTRPC } from "@trpc/server";
+import superjson from "superjson";
+import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import { pool } from "../backend/src/db/pool";
 
 export async function createContext(_opts: CreateExpressContextOptions) {
   return {};
@@ -26,6 +26,5 @@ export const withDb = t.middleware(async ({ next }) => {
   }
 });
 
-
 export const createTRPCRouter = t.router;
-export const publicProcedure = t.procedure.use(withDb)
+export const publicProcedure = t.procedure.use(withDb);

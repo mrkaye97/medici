@@ -7,7 +7,7 @@
     "dev": "vinxi dev --port 3001",
     "build": "vinxi build",
     "start": "vinxi start",
-    "lint": "eslint app"
+    "lint": "prettier --write . && eslint app"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

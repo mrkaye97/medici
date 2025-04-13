@@ -44,7 +44,7 @@ const formatCurrency = (amount: number) => {
 function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
   const trpc = useTRPC();
   const { data } = useQuery(
-    trpc.listMembersOfPool.queryOptions(expense.poolId)
+    trpc.listMembersOfPool.queryOptions(expense.poolId),
   );
 
   return (
@@ -85,8 +85,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
       },
       {
         enabled: !!id && !!pool.id,
-      }
-    )
+      },
+    ),
   );
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
     useQuery(
@@ -97,8 +97,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         },
         {
           enabled: !!id && !!pool.id,
-        }
-      )
+        },
+      ),
     );
 
   if (

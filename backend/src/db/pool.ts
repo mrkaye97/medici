@@ -7,8 +7,9 @@ export const pool = new pg.Pool({
   connectionTimeoutMillis: 2000,
 });
 
-
-export async function withConnection<T>(callback: (conn: pg.PoolClient) => Promise<T>): Promise<T> {
+export async function withConnection<T>(
+  callback: (conn: pg.PoolClient) => Promise<T>,
+): Promise<T> {
   const conn = await pool.connect();
   try {
     return await callback(conn);

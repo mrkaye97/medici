@@ -14,12 +14,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTRPC } from "../../trpc/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Button } from "./ui/button";
-import { ListPoolDetailsForMemberRow } from "../../backend/src/db/query_sql";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { CircleDollarSign, CirclePercent } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "./ui/separator";
+import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
+import { useAuth } from "../hooks/auth";
 
 enum SplitMethodType {
   Percentage = "percentage",
@@ -41,6 +42,7 @@ function typeToLabelAndIcon(type: SplitMethodType) {
         icon: <CirclePercent className="size-4" />,
       };
     default:
+      // eslint-disable-next-line no-case-declarations
       const exhaustiveCheck: never = type;
       throw new Error(`Unhandled type: ${exhaustiveCheck}`);
   }
@@ -49,10 +51,9 @@ function typeToLabelAndIcon(type: SplitMethodType) {
 type SplitMethodProps = {
   value: SplitMethodType;
   setValue: (value: SplitMethodType) => void;
-  pool: ListPoolDetailsForMemberRow;
 };
 
-export function SplitMethod({ value, setValue, pool }: SplitMethodProps) {
+export function SplitMethod({ value, setValue }: SplitMethodProps) {
   return (
     <div className="flex flex-col gap-y-2">
       <RadioGroup value={value} onValueChange={setValue}>
@@ -99,11 +100,12 @@ export function AddExpenseModal({
   isOpen,
   setIsOpen,
 }: {
-  pool: ListPoolDetailsForMemberRow;
+  pool: ListPoolsForMemberRow;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const trpc = useTRPC();
+  const { id } = useAuth();
   const { mutate: addExpense } = useMutation(trpc.addExpense.mutationOptions());
   const { data } = useQuery(trpc.listMembersOfPool.queryOptions(pool.id));
   const members = data ?? [];
@@ -145,24 +147,24 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                }
+                },
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0
+                0,
               );
 
               if (total !== data.amount) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`
+                  `Total amount (${data.amount}) does not match split amounts (${total})`,
                 );
                 return;
               }
 
               addExpense(
                 {
-                  paidByMemberId: pool.memberId,
+                  paidByMemberId: id || "",
                   poolId: pool.id,
                   name: data.expenseName,
                   amount: data.amount,
@@ -172,7 +174,7 @@ export function AddExpenseModal({
                   onSuccess: () => setIsOpen(false),
                   onError: (err) =>
                     alert("Failed to add expense: " + err.message),
-                }
+                },
               );
             })}
             className="space-y-4"
@@ -241,7 +243,7 @@ export function AddExpenseModal({
                       />
                       <div className="flex flex-col gap-y-2 border border-[#00000025] p-4 rounded-lg mt-4">
                         {members.map((m, ix) => (
-                          <div className="flex flex-col">
+                          <div className="flex flex-col" key={m.email}>
                             <div
                               key={m.id}
                               className="flex flex-row gap-y-2 justify-between items-center"
@@ -256,7 +258,7 @@ export function AddExpenseModal({
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.id
+                                    (a) => a.memberId == m.id,
                                   )?.amount
                                 }
                                 onChange={(e) => {
@@ -272,7 +274,7 @@ export function AddExpenseModal({
                                           };
                                         }
                                         return a;
-                                      }
+                                      },
                                     );
 
                                     return {

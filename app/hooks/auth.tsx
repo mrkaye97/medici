@@ -10,7 +10,7 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -86,8 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       {
         enabled: !!metadata,
-      }
-    )
+      },
+    ),
   );
   const loginMutation = useMutation(trpc.login.mutationOptions());
   const signupMutation = useMutation(trpc.signup.mutationOptions());
@@ -148,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => {
     const result = await signupMutation.mutateAsync({
       email,
