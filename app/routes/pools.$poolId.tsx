@@ -23,8 +23,8 @@ function PostComponent() {
       },
       {
         enabled: !!id,
-      }
-    )
+      },
+    ),
   );
 
   const expenses = data || [];

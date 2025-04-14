@@ -35,10 +35,10 @@ export function CreatePoolModal({
   const queryClient = useQueryClient();
   const { id } = useAuth();
   const { mutateAsync: createPool } = useMutation(
-    trpc.createPool.mutationOptions()
+    trpc.createPool.mutationOptions(),
   );
   const { mutateAsync: createPoolMembership } = useMutation(
-    trpc.createPoolMembership.mutationOptions()
+    trpc.createPoolMembership.mutationOptions(),
   );
 
   const form = useForm<PoolFormValues>({

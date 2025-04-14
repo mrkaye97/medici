@@ -1,5 +1,5 @@
 // routes/__root.tsx
-import { useMutation, type QueryClient } from "@tanstack/react-query";
+import { type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
@@ -19,7 +19,6 @@ import { AuthContext, AuthProvider, useAuth } from "../hooks/auth";
 import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { useTRPC } from "trpc/react";
 import { CreatePoolModal } from "@/components/create-pool-modal";
 
 function InnerApp() {
@@ -49,6 +48,11 @@ function InnerApp() {
           <Link to="/reports">
             <Button variant="ghost" className="w-full justify-start py-1">
               Reports
+            </Button>
+          </Link>
+          <Link to="/friends">
+            <Button variant="ghost" className="w-full justify-start py-1">
+              Friends
             </Button>
           </Link>
           <Separator className="my-2" />

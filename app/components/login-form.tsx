@@ -21,7 +21,7 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    }
+    },
   ) => void;
   formType: "login" | "signup";
 };
@@ -41,7 +41,7 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit]
+    [onSubmit],
   );
 
   return (

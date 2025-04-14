@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { ListPoolRecentExpensesRow } from "backend/src/db/query_sql";
 import { useTRPC } from "trpc/react";
 
@@ -21,7 +20,7 @@ export const formatCurrency = (amount: number) => {
 export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
   const trpc = useTRPC();
   const { data } = useQuery(
-    trpc.listMembersOfPool.queryOptions(expense.poolId)
+    trpc.listMembersOfPool.queryOptions(expense.poolId),
   );
 
   return (

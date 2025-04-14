@@ -139,3 +139,23 @@ SELECT
     i.amounts
 FROM input i
 RETURNING *;
+
+-- name: CreateFriendRequest :exec
+INSERT INTO friendship (member_id, friend_member_id)
+VALUES
+    ($1, $2),
+    ($2, $1)
+ON CONFLICT (member_id, friend_member_id) DO NOTHING;
+
+-- name: ListFriends :many
+SELECT
+    m.id,
+    m.first_name,
+    m.last_name,
+    m.email,
+    f.status
+FROM member m
+JOIN friendship f ON m.id = f.friend_member_id
+WHERE
+    f.member_id = $1
+;

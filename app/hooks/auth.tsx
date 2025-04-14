@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
 import { useTRPC } from "../../trpc/react";
-import { redirect, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -12,7 +12,7 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -88,8 +88,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       {
         enabled: !!metadata,
-      }
-    )
+      },
+    ),
   );
   const loginMutation = useMutation(trpc.login.mutationOptions());
   const signupMutation = useMutation(trpc.signup.mutationOptions());
@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => {
     const result = await signupMutation.mutateAsync({
       email,

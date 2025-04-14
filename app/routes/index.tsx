@@ -18,8 +18,8 @@ function Home() {
       { memberId: id || "" },
       {
         enabled: !!id,
-      }
-    )
+      },
+    ),
   );
   const pools = data || [];
 

@@ -23,7 +23,7 @@ async function main() {
     },
   });
 
-  // @ts-ignore
+  // @ts-expect-error TS2352
   app.use("/api/trpc", trpcMiddleware as RequestHandler);
 
   app.use((req, res, next) => {

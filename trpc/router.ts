@@ -10,6 +10,7 @@ import {
   getExpense,
   getMember,
   getPoolDetails,
+  listFriends,
   listMembers,
   listMembersOfPool,
   listPoolRecentExpenses,
@@ -50,24 +51,32 @@ export const trpcRouter = createTRPCRouter({
   listMembers: publicProcedure.query(async ({ ctx }) => {
     return await listMembers(ctx.db);
   }),
-  createPool: publicProcedure.input(z.object({
-    name: z.string(),
-    description: z.string(),
-  })).mutation(async ({ctx, input}) => {
-    return await createPool(ctx.db, {
-      name: input.name,
-      description: input.description,
-    })
-  }),
-  createPoolMembership: publicProcedure.input(z.object({
-    poolId: z.string(),
-    memberId: z.string(),
-  })).mutation(async ({ctx, input}) => {
-    return await createPoolMembership(ctx.db, {
-      poolId: input.poolId,
-      memberId: input.memberId,
-    })
-  }),
+  createPool: publicProcedure
+    .input(
+      z.object({
+        name: z.string(),
+        description: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await createPool(ctx.db, {
+        name: input.name,
+        description: input.description,
+      });
+    }),
+  createPoolMembership: publicProcedure
+    .input(
+      z.object({
+        poolId: z.string(),
+        memberId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await createPoolMembership(ctx.db, {
+        poolId: input.poolId,
+        memberId: input.memberId,
+      });
+    }),
   listMembersOfPool: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {
@@ -147,15 +156,17 @@ export const trpcRouter = createTRPCRouter({
         amounts: amounts,
       });
     }),
-  getExpense: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
-    const expense = await getExpense(ctx.db, { id: input });
+  getExpense: publicProcedure
+    .input(z.string())
+    .query(async ({ ctx, input }) => {
+      const expense = await getExpense(ctx.db, { id: input });
 
-    if (!expense) {
-      throw new Error("Expense not found");
-    }
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
 
-    return expense;
-  }),
+      return expense;
+    }),
   signup: publicProcedure
     .input(
       z.object({
@@ -240,6 +251,17 @@ export const trpcRouter = createTRPCRouter({
         isAuthenticated: true,
         expiresAt: new Date(Date.now() + DAYS * 7).toISOString(),
       };
+    }),
+  listFriends: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return await listFriends(ctx.db, {
+        memberId: input.memberId,
+      });
     }),
 });
 
