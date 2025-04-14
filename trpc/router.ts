@@ -5,6 +5,7 @@ import {
   createExpense,
   createExpenseLineItems,
   createMember,
+  getExpense,
   getMember,
   getPoolDetails,
   listMembers,
@@ -79,13 +80,14 @@ export const trpcRouter = createTRPCRouter({
       z.object({
         poolId: z.string(),
         memberId: z.string(),
+        limit: z.number().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
       return await listPoolRecentExpenses(ctx.db, {
         poolId: input.poolId,
         debtorMemberId: input.memberId,
-        expenselimit: 5,
+        expenselimit: input.limit || 5,
       });
     }),
   addExpense: publicProcedure
@@ -127,6 +129,15 @@ export const trpcRouter = createTRPCRouter({
 
       console.log(expense, lineItems);
     }),
+  getExpense: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
+    const expense = await getExpense(ctx.db, { id: input });
+
+    if (!expense) {
+      throw new Error("Expense not found");
+    }
+
+    return expense;
+  }),
   signup: publicProcedure
     .input(
       z.object({

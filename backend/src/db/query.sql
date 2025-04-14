@@ -67,6 +67,19 @@ ORDER BY e.inserted_at DESC
 LIMIT sqlc.arg(expenseLimit)::INTEGER
 ;
 
+-- name: GetExpense :one
+SELECT
+    e.id,
+    e.name,
+    e.amount::DOUBLE PRECISION AS amount,
+    e.is_settled,
+    e.inserted_at,
+    e.updated_at,
+    e.pool_id,
+    e.paid_by_member_id
+FROM expense e
+WHERE id = $1;
+
 -- name: LoginMember :one
 SELECT
     m.id,

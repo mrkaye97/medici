@@ -18,8 +18,8 @@ function Home() {
       { memberId: id || "" },
       {
         enabled: !!id,
-      },
-    ),
+      }
+    )
   );
   const pools = data || [];
 
@@ -43,7 +43,7 @@ function Home() {
   }
   return (
     <div className="flex flex-col items-center">
-      <div className="w-1/2 mt-8">
+      <div className="w-1/2 my-8">
         <div className="flex flex-col gap-y-4">
           {pools.map((p) => (
             <PoolSummary key={p.id} pool={p} />

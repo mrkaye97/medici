@@ -17,59 +17,14 @@ import {
   ScrollText,
 } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import {
-  ListPoolRecentExpensesRow,
-  ListPoolsForMemberRow,
-} from "../../backend/src/db/query_sql";
+import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "../../trpc/react";
 import { useAuth } from "../hooks/auth";
 import { Spinner } from "./ui/spinner";
-
-const formatDate = (date: Date) => {
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(amount);
-};
-
-function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
-  const trpc = useTRPC();
-  const { data } = useQuery(
-    trpc.listMembersOfPool.queryOptions(expense.poolId),
-  );
-
-  return (
-    <div className="flex flex-col items-start py-2 border-b border-gray-100 last:border-0">
-      <div className="flex flex-row justify-between items-center w-full">
-        <span>
-          {expense.name} on{" "}
-          {expense.insertedAt.toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })}
-        </span>
-        <span>
-          Paid by{" "}
-          {data?.find((m) => m.id === expense.paidByMemberId)?.firstName}
-        </span>
-      </div>
-      <div className="flex flex-row justify-between items-center w-full">
-        <span>{formatCurrency(expense.amount)}</span>
-        <span>You owe {formatCurrency(expense.amountOwed)}</span>
-      </div>
-    </div>
-  );
-}
+import { Link } from "@tanstack/react-router";
+import { Expense, formatCurrency, formatDate } from "./expense";
+import { Separator } from "./ui/separator";
 
 export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
   const trpc = useTRPC();
@@ -85,8 +40,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
       },
       {
         enabled: !!id && !!pool.id,
-      },
-    ),
+      }
+    )
   );
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
     useQuery(
@@ -97,8 +52,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         },
         {
           enabled: !!id && !!pool.id,
-        },
-      ),
+        }
+      )
     );
 
   if (
@@ -169,18 +124,25 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
           )}
 
           {isExpanded && (
-            <div className="mt-3 pl-6 border-l-2 border-gray-200">
-              {poolRecentExpenses.map((expense, index) => (
-                <Expense key={index} expense={expense} />
-              ))}
+            <div className="mt-3 px-4  rounded-md">
+              {poolRecentExpenses.map((expense, index) => {
+                return (
+                  <>
+                    <Expense key={index} expense={expense} />
+                    {index !== poolRecentExpenses.length - 1 && <Separator />}
+                  </>
+                );
+              })}
             </div>
           )}
         </CardContent>
 
         <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-          <Button variant="outline" size="sm">
-            View Details
-          </Button>
+          <Link to="/pools/$poolId" params={{ poolId: pool.id }}>
+            <Button variant="outline" size="sm">
+              View Details
+            </Button>
+          </Link>
           <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
             Add Expense
           </Button>

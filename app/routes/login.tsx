@@ -21,7 +21,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col justify-center items-center h-full mt-24">
+    <div className="flex flex-col justify-center items-center h-full">
       <LoginForm
         onSubmit={async (e) => {
           const email = e.currentTarget.email.value as string;

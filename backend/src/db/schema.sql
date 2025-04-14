@@ -45,11 +45,37 @@ CREATE TABLE pool_membership (
 CREATE INDEX ix_pool_membership_member_id ON pool_membership (member_id);
 CREATE INDEX ix_pool_membership_pool_id ON pool_membership (pool_id);
 
+CREATE TYPE expense_category AS ENUM (
+    'food_dining',
+    'groceries',
+    'transportation',
+    'housing_rent',
+    'utilities',
+    'healthcare',
+    'entertainment',
+    'shopping',
+    'education',
+    'travel',
+    'personal_care',
+    'fitness',
+    'subscriptions',
+    'bills_payments',
+    'business_expenses',
+    'investments',
+    'insurance',
+    'gifts',
+    'charity',
+    'miscellaneous'
+);
+
 CREATE TABLE expense (
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     pool_id UUID NOT NULL REFERENCES pool(id) ON DELETE CASCADE,
     paid_by_member_id UUID NOT NULL REFERENCES member(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
+    description TEXT,
+    notes TEXT,
+    category expense_category NOT NULL DEFAULT 'miscellaneous',
     amount NUMERIC NOT NULL,
     is_settled BOOLEAN NOT NULL DEFAULT FALSE,
     inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

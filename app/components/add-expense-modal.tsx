@@ -129,7 +129,7 @@ export function AddExpenseModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogContent>
+      <DialogContent className="ml-32">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
@@ -148,17 +148,17 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                },
+                }
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0,
+                0
               );
 
               if (total !== data.amount) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`,
+                  `Total amount (${data.amount}) does not match split amounts (${total})`
                 );
                 return;
               }
@@ -180,7 +180,7 @@ export function AddExpenseModal({
                   },
                   onError: (err) =>
                     alert("Failed to add expense: " + err.message),
-                },
+                }
               );
             })}
             className="space-y-4"
@@ -263,7 +263,7 @@ export function AddExpenseModal({
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.id,
+                                    (a) => a.memberId == m.id
                                   )?.amount
                                 }
                                 onChange={(e) => {
@@ -279,7 +279,7 @@ export function AddExpenseModal({
                                           };
                                         }
                                         return a;
-                                      },
+                                      }
                                     );
 
                                     return {

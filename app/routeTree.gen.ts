@@ -10,85 +10,153 @@
 
 // Import Routes
 
-import { Route as rootRoute } from "./routes/__root";
-import { Route as LoginImport } from "./routes/login";
-import { Route as IndexImport } from "./routes/index";
+import { Route as rootRoute } from './routes/__root'
+import { Route as ReportsImport } from './routes/reports'
+import { Route as LoginImport } from './routes/login'
+import { Route as IndexImport } from './routes/index'
+import { Route as PoolsPoolIdImport } from './routes/pools.$poolId'
+import { Route as ExpensesExpenseIdImport } from './routes/expenses.$expenseId'
 
 // Create/Update Routes
 
-const LoginRoute = LoginImport.update({
-  id: "/login",
-  path: "/login",
+const ReportsRoute = ReportsImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
+
+const LoginRoute = LoginImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const IndexRoute = IndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
+
+const PoolsPoolIdRoute = PoolsPoolIdImport.update({
+  id: '/pools/$poolId',
+  path: '/pools/$poolId',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ExpensesExpenseIdRoute = ExpensesExpenseIdImport.update({
+  id: '/expenses/$expenseId',
+  path: '/expenses/$expenseId',
+  getParentRoute: () => rootRoute,
+} as any)
 
 // Populate the FileRoutesByPath interface
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexImport;
-      parentRoute: typeof rootRoute;
-    };
-    "/login": {
-      id: "/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LoginImport;
-      parentRoute: typeof rootRoute;
-    };
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsImport
+      parentRoute: typeof rootRoute
+    }
+    '/expenses/$expenseId': {
+      id: '/expenses/$expenseId'
+      path: '/expenses/$expenseId'
+      fullPath: '/expenses/$expenseId'
+      preLoaderRoute: typeof ExpensesExpenseIdImport
+      parentRoute: typeof rootRoute
+    }
+    '/pools/$poolId': {
+      id: '/pools/$poolId'
+      path: '/pools/$poolId'
+      fullPath: '/pools/$poolId'
+      preLoaderRoute: typeof PoolsPoolIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute;
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
+  __root__: typeof rootRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/reports': typeof ReportsRoute
+  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/login";
-  fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/login";
-  id: "__root__" | "/" | "/login";
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/reports'
+    | '/expenses/$expenseId'
+    | '/pools/$poolId'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/login' | '/reports' | '/expenses/$expenseId' | '/pools/$poolId'
+  id:
+    | '__root__'
+    | '/'
+    | '/login'
+    | '/reports'
+    | '/expenses/$expenseId'
+    | '/pools/$poolId'
+  fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  LoginRoute: typeof LoginRoute;
+  IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  ReportsRoute: typeof ReportsRoute
+  ExpensesExpenseIdRoute: typeof ExpensesExpenseIdRoute
+  PoolsPoolIdRoute: typeof PoolsPoolIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
-};
+  ReportsRoute: ReportsRoute,
+  ExpensesExpenseIdRoute: ExpensesExpenseIdRoute,
+  PoolsPoolIdRoute: PoolsPoolIdRoute,
+}
 
 export const routeTree = rootRoute
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
 /* ROUTE_MANIFEST_START
 {
@@ -97,7 +165,10 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
-        "/login"
+        "/login",
+        "/reports",
+        "/expenses/$expenseId",
+        "/pools/$poolId"
       ]
     },
     "/": {
@@ -105,6 +176,15 @@ export const routeTree = rootRoute
     },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/reports": {
+      "filePath": "reports.tsx"
+    },
+    "/expenses/$expenseId": {
+      "filePath": "expenses.$expenseId.tsx"
+    },
+    "/pools/$poolId": {
+      "filePath": "pools.$poolId.tsx"
     }
   }
 }

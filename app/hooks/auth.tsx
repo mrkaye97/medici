@@ -6,11 +6,12 @@ export interface AuthContext {
   isAuthenticated: boolean;
   authenticate: () => Promise<boolean>;
   login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   signup: (
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -86,8 +87,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       {
         enabled: !!metadata,
-      },
-    ),
+      }
+    )
   );
   const loginMutation = useMutation(trpc.login.mutationOptions());
   const signupMutation = useMutation(trpc.signup.mutationOptions());
@@ -144,11 +145,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const logout = async () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("expiresAt");
+    localStorage.removeItem("id");
+  };
+
   const signup = async (
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => {
     const result = await signupMutation.mutateAsync({
       email,
@@ -176,6 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         authenticate,
         login,
+        logout,
         signup,
         token: metadata?.token || null,
         id: metadata?.id || null,

@@ -1,4 +1,4 @@
-BEGIN;
+-- migrate:up
 
 CREATE TABLE member_password (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -17,4 +17,8 @@ FROM member
 
 ALTER TABLE member DROP COLUMN password_hash;
 
-COMMIT;
+-- migrate:down
+
+DROP INDEX index_member_password_on_member_id;
+DROP TABLE member_password;
+ALTER TABLE member ADD COLUMN password_hash TEXT NOT NULL DEFAULT '';
