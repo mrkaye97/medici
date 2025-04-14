@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "./init";
 import {
+  acceptFriendRequest,
   checkAuth,
   createExpense,
   createExpenseLineItems,
+  createFriendRequest,
   createMember,
   createPool,
   createPoolMembership,
@@ -11,6 +13,7 @@ import {
   getMember,
   getPoolDetails,
   listFriends,
+  listInboundFriendRequests,
   listMembers,
   listMembersOfPool,
   listPoolRecentExpenses,
@@ -25,6 +28,8 @@ const DAYS = 1000 * 60 * 60 * 24;
 export const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, PASSWORD_SALT);
 };
+
+type FriendshipStatus = "pending" | "accepted"
 
 type AuthResult =
   | {
@@ -259,10 +264,37 @@ export const trpcRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      return await listFriends(ctx.db, {
-        memberId: input.memberId,
+      return await listFriends(ctx.db, input);
+    }),
+  listInboundFriendRequests: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      return await listInboundFriendRequests(ctx.db, {
+        friendMemberId: input.memberId,
       });
     }),
+  createFriendRequest: publicProcedure.input(z.object({
+    memberId: z.string(),
+    friendEmail: z.string(),
+  })).mutation(async ({ ctx, input }) => {
+    return await createFriendRequest(ctx.db, {
+      memberid: input.memberId,
+      friendemail: input.friendEmail,
+    });
+  }),
+  acceptFriendRequest: publicProcedure.input(z.object({
+    memberId: z.string(),
+    friendMemberId: z.string(),
+  })).mutation(async ({ ctx, input }) => {
+    return await acceptFriendRequest(ctx.db, {
+      memberid: input.memberId,
+      friendmemberid: input.friendMemberId,
+    });
+  }),
 });
 
 export type TRPCRouter = typeof trpcRouter;

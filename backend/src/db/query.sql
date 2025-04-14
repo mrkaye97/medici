@@ -141,11 +141,46 @@ FROM input i
 RETURNING *;
 
 -- name: CreateFriendRequest :exec
-INSERT INTO friendship (member_id, friend_member_id)
-VALUES
-    ($1, $2),
-    ($2, $1)
+WITH friend AS (
+    SELECT id
+    FROM member
+    WHERE
+        email = sqlc.arg(friendEmail)::TEXT
+        AND id != sqlc.arg(memberId)::UUID
+)
+
+INSERT INTO friendship (member_id, friend_member_id, status)
+SELECT
+    sqlc.arg(memberId)::UUID AS member_id,
+    f.id AS friend_member_id,
+    'pending' AS status
+FROM friend f
 ON CONFLICT (member_id, friend_member_id) DO NOTHING;
+
+-- name: AcceptFriendRequest :exec
+WITH request AS (
+    SELECT *
+    FROM friendship
+    WHERE
+        friend_member_id = sqlc.arg(memberId)::UUID
+        AND member_id = sqlc.arg(friendMemberId)::UUID
+        AND status = 'pending'
+), update_stmt AS (
+    UPDATE friendship
+    SET status = 'accepted'
+    WHERE
+        friend_member_id = sqlc.arg(memberId)::UUID
+        AND member_id = sqlc.arg(friendMemberId)::UUID
+        AND status = 'pending'
+    RETURNING *
+)
+
+INSERT INTO friendship (member_id, friend_member_id, status)
+VALUES (
+    sqlc.arg(memberId)::UUID,
+    sqlc.arg(friendMemberId)::UUID,
+    'accepted'
+);
 
 -- name: ListFriends :many
 SELECT
@@ -153,9 +188,24 @@ SELECT
     m.first_name,
     m.last_name,
     m.email,
-    f.status
+    f.status::friendship_status
 FROM member m
 JOIN friendship f ON m.id = f.friend_member_id
 WHERE
     f.member_id = $1
+    AND f.status = 'accepted'
+;
+
+-- name: ListInboundFriendRequests :many
+SELECT
+    m.id,
+    m.first_name,
+    m.last_name,
+    m.email,
+    f.status::friendship_status
+FROM member m
+JOIN friendship f ON m.id = f.member_id
+WHERE
+    f.friend_member_id = $1
+    AND f.status = 'pending'
 ;
