@@ -6,23 +6,6 @@ import { useAuth } from "app/hooks/auth";
 import { useState } from "react";
 import { useTRPC } from "trpc/react";
 
-// You might want to define these types based on your actual data structure
-type Friend = {
-  id: string;
-  name: string;
-  avatar?: string;
-};
-
-type FriendRequest = {
-  id: string;
-  from: {
-    id: string;
-    name: string;
-    avatar?: string;
-  };
-  status: "pending";
-};
-
 export const Route = createFileRoute("/friends")({
   component: FriendsPage,
 });
@@ -37,8 +20,8 @@ function FriendsPage() {
       },
       {
         enabled: !!id,
-      }
-    )
+      },
+    ),
   );
   const { data: friendRequests, isLoading: isFriendRequestsLoading } = useQuery(
     trpc.listInboundFriendRequests.queryOptions(
@@ -47,14 +30,14 @@ function FriendsPage() {
       },
       {
         enabled: !!id,
-      }
-    )
+      },
+    ),
   );
 
   const queryClient = useQueryClient();
 
   const { mutate: acceptFriendRequest } = useMutation(
-    trpc.acceptFriendRequest.mutationOptions()
+    trpc.acceptFriendRequest.mutationOptions(),
   );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isLoading = isFriendsLoading || isFriendRequestsLoading;

@@ -45,11 +45,6 @@ function InnerApp() {
               Dashboard
             </Button>
           </Link>
-          <Link to="/reports">
-            <Button variant="ghost" className="w-full justify-start py-1">
-              Reports
-            </Button>
-          </Link>
           <Link to="/friends">
             <Button variant="ghost" className="w-full justify-start py-1">
               Friends

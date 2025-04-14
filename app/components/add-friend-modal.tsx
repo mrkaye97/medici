@@ -34,7 +34,7 @@ export function AddFriendModal({
   const queryClient = useQueryClient();
   const { id } = useAuth();
   const { mutateAsync: createFriendRequest } = useMutation(
-    trpc.createFriendRequest.mutationOptions()
+    trpc.createFriendRequest.mutationOptions(),
   );
 
   const form = useForm<FriendRequestFormValues>({

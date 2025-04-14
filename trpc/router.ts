@@ -29,7 +29,7 @@ export const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, PASSWORD_SALT);
 };
 
-type FriendshipStatus = "pending" | "accepted"
+type FriendshipStatus = "pending" | "accepted";
 
 type AuthResult =
   | {
@@ -277,24 +277,32 @@ export const trpcRouter = createTRPCRouter({
         friendMemberId: input.memberId,
       });
     }),
-  createFriendRequest: publicProcedure.input(z.object({
-    memberId: z.string(),
-    friendEmail: z.string(),
-  })).mutation(async ({ ctx, input }) => {
-    return await createFriendRequest(ctx.db, {
-      memberid: input.memberId,
-      friendemail: input.friendEmail,
-    });
-  }),
-  acceptFriendRequest: publicProcedure.input(z.object({
-    memberId: z.string(),
-    friendMemberId: z.string(),
-  })).mutation(async ({ ctx, input }) => {
-    return await acceptFriendRequest(ctx.db, {
-      memberid: input.memberId,
-      friendmemberid: input.friendMemberId,
-    });
-  }),
+  createFriendRequest: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+        friendEmail: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await createFriendRequest(ctx.db, {
+        memberid: input.memberId,
+        friendemail: input.friendEmail,
+      });
+    }),
+  acceptFriendRequest: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+        friendMemberId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await acceptFriendRequest(ctx.db, {
+        memberid: input.memberId,
+        friendmemberid: input.friendMemberId,
+      });
+    }),
 });
 
 export type TRPCRouter = typeof trpcRouter;
