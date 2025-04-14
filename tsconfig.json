@@ -9,9 +9,10 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "allowJs": true,
+    "baseUrl": ".",
     "paths": {
       "@/components/*": ["./app/components/*"],
-      "@/lib/*": ["./app/lib/*"]
+      "@/lib/*": ["./app/components/lib/*"]
     },
     "types": ["vite/client"]
   },

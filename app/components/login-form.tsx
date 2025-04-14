@@ -1,4 +1,4 @@
-import { cn } from "../lib/utils";
+import { cn } from "./lib/utils";
 import { Button } from "./ui/button";
 import {
   Card,
@@ -15,7 +15,7 @@ type LoginFormProps = {
   className?: string;
   onSubmit: (
     e: FormEvent<HTMLFormElement>,
-    formData: { email: string; password: string },
+    formData: { email: string; password: string }
   ) => void;
 };
 
@@ -32,7 +32,7 @@ export function LoginForm({ className, onSubmit }: LoginFormProps) {
         onSubmit(e, { email, password });
       }
     },
-    [onSubmit],
+    [onSubmit]
   );
 
   return (
