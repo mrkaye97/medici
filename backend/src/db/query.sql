@@ -109,6 +109,16 @@ VALUES (
 )
 RETURNING member_id;
 
+-- name: CreatePool :one
+INSERT INTO pool (name, description)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: CreatePoolMembership :one
+INSERT INTO pool_membership (pool_id, member_id)
+VALUES ($1, $2)
+RETURNING *;
+
 -- name: CreateExpense :one
 INSERT INTO expense (pool_id, paid_by_member_id, name, amount)
 VALUES ($1, $2, $3, sqlc.arg(amount)::DOUBLE PRECISION)

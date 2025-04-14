@@ -427,10 +427,86 @@ export async function createMember(client: Client, args: CreateMemberArgs): Prom
     };
 }
 
+export const createPoolQuery = `-- name: CreatePool :one
+INSERT INTO pool (name, description)
+VALUES ($1, $2)
+RETURNING id, name, description, inserted_at, updated_at`;
+
+export interface CreatePoolArgs {
+    name: string;
+    description: string | null;
+}
+
+export interface CreatePoolRow {
+    id: string;
+    name: string;
+    description: string | null;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function createPool(client: Client, args: CreatePoolArgs): Promise<CreatePoolRow | null> {
+    const result = await client.query({
+        text: createPoolQuery,
+        values: [args.name, args.description],
+        rowMode: "array"
+    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        name: row[1],
+        description: row[2],
+        insertedAt: row[3],
+        updatedAt: row[4]
+    };
+}
+
+export const createPoolMembershipQuery = `-- name: CreatePoolMembership :one
+INSERT INTO pool_membership (pool_id, member_id)
+VALUES ($1, $2)
+RETURNING id, pool_id, member_id, role, inserted_at, updated_at`;
+
+export interface CreatePoolMembershipArgs {
+    poolId: string;
+    memberId: string;
+}
+
+export interface CreatePoolMembershipRow {
+    id: string;
+    poolId: string;
+    memberId: string;
+    role: string;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function createPoolMembership(client: Client, args: CreatePoolMembershipArgs): Promise<CreatePoolMembershipRow | null> {
+    const result = await client.query({
+        text: createPoolMembershipQuery,
+        values: [args.poolId, args.memberId],
+        rowMode: "array"
+    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        poolId: row[1],
+        memberId: row[2],
+        role: row[3],
+        insertedAt: row[4],
+        updatedAt: row[5]
+    };
+}
+
 export const createExpenseQuery = `-- name: CreateExpense :one
 INSERT INTO expense (pool_id, paid_by_member_id, name, amount)
 VALUES ($1, $2, $3, $4::DOUBLE PRECISION)
-RETURNING id, pool_id, paid_by_member_id, name, amount, is_settled, inserted_at, updated_at`;
+RETURNING id, pool_id, paid_by_member_id, name, description, notes, category, amount, is_settled, inserted_at, updated_at`;
 
 export interface CreateExpenseArgs {
     poolId: string;
@@ -444,6 +520,9 @@ export interface CreateExpenseRow {
     poolId: string;
     paidByMemberId: string;
     name: string;
+    description: string | null;
+    notes: string | null;
+    category: string;
     amount: string;
     isSettled: boolean;
     insertedAt: Date;
@@ -465,10 +544,13 @@ export async function createExpense(client: Client, args: CreateExpenseArgs): Pr
         poolId: row[1],
         paidByMemberId: row[2],
         name: row[3],
-        amount: row[4],
-        isSettled: row[5],
-        insertedAt: row[6],
-        updatedAt: row[7]
+        description: row[4],
+        notes: row[5],
+        category: row[6],
+        amount: row[7],
+        isSettled: row[8],
+        insertedAt: row[9],
+        updatedAt: row[10]
     };
 }
 

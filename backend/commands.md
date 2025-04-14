@@ -3,16 +3,11 @@
 #### Generate a migration
 
 ```bash
-atlas migrate diff \
-  --dir "file://src/db/migrations" \
-  --to "file://src/db/schema.sql" \
-  --dev-url "docker://postgres/15"
+dbmate new
 ```
 
 ```bash
-atlas migrate apply \
-  --dir "file://src/db/migrations" \
-  --url "postgres://postgres:postgres@localhost:5442/medici?sslmode=disable"
+dbmate migrate
 ```
 
 ### Generate SQLC

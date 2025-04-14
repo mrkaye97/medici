@@ -6,15 +6,15 @@ import { z } from "zod";
 
 const fallback = "/" as const;
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
+export const Route = createFileRoute("/signup")({
+  component: SignupPage,
   validateSearch: z.object({
     redirect: z.string().optional().catch(""),
   }),
 });
 
-export default function LoginPage() {
-  const { isAuthenticated, login } = useAuth();
+export default function SignupPage() {
+  const { isAuthenticated, signup } = useAuth();
 
   if (isAuthenticated) {
     return <Navigate to={fallback} />;
@@ -26,10 +26,12 @@ export default function LoginPage() {
         onSubmit={async (e) => {
           const email = e.currentTarget.email.value as string;
           const password = e.currentTarget.password.value as string;
+          const firstName = e.currentTarget.firstName.value as string;
+          const lastName = e.currentTarget.lastName.value as string;
 
-          await login(email, password);
+          await signup(email, password, firstName, lastName);
         }}
-        formType="login"
+        formType="signup"
       />
     </div>
   );

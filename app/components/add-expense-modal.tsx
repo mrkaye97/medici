@@ -128,7 +128,15 @@ export function AddExpenseModal({
   });
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(value) => {
+        setIsOpen(value);
+        if (!value) {
+          form.reset();
+        }
+      }}
+    >
       <DialogContent className="ml-32">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
@@ -172,11 +180,13 @@ export function AddExpenseModal({
                   lineItems: memberLineItemAmounts,
                 },
                 {
-                  onSuccess: () => {
+                  onSuccess: async () => {
                     setIsOpen(false);
-                    queryClient.invalidateQueries({
+                    await queryClient.invalidateQueries({
                       queryKey: trpc.getPoolRecentExpenses.queryKey(),
                     });
+
+                    form.reset();
                   },
                   onError: (err) =>
                     alert("Failed to add expense: " + err.message),

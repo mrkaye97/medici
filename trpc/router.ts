@@ -5,6 +5,8 @@ import {
   createExpense,
   createExpenseLineItems,
   createMember,
+  createPool,
+  createPoolMembership,
   getExpense,
   getMember,
   getPoolDetails,
@@ -47,6 +49,24 @@ export const trpcRouter = createTRPCRouter({
   health: healthRouter,
   listMembers: publicProcedure.query(async ({ ctx }) => {
     return await listMembers(ctx.db);
+  }),
+  createPool: publicProcedure.input(z.object({
+    name: z.string(),
+    description: z.string(),
+  })).mutation(async ({ctx, input}) => {
+    return await createPool(ctx.db, {
+      name: input.name,
+      description: input.description,
+    })
+  }),
+  createPoolMembership: publicProcedure.input(z.object({
+    poolId: z.string(),
+    memberId: z.string(),
+  })).mutation(async ({ctx, input}) => {
+    return await createPoolMembership(ctx.db, {
+      poolId: input.poolId,
+      memberId: input.memberId,
+    })
   }),
   listMembersOfPool: publicProcedure
     .input(z.string())
@@ -121,13 +141,11 @@ export const trpcRouter = createTRPCRouter({
       const debtorMemberIds = input.lineItems.map((li) => li.debtor_member_id);
       const amounts = input.lineItems.map((li) => li.amount);
 
-      const lineItems = await createExpenseLineItems(ctx.db, {
+      return await createExpenseLineItems(ctx.db, {
         expenseids: expenseIds,
         debtormemberids: debtorMemberIds,
         amounts: amounts,
       });
-
-      console.log(expense, lineItems);
     }),
   getExpense: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
     const expense = await getExpense(ctx.db, { id: input });

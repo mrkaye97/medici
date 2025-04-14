@@ -11,13 +11,19 @@
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
+import { Route as SignupImport } from './routes/signup'
 import { Route as ReportsImport } from './routes/reports'
 import { Route as LoginImport } from './routes/login'
 import { Route as IndexImport } from './routes/index'
 import { Route as PoolsPoolIdImport } from './routes/pools.$poolId'
-import { Route as ExpensesExpenseIdImport } from './routes/expenses.$expenseId'
 
 // Create/Update Routes
+
+const SignupRoute = SignupImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
 
 const ReportsRoute = ReportsImport.update({
   id: '/reports',
@@ -40,12 +46,6 @@ const IndexRoute = IndexImport.update({
 const PoolsPoolIdRoute = PoolsPoolIdImport.update({
   id: '/pools/$poolId',
   path: '/pools/$poolId',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const ExpensesExpenseIdRoute = ExpensesExpenseIdImport.update({
-  id: '/expenses/$expenseId',
-  path: '/expenses/$expenseId',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -74,11 +74,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsImport
       parentRoute: typeof rootRoute
     }
-    '/expenses/$expenseId': {
-      id: '/expenses/$expenseId'
-      path: '/expenses/$expenseId'
-      fullPath: '/expenses/$expenseId'
-      preLoaderRoute: typeof ExpensesExpenseIdImport
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupImport
       parentRoute: typeof rootRoute
     }
     '/pools/$poolId': {
@@ -97,7 +97,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
-  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/signup': typeof SignupRoute
   '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
@@ -105,7 +105,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
-  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/signup': typeof SignupRoute
   '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
@@ -114,27 +114,16 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
-  '/expenses/$expenseId': typeof ExpensesExpenseIdRoute
+  '/signup': typeof SignupRoute
   '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/login'
-    | '/reports'
-    | '/expenses/$expenseId'
-    | '/pools/$poolId'
+  fullPaths: '/' | '/login' | '/reports' | '/signup' | '/pools/$poolId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/reports' | '/expenses/$expenseId' | '/pools/$poolId'
-  id:
-    | '__root__'
-    | '/'
-    | '/login'
-    | '/reports'
-    | '/expenses/$expenseId'
-    | '/pools/$poolId'
+  to: '/' | '/login' | '/reports' | '/signup' | '/pools/$poolId'
+  id: '__root__' | '/' | '/login' | '/reports' | '/signup' | '/pools/$poolId'
   fileRoutesById: FileRoutesById
 }
 
@@ -142,7 +131,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
-  ExpensesExpenseIdRoute: typeof ExpensesExpenseIdRoute
+  SignupRoute: typeof SignupRoute
   PoolsPoolIdRoute: typeof PoolsPoolIdRoute
 }
 
@@ -150,7 +139,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
-  ExpensesExpenseIdRoute: ExpensesExpenseIdRoute,
+  SignupRoute: SignupRoute,
   PoolsPoolIdRoute: PoolsPoolIdRoute,
 }
 
@@ -167,7 +156,7 @@ export const routeTree = rootRoute
         "/",
         "/login",
         "/reports",
-        "/expenses/$expenseId",
+        "/signup",
         "/pools/$poolId"
       ]
     },
@@ -180,8 +169,8 @@ export const routeTree = rootRoute
     "/reports": {
       "filePath": "reports.tsx"
     },
-    "/expenses/$expenseId": {
-      "filePath": "expenses.$expenseId.tsx"
+    "/signup": {
+      "filePath": "signup.tsx"
     },
     "/pools/$poolId": {
       "filePath": "pools.$poolId.tsx"

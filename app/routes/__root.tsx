@@ -1,5 +1,5 @@
 // routes/__root.tsx
-import type { QueryClient } from "@tanstack/react-query";
+import { useMutation, type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
@@ -16,36 +16,62 @@ import { NotFound } from "../components/NotFound";
 import { TRPCRouter } from "../../trpc/router";
 import * as React from "react";
 import { AuthContext, AuthProvider, useAuth } from "../hooks/auth";
-import { HandCoinsIcon, LogOut } from "lucide-react";
+import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { useTRPC } from "trpc/react";
+import { CreatePoolModal } from "@/components/create-pool-modal";
 
 function InnerApp() {
-  const { login, logout, signup } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
+  const [isCreatePoolOpen, setIsCreatePoolOpen] = React.useState(false);
 
   return (
     <div className="flex min-h-screen">
+      <CreatePoolModal
+        isOpen={isCreatePoolOpen}
+        setIsOpen={setIsCreatePoolOpen}
+      />
       <aside
-        className="w-64 bg-gray-100 border-r p-4 flex flex-col justify-between"
+        className="w-64 bg-gray-100 border-r p-4 flex flex-col justify-start items-start"
         style={{ "--sidebar-width": "16rem" } as React.CSSProperties}
       >
-        <div>
-          <h2 className="text-lg font-semibold mb-4 flex flex-row gap-x-2 items-center">
-            <HandCoinsIcon className="size-6 text-green-800" />
-            Medici
-          </h2>
-          <nav className="space-y-2 text-sm text-gray-700 flex flex-col">
-            <Link to="/">Dashboard</Link>
-            <Link to="/reports">Reports</Link>
-          </nav>
-        </div>
-        <div className="w-full flex flex-col items-center">
+        <h2 className="text-lg font-semibold mb-4 flex flex-row gap-x-2 items-center">
+          <HandCoinsIcon className="size-6 text-green-800" />
+          Medici
+        </h2>
+        <div className="text-sm text-gray-700 flex flex-col w-full">
+          <Link to="/">
+            <Button variant="ghost" className="w-full justify-start py-1">
+              Dashboard
+            </Button>
+          </Link>
+          <Link to="/reports">
+            <Button variant="ghost" className="w-full justify-start py-1">
+              Reports
+            </Button>
+          </Link>
+          <Separator className="my-2" />
           <Button
-            onClick={() => {
-              logout();
+            variant="ghost"
+            onClick={async () => {
+              setIsCreatePoolOpen(true);
             }}
+            className="w-full justify-start py-1"
           >
-            <LogOut className="size-4" /> Log Out
+            <PlusCircle className="size-4" /> Create a pool
           </Button>
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              onClick={() => {
+                logout();
+              }}
+              className="w-full justify-start py-1"
+            >
+              <LogOut className="size-4" /> Log Out
+            </Button>
+          )}
         </div>
       </aside>
 
