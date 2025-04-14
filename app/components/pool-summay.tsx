@@ -118,7 +118,7 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
               )}
               <span className="flex items-center">
                 <ScrollText className="w-4 h-4 mr-1" />
-                {poolRecentExpenses?.length} Recent Expenses
+                Recent Expenses
               </span>
             </Button>
           )}
