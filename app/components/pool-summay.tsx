@@ -34,8 +34,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
       },
       {
         enabled: !!id && !!pool.id,
-      }
-    )
+      },
+    ),
   );
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
     useQuery(
@@ -46,8 +46,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         },
         {
           enabled: !!id && !!pool.id,
-        }
-      )
+        },
+      ),
     );
 
   if (

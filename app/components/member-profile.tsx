@@ -113,11 +113,9 @@ export const MemberProfile = ({ id }: { id: string }) => {
                 </span>
               </div>
 
-              {member.firstName && (
+              {member.bio && (
                 <div className="pt-2 border-t border-gray-100">
-                  <p className="text-gray-600 text-sm italic">
-                    Lorem ipsum this is my bio
-                  </p>
+                  <p className="text-gray-600 text-sm italic">{member.bio}</p>
                 </div>
               )}
             </div>

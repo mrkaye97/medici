@@ -5,7 +5,7 @@ interface Client {
 }
 
 export const getMemberQuery = `-- name: GetMember :one
-SELECT m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at, p.password_hash
+SELECT m.id, m.first_name, m.last_name, m.email, m.bio, m.inserted_at, m.updated_at, p.password_hash
 FROM member m
 JOIN member_password p ON m.id = p.member_id
 WHERE m.id = $1`;
@@ -19,6 +19,7 @@ export interface GetMemberRow {
   firstName: string;
   lastName: string;
   email: string;
+  bio: string | null;
   insertedAt: Date;
   updatedAt: Date;
   passwordHash: string;
@@ -42,14 +43,15 @@ export async function getMember(
     firstName: row[1],
     lastName: row[2],
     email: row[3],
-    insertedAt: row[4],
-    updatedAt: row[5],
-    passwordHash: row[6],
+    bio: row[4],
+    insertedAt: row[5],
+    updatedAt: row[6],
+    passwordHash: row[7],
   };
 }
 
 export const listMembersQuery = `-- name: ListMembers :many
-SELECT id, first_name, last_name, email, inserted_at, updated_at
+SELECT id, first_name, last_name, email, bio, inserted_at, updated_at
 FROM member`;
 
 export interface ListMembersRow {
@@ -57,6 +59,7 @@ export interface ListMembersRow {
   firstName: string;
   lastName: string;
   email: string;
+  bio: string | null;
   insertedAt: Date;
   updatedAt: Date;
 }
@@ -73,8 +76,9 @@ export async function listMembers(client: Client): Promise<ListMembersRow[]> {
       firstName: row[1],
       lastName: row[2],
       email: row[3],
-      insertedAt: row[4],
-      updatedAt: row[5],
+      bio: row[4],
+      insertedAt: row[5],
+      updatedAt: row[6],
     };
   });
 }
@@ -205,7 +209,7 @@ WITH friends AS (
 )
 
 SELECT
-    m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at,
+    m.id, m.first_name, m.last_name, m.email, m.bio, m.inserted_at, m.updated_at,
     m.id IN (
         SELECT member_id
         FROM pool_membership pm
@@ -224,6 +228,7 @@ export interface ListFriendPoolMembershipStatusRow {
   firstName: string;
   lastName: string;
   email: string;
+  bio: string | null;
   insertedAt: Date;
   updatedAt: Date;
   isPoolMember: boolean;
@@ -244,9 +249,10 @@ export async function listFriendPoolMembershipStatus(
       firstName: row[1],
       lastName: row[2],
       email: row[3],
-      insertedAt: row[4],
-      updatedAt: row[5],
-      isPoolMember: row[6],
+      bio: row[4],
+      insertedAt: row[5],
+      updatedAt: row[6],
+      isPoolMember: row[7],
     };
   });
 }
