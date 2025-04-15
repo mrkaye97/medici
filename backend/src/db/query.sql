@@ -141,7 +141,7 @@ FROM input i
 RETURNING *;
 
 -- name: CreateFriendRequest :exec
-WITH friend AS (
+WITH potential_friend AS (
     SELECT id
     FROM member
     WHERE
@@ -149,12 +149,12 @@ WITH friend AS (
         AND id != sqlc.arg(memberId)::UUID
 )
 
-INSERT INTO friendship (member_id, friend_member_id, status)
+INSERT INTO friendship (inviting_member_id, friend_member_id, status)
 SELECT
-    sqlc.arg(memberId)::UUID AS member_id,
+    sqlc.arg(memberId)::UUID AS inviting_member_id,
     f.id AS friend_member_id,
     'pending' AS status
-FROM friend f
+FROM potential_friend f
 ON CONFLICT (member_id, friend_member_id) DO NOTHING;
 
 -- name: AcceptFriendRequest :exec
@@ -163,49 +163,61 @@ WITH request AS (
     FROM friendship
     WHERE
         friend_member_id = sqlc.arg(memberId)::UUID
-        AND member_id = sqlc.arg(friendMemberId)::UUID
+        AND inviting_member_id = sqlc.arg(friendMemberId)::UUID
         AND status = 'pending'
-), update_stmt AS (
-    UPDATE friendship
-    SET status = 'accepted'
-    WHERE
-        friend_member_id = sqlc.arg(memberId)::UUID
-        AND member_id = sqlc.arg(friendMemberId)::UUID
-        AND status = 'pending'
-    RETURNING *
 )
 
-INSERT INTO friendship (member_id, friend_member_id, status)
-VALUES (
-    sqlc.arg(memberId)::UUID,
-    sqlc.arg(friendMemberId)::UUID,
-    'accepted'
-);
+UPDATE friendship
+SET status = 'accepted'
+WHERE
+    friend_member_id = sqlc.arg(memberId)::UUID
+    AND member_id = sqlc.arg(friendMemberId)::UUID
+    AND status = 'pending'
+RETURNING *
+;
 
 -- name: ListFriends :many
+WITH friends AS (
+    SELECT
+        CASE
+            WHEN f.inviting_member_id = $1 THEN f.friend_member_id
+            WHEN f.friend_member_id = $1 THEN f.inviting_member_id
+        END AS friend_member_id,
+        f.status
+    FROM friendship f
+    WHERE
+        (f.inviting_member_id = $1 OR f.friend_member_id = $1)
+        AND f.status = 'accepted'
+)
+
 SELECT
     m.id,
     m.first_name,
     m.last_name,
     m.email,
-    f.status::friendship_status
+    f.status
 FROM member m
-JOIN friendship f ON m.id = f.friend_member_id
-WHERE
-    f.member_id = $1
-    AND f.status = 'accepted'
+JOIN friends f ON m.id = f.friend_member_id
 ;
 
 -- name: ListInboundFriendRequests :many
+WITH requests AS (
+    SELECT f.inviting_member_id
+    FROM friendship f
+    WHERE
+        f.friend_member_id = $1
+        AND f.status = 'pending'
+)
+
 SELECT
     m.id,
     m.first_name,
     m.last_name,
     m.email,
-    f.status::friendship_status
+    f.status::friendship_status AS status
 FROM member m
-JOIN friendship f ON m.id = f.member_id
-WHERE
-    f.friend_member_id = $1
-    AND f.status = 'pending'
+WHERE m.id IN (
+    SELECT inviting_member_id
+    FROM requests
+)
 ;
