@@ -40,8 +40,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
       },
       {
         enabled: !!id && !!pool.id,
-      },
-    ),
+      }
+    )
   );
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
     useQuery(
@@ -52,8 +52,8 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         },
         {
           enabled: !!id && !!pool.id,
-        },
-      ),
+        }
+      )
     );
 
   if (
@@ -88,7 +88,7 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
               )}
             </div>
             <Badge
-              className={`ml-2 ${poolDetails.totalDebt >= 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+              className={`ml-2 ${poolDetails.totalDebt < 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
             >
               <DollarSign className="w-3 h-3 mr-1" />
               {formatCurrency(poolDetails.totalDebt)}

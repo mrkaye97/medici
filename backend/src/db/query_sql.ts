@@ -116,7 +116,12 @@ WITH debts_owed AS (
     SELECT
         eli.debtor_member_id,
         e.pool_id,
-        SUM(eli.amount)::DOUBLE PRECISION AS total_debt
+        SUM(
+            CASE
+                WHEN e.paid_by_member_id = $1::UUID THEN (eli.amount - e.amount)
+                ELSE eli.amount
+            END
+        )::DOUBLE PRECISION AS total_debt
     FROM expense_line_item eli
     JOIN expense e ON (e.id, eli.is_settled) = (eli.expense_id, false)
     WHERE
