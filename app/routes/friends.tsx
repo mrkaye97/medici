@@ -56,7 +56,7 @@ function FriendsPage() {
       <div className="flex-1 bg-white">
         <AddFriendModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
         <div className="flex flex-col justify-between h-full p-8">
-          <div className="flex flex-col">
+          <div className="flex flex-col gap-y-2">
             <h2 className="text-xl font-bold">My Friends</h2>
             {friends.map((friend) => (
               <div

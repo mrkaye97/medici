@@ -118,3 +118,26 @@ CREATE TABLE expense_line_item (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     FOREIGN KEY (expense_id, is_settled) REFERENCES expense(id, is_settled) ON DELETE CASCADE
 );
+
+CREATE OR REPLACE FUNCTION trigger_set_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION add_updated_at_trigger(table_name text)
+RETURNS void AS $$
+BEGIN
+  EXECUTE format('
+    CREATE TRIGGER set_updated_at
+    BEFORE UPDATE ON %I
+    FOR EACH ROW
+    EXECUTE FUNCTION trigger_set_updated_at();
+  ', table_name);
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add this to a migration to create the trigger for a new table
+-- SELECT add_updated_at_trigger('your_new_table_name');
