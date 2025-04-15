@@ -196,7 +196,7 @@ SELECT
         SELECT member_id
         FROM pool_membership pm
         WHERE pm.pool_id = $1
-    ) AS is_pool_member
+    )::BOOLEAN AS is_pool_member
 FROM friends f
 JOIN member m ON f.member_id = m.id`;
 
@@ -212,7 +212,7 @@ export interface ListFriendPoolMembershipStatusRow {
     email: string;
     insertedAt: Date;
     updatedAt: Date;
-    isPoolMember: string | null;
+    isPoolMember: boolean;
 }
 
 export async function listFriendPoolMembershipStatus(client: Client, args: ListFriendPoolMembershipStatusArgs): Promise<ListFriendPoolMembershipStatusRow[]> {

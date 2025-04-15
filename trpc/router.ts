@@ -77,7 +77,9 @@ export const trpcRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await addFriendToPool(ctx.db, input);
+      await addFriendToPool(ctx.db, input);
+
+      return true
     }),
   removeFriendFromPool: publicProcedure
     .input(
@@ -87,7 +89,9 @@ export const trpcRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      return await removeFriendFromPool(ctx.db, input);
+      await removeFriendFromPool(ctx.db, input);
+
+      return true
     }),
   createPoolMembership: publicProcedure
     .input(
