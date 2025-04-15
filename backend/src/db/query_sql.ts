@@ -173,29 +173,52 @@ export async function getPoolDetails(client: Client, args: GetPoolDetailsArgs): 
     };
 }
 
-export const listMembersOfPoolQuery = `-- name: ListMembersOfPool :many
-SELECT m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at
-FROM member m
-JOIN pool_membership pm ON m.id = pm.member_id
-WHERE pm.pool_id = $1`;
+export const listFriendPoolMembershipStatusQuery = `-- name: ListFriendPoolMembershipStatus :many
+WITH friends AS (
+    SELECT
+        CASE
+            WHEN f.inviting_member_id = $2::UUID THEN f.friend_member_id
+            WHEN f.friend_member_id = $2::UUID THEN f.inviting_member_id
+        END AS member_id
+    FROM friendship f
+    WHERE
+        (f.inviting_member_id = $2::UUID OR f.friend_member_id = $2::UUID)
+        AND f.status = 'accepted'
 
-export interface ListMembersOfPoolArgs {
+    UNION
+
+    SELECT $2::UUID AS member_id
+)
+
+SELECT
+    m.id, m.first_name, m.last_name, m.email, m.inserted_at, m.updated_at,
+    m.id IN (
+        SELECT member_id
+        FROM pool_membership pm
+        WHERE pm.pool_id = $1
+    ) AS is_pool_member
+FROM friends f
+JOIN member m ON f.member_id = m.id`;
+
+export interface ListFriendPoolMembershipStatusArgs {
     poolId: string;
+    memberid: string;
 }
 
-export interface ListMembersOfPoolRow {
+export interface ListFriendPoolMembershipStatusRow {
     id: string;
     firstName: string;
     lastName: string;
     email: string;
     insertedAt: Date;
     updatedAt: Date;
+    isPoolMember: string | null;
 }
 
-export async function listMembersOfPool(client: Client, args: ListMembersOfPoolArgs): Promise<ListMembersOfPoolRow[]> {
+export async function listFriendPoolMembershipStatus(client: Client, args: ListFriendPoolMembershipStatusArgs): Promise<ListFriendPoolMembershipStatusRow[]> {
     const result = await client.query({
-        text: listMembersOfPoolQuery,
-        values: [args.poolId],
+        text: listFriendPoolMembershipStatusQuery,
+        values: [args.poolId, args.memberid],
         rowMode: "array"
     });
     return result.rows.map(row => {
@@ -205,8 +228,67 @@ export async function listMembersOfPool(client: Client, args: ListMembersOfPoolA
             lastName: row[2],
             email: row[3],
             insertedAt: row[4],
-            updatedAt: row[5]
+            updatedAt: row[5],
+            isPoolMember: row[6]
         };
+    });
+}
+
+export const addFriendToPoolQuery = `-- name: AddFriendToPool :one
+INSERT INTO pool_membership (pool_id, member_id)
+VALUES ($1, $2)
+RETURNING id, pool_id, member_id, role, inserted_at, updated_at`;
+
+export interface AddFriendToPoolArgs {
+    poolId: string;
+    memberId: string;
+}
+
+export interface AddFriendToPoolRow {
+    id: string;
+    poolId: string;
+    memberId: string;
+    role: string;
+    insertedAt: Date;
+    updatedAt: Date;
+}
+
+export async function addFriendToPool(client: Client, args: AddFriendToPoolArgs): Promise<AddFriendToPoolRow | null> {
+    const result = await client.query({
+        text: addFriendToPoolQuery,
+        values: [args.poolId, args.memberId],
+        rowMode: "array"
+    });
+    if (result.rows.length !== 1) {
+        return null;
+    }
+    const row = result.rows[0];
+    return {
+        id: row[0],
+        poolId: row[1],
+        memberId: row[2],
+        role: row[3],
+        insertedAt: row[4],
+        updatedAt: row[5]
+    };
+}
+
+export const removeFriendFromPoolQuery = `-- name: RemoveFriendFromPool :exec
+DELETE FROM pool_membership
+WHERE
+    pool_id = $1
+    AND member_id = $2`;
+
+export interface RemoveFriendFromPoolArgs {
+    poolId: string;
+    memberId: string;
+}
+
+export async function removeFriendFromPool(client: Client, args: RemoveFriendFromPoolArgs): Promise<void> {
+    await client.query({
+        text: removeFriendFromPoolQuery,
+        values: [args.poolId, args.memberId],
+        rowMode: "array"
     });
 }
 
@@ -620,7 +702,7 @@ SELECT
     f.id AS friend_member_id,
     'pending' AS status
 FROM potential_friend f
-ON CONFLICT (member_id, friend_member_id) DO NOTHING`;
+ON CONFLICT (inviting_member_id, friend_member_id) DO NOTHING`;
 
 export interface CreateFriendRequestArgs {
     memberid: string;
@@ -649,7 +731,7 @@ UPDATE friendship
 SET status = 'accepted'
 WHERE
     friend_member_id = $1::UUID
-    AND member_id = $2::UUID
+    AND inviting_member_id = $2::UUID
     AND status = 'pending'
 RETURNING inviting_member_id, friend_member_id, status, inserted_at, updated_at`;
 
@@ -739,8 +821,7 @@ SELECT
     m.id,
     m.first_name,
     m.last_name,
-    m.email,
-    f.status::friendship_status AS status
+    m.email
 FROM member m
 WHERE m.id IN (
     SELECT inviting_member_id
@@ -756,7 +837,6 @@ export interface ListInboundFriendRequestsRow {
     firstName: string;
     lastName: string;
     email: string;
-    status: string;
 }
 
 export async function listInboundFriendRequests(client: Client, args: ListInboundFriendRequestsArgs): Promise<ListInboundFriendRequestsRow[]> {
@@ -770,8 +850,7 @@ export async function listInboundFriendRequests(client: Client, args: ListInboun
             id: row[0],
             firstName: row[1],
             lastName: row[2],
-            email: row[3],
-            status: row[4]
+            email: row[3]
         };
     });
 }

@@ -41,11 +41,44 @@ LEFT JOIN debts_owed d ON d.pool_id = p.id
 WHERE p.id = sqlc.arg(poolId)::UUID
 ;
 
--- name: ListMembersOfPool :many
-SELECT m.*
-FROM member m
-JOIN pool_membership pm ON m.id = pm.member_id
-WHERE pm.pool_id = $1;
+-- name: ListFriendPoolMembershipStatus :many
+WITH friends AS (
+    SELECT
+        CASE
+            WHEN f.inviting_member_id = sqlc.arg(memberId)::UUID THEN f.friend_member_id
+            WHEN f.friend_member_id = sqlc.arg(memberId)::UUID THEN f.inviting_member_id
+        END AS member_id
+    FROM friendship f
+    WHERE
+        (f.inviting_member_id = sqlc.arg(memberId)::UUID OR f.friend_member_id = sqlc.arg(memberId)::UUID)
+        AND f.status = 'accepted'
+
+    UNION
+
+    SELECT sqlc.arg(memberId)::UUID AS member_id
+)
+
+SELECT
+    m.*,
+    m.id IN (
+        SELECT member_id
+        FROM pool_membership pm
+        WHERE pm.pool_id = $1
+    ) AS is_pool_member
+FROM friends f
+JOIN member m ON f.member_id = m.id;
+
+-- name: AddFriendToPool :one
+INSERT INTO pool_membership (pool_id, member_id)
+VALUES ($1, $2)
+RETURNING *;
+
+-- name: RemoveFriendFromPool :exec
+DELETE FROM pool_membership
+WHERE
+    pool_id = $1
+    AND member_id = $2
+;
 
 -- name: ListPoolRecentExpenses :many
 SELECT
@@ -155,7 +188,7 @@ SELECT
     f.id AS friend_member_id,
     'pending' AS status
 FROM potential_friend f
-ON CONFLICT (member_id, friend_member_id) DO NOTHING;
+ON CONFLICT (inviting_member_id, friend_member_id) DO NOTHING;
 
 -- name: AcceptFriendRequest :exec
 WITH request AS (
@@ -171,7 +204,7 @@ UPDATE friendship
 SET status = 'accepted'
 WHERE
     friend_member_id = sqlc.arg(memberId)::UUID
-    AND member_id = sqlc.arg(friendMemberId)::UUID
+    AND inviting_member_id = sqlc.arg(friendMemberId)::UUID
     AND status = 'pending'
 RETURNING *
 ;
@@ -213,8 +246,7 @@ SELECT
     m.id,
     m.first_name,
     m.last_name,
-    m.email,
-    f.status::friendship_status AS status
+    m.email
 FROM member m
 WHERE m.id IN (
     SELECT inviting_member_id

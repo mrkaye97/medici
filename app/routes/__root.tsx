@@ -50,16 +50,20 @@ function InnerApp() {
               Friends
             </Button>
           </Link>
-          <Separator className="my-2" />
-          <Button
-            variant="ghost"
-            onClick={async () => {
-              setIsCreatePoolOpen(true);
-            }}
-            className="w-full justify-start py-1"
-          >
-            <PlusCircle className="size-4" /> Create a pool
-          </Button>
+          {isAuthenticated && (
+            <>
+              <Separator className="my-2" />
+              <Button
+                variant="ghost"
+                onClick={async () => {
+                  setIsCreatePoolOpen(true);
+                }}
+                className="w-full justify-start py-1"
+              >
+                <PlusCircle className="size-4" /> Create a pool
+              </Button>
+            </>
+          )}
           {isAuthenticated && (
             <Button
               variant="ghost"

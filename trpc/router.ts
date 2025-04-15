@@ -2,6 +2,7 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "./init";
 import {
   acceptFriendRequest,
+  addFriendToPool,
   checkAuth,
   createExpense,
   createExpenseLineItems,
@@ -12,13 +13,14 @@ import {
   getExpense,
   getMember,
   getPoolDetails,
+  listFriendPoolMembershipStatus,
   listFriends,
   listInboundFriendRequests,
   listMembers,
-  listMembersOfPool,
   listPoolRecentExpenses,
   listPoolsForMember,
   loginMember,
+  removeFriendFromPool,
 } from "../backend/src/db/query_sql";
 import bcrypt from "bcrypt";
 
@@ -28,8 +30,6 @@ const DAYS = 1000 * 60 * 60 * 24;
 export const hashPassword = async (password: string) => {
   return await bcrypt.hash(password, PASSWORD_SALT);
 };
-
-type FriendshipStatus = "pending" | "accepted";
 
 type AuthResult =
   | {
@@ -69,6 +69,26 @@ export const trpcRouter = createTRPCRouter({
         description: input.description,
       });
     }),
+  addFriendToPool: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+        poolId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await addFriendToPool(ctx.db, input);
+    }),
+  removeFriendFromPool: publicProcedure
+    .input(
+      z.object({
+        memberId: z.string(),
+        poolId: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      return await removeFriendFromPool(ctx.db, input);
+    }),
   createPoolMembership: publicProcedure
     .input(
       z.object({
@@ -83,9 +103,12 @@ export const trpcRouter = createTRPCRouter({
       });
     }),
   listMembersOfPool: publicProcedure
-    .input(z.string())
+    .input(z.object({
+      poolId: z.string(),
+      memberId: z.string(),
+    }))
     .query(async ({ ctx, input }) => {
-      return await listMembersOfPool(ctx.db, { poolId: input });
+      return await listFriendPoolMembershipStatus(ctx.db, { poolId: input.poolId, memberid: input.memberId });
     }),
   listPoolsForMember: publicProcedure
     .input(
@@ -264,7 +287,9 @@ export const trpcRouter = createTRPCRouter({
       }),
     )
     .query(async ({ ctx, input }) => {
-      return await listFriends(ctx.db, input);
+      return await listFriends(ctx.db, {
+        invitingMemberId: input.memberId,
+      });
     }),
   listInboundFriendRequests: publicProcedure
     .input(

@@ -60,7 +60,7 @@ export function AddFriendModal({
     >
       <DialogContent className="ml-32">
         <DialogHeader>
-          <DialogTitle>Create a pool</DialogTitle>
+          <DialogTitle>Add a friend</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>

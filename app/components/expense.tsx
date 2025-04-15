@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "app/hooks/auth";
 import { ListPoolRecentExpensesRow } from "backend/src/db/query_sql";
 import { useTRPC } from "trpc/react";
 
@@ -19,9 +20,28 @@ export const formatCurrency = (amount: number) => {
 
 export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
   const trpc = useTRPC();
-  const { data } = useQuery(
-    trpc.listMembersOfPool.queryOptions(expense.poolId),
+  const { id } = useAuth();
+  const { data, isLoading } = useQuery(
+    trpc.listMembersOfPool.queryOptions(
+      {
+        poolId: expense.poolId,
+        memberId: id || "",
+      },
+      {
+        enabled: !!id,
+      }
+    )
   );
+
+  if (!data || isLoading || !id) {
+    return (
+      <div className="flex flex-1 w-full mt-4 px-4 gap-x-4">
+        <div className="flex flex-1 flex-col w-full">
+          <h2 className="text-2xl font-semibold mb-6">Loading...</h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 hover:bg-gray-50 transition-colors">
