@@ -1,4 +1,3 @@
-import { Checkbox } from "@/components/ui/checkbox";
 import { Expense } from "@/components/expense";
 import { Spinner } from "@/components/ui/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";

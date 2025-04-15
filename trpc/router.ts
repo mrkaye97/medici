@@ -79,7 +79,7 @@ export const trpcRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await addFriendToPool(ctx.db, input);
 
-      return true
+      return true;
     }),
   removeFriendFromPool: publicProcedure
     .input(
@@ -91,7 +91,7 @@ export const trpcRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       await removeFriendFromPool(ctx.db, input);
 
-      return true
+      return true;
     }),
   createPoolMembership: publicProcedure
     .input(
@@ -107,12 +107,17 @@ export const trpcRouter = createTRPCRouter({
       });
     }),
   listMembersOfPool: publicProcedure
-    .input(z.object({
-      poolId: z.string(),
-      memberId: z.string(),
-    }))
+    .input(
+      z.object({
+        poolId: z.string(),
+        memberId: z.string(),
+      }),
+    )
     .query(async ({ ctx, input }) => {
-      return await listFriendPoolMembershipStatus(ctx.db, { poolId: input.poolId, memberid: input.memberId });
+      return await listFriendPoolMembershipStatus(ctx.db, {
+        poolId: input.poolId,
+        memberid: input.memberId,
+      });
     }),
   listPoolsForMember: publicProcedure
     .input(
@@ -188,9 +193,7 @@ export const trpcRouter = createTRPCRouter({
         amounts: amounts,
       });
     }),
-  getMember: publicProcedure
-  .input(z.string())
-  .query(async ({ ctx, input }) => {
+  getMember: publicProcedure.input(z.string()).query(async ({ ctx, input }) => {
     const member = await getMember(ctx.db, { id: input });
 
     if (!member) {

@@ -9,13 +9,7 @@ import {
 } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import {
-  ChevronDown,
-  ChevronRight,
-  Calendar,
-  DollarSign,
-  ScrollText,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
 import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
 import { useQuery } from "@tanstack/react-query";
@@ -88,10 +82,11 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
               )}
             </div>
             <Badge
-              className={`ml-2 ${poolDetails.totalDebt < 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+              className={`ml-2 py-2 ${poolDetails.totalDebt < 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
             >
-              <DollarSign className="w-3 h-3 mr-1" />
-              {formatCurrency(poolDetails.totalDebt)}
+              <p className="text-base font-light">
+                {formatCurrency(poolDetails.totalDebt)}
+              </p>
             </Badge>
           </div>
         </CardHeader>

@@ -30,8 +30,8 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
       },
       {
         enabled: !!id,
-      }
-    )
+      },
+    ),
   );
 
   if (!data || isLoading || !id) {
@@ -76,7 +76,7 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.amountOwed < 0 ? "text-emerald-600" : "text-red-600"
+                expense.amountOwed < 0 ? "text-emerald-600" : "text-red-600",
               )}
             >
               {formatCurrency(expense.amountOwed)}

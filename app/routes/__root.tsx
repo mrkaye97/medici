@@ -29,7 +29,7 @@ function InnerApp() {
   const { data: member } = useQuery(
     trpc.getMember.queryOptions(id || "", {
       enabled: !!id,
-    })
+    }),
   );
 
   const email = member?.email;
