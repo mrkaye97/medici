@@ -90,11 +90,14 @@ SELECT
     e.updated_at,
     e.pool_id,
     e.paid_by_member_id,
-    eli.amount::DOUBLE PRECISION AS amount_owed
+    CASE
+        WHEN e.paid_by_member_id = sqlc.arg(memberId)::UUID THEN (eli.amount - e.amount)::DOUBLE PRECISION
+        ELSE eli.amount::DOUBLE PRECISION
+    END AS amount_owed
 FROM expense e
-JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = $1
+JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = sqlc.arg(memberId)::UUID
 WHERE
-    e.pool_id = $2
+    e.pool_id = sqlc.arg(poolId)::UUID
     AND e.is_settled = FALSE
 ORDER BY e.inserted_at DESC
 LIMIT sqlc.arg(expenseLimit)::INTEGER

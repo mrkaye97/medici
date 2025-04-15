@@ -302,18 +302,21 @@ SELECT
     e.updated_at,
     e.pool_id,
     e.paid_by_member_id,
-    eli.amount::DOUBLE PRECISION AS amount_owed
+    CASE
+        WHEN e.paid_by_member_id = $1::UUID THEN (eli.amount - e.amount)::DOUBLE PRECISION
+        ELSE eli.amount::DOUBLE PRECISION
+    END AS amount_owed
 FROM expense e
-JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = $1
+JOIN expense_line_item eli ON (e.id, e.is_settled) = (eli.expense_id, false) AND eli.debtor_member_id = $1::UUID
 WHERE
-    e.pool_id = $2
+    e.pool_id = $2::UUID
     AND e.is_settled = FALSE
 ORDER BY e.inserted_at DESC
 LIMIT $3::INTEGER`;
 
 export interface ListPoolRecentExpensesArgs {
-    debtorMemberId: string;
-    poolId: string;
+    memberid: string;
+    poolid: string;
     expenselimit: number;
 }
 
@@ -332,7 +335,7 @@ export interface ListPoolRecentExpensesRow {
 export async function listPoolRecentExpenses(client: Client, args: ListPoolRecentExpensesArgs): Promise<ListPoolRecentExpensesRow[]> {
     const result = await client.query({
         text: listPoolRecentExpensesQuery,
-        values: [args.debtorMemberId, args.poolId, args.expenselimit],
+        values: [args.memberid, args.poolid, args.expenselimit],
         rowMode: "array"
     });
     return result.rows.map(row => {

@@ -146,8 +146,8 @@ export const trpcRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       return await listPoolRecentExpenses(ctx.db, {
-        poolId: input.poolId,
-        debtorMemberId: input.memberId,
+        poolid: input.poolId,
+        memberid: input.memberId,
         expenselimit: input.limit || 5,
       });
     }),
@@ -188,6 +188,17 @@ export const trpcRouter = createTRPCRouter({
         amounts: amounts,
       });
     }),
+  getMember: publicProcedure
+  .input(z.string())
+  .query(async ({ ctx, input }) => {
+    const member = await getMember(ctx.db, { id: input });
+
+    if (!member) {
+      throw new Error("member not found");
+    }
+
+    return member;
+  }),
   getExpense: publicProcedure
     .input(z.string())
     .query(async ({ ctx, input }) => {

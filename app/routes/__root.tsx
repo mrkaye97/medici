@@ -1,5 +1,5 @@
 // routes/__root.tsx
-import { type QueryClient } from "@tanstack/react-query";
+import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
@@ -20,10 +20,19 @@ import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CreatePoolModal } from "@/components/create-pool-modal";
+import { useTRPC } from "trpc/react";
 
 function InnerApp() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, id, logout } = useAuth();
   const [isCreatePoolOpen, setIsCreatePoolOpen] = React.useState(false);
+  const trpc = useTRPC();
+  const { data: member } = useQuery(
+    trpc.getMember.queryOptions(id || "", {
+      enabled: !!id,
+    })
+  );
+
+  const email = member?.email;
 
   return (
     <div className="flex min-h-screen">
@@ -75,6 +84,7 @@ function InnerApp() {
               <LogOut className="size-4" /> Log Out
             </Button>
           )}
+          <p className="pl-4 pt-4">{email}</p>
         </div>
       </aside>
 

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "app/hooks/auth";
 import { ListPoolRecentExpensesRow } from "backend/src/db/query_sql";
 import { useTRPC } from "trpc/react";
+import { cn } from "./lib/utils";
 
 export const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -15,7 +16,7 @@ export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-  }).format(amount);
+  }).format(Math.abs(amount));
 };
 
 export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
@@ -69,8 +70,15 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
             {formatCurrency(expense.amount)}
           </span>
           <div className="flex items-center">
-            <span className="text-sm text-gray-600">You owe </span>
-            <span className="ml-1 font-medium text-emerald-600">
+            <span className="text-sm text-gray-600">
+              {expense.amountOwed < 0 ? "You are owed" : "You owe"}{" "}
+            </span>
+            <span
+              className={cn(
+                "ml-1 font-medium",
+                expense.amountOwed < 0 ? "text-emerald-600" : "text-red-600"
+              )}
+            >
               {formatCurrency(expense.amountOwed)}
             </span>
           </div>
