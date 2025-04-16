@@ -94,13 +94,13 @@ function PostComponent() {
   }
 
   return (
-    <div className="flex flex-1 w-full px-4 gap-x-4">
+    <div className="flex flex-1 w-full px-4 gap-x-4 h-screen overflow-hidden">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
         pool={pool}
       />
-      <div className="flex flex-1 flex-col w-full p-12">
+      <div className="flex flex-1 flex-col w-full p-12 overflow-hidden">
         <h2 className="text-2xl font-semibold mb-6">Recent Expenses</h2>
         <Button
           className="my-2"
@@ -115,7 +115,7 @@ function PostComponent() {
             <p className="text-gray-600">No expenses found</p>
           </div>
         ) : (
-          <div className="space-y-4 w-full">
+          <div className="space-y-4 w-full overflow-y-auto flex-1">
             {expenses.map((e) => (
               <div
                 key={e.id}
@@ -127,7 +127,7 @@ function PostComponent() {
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col bg-gray-100 p-12 h-screen">
+      <div className="flex flex-1 flex-col bg-gray-100 p-12 h-screen overflow-y-auto">
         <h2 className="text-2xl font-semibold mb-6">Manage pool members</h2>
         {friends.map((f) => (
           <div className="flex items-center space-x-2 " key={f.id}>

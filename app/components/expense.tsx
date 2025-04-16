@@ -47,7 +47,7 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
   }
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
+    <div className="p-4 hover:bg-gray-50 transition-colors rounded-lg">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
