@@ -95,6 +95,8 @@ SELECT
     e.updated_at,
     e.pool_id,
     e.paid_by_member_id,
+    e.description,
+    e.category::expense_category AS category,
     CASE
         WHEN e.paid_by_member_id = sqlc.arg(memberId)::UUID THEN (eli.amount - e.amount)::DOUBLE PRECISION
         ELSE eli.amount::DOUBLE PRECISION
@@ -161,8 +163,8 @@ VALUES ($1, $2)
 RETURNING *;
 
 -- name: CreateExpense :one
-INSERT INTO expense (pool_id, paid_by_member_id, name, amount)
-VALUES ($1, $2, $3, sqlc.arg(amount)::DOUBLE PRECISION)
+INSERT INTO expense (pool_id, paid_by_member_id, name, amount, description, category)
+VALUES ($1, $2, $3, sqlc.arg(amount)::DOUBLE PRECISION, sqlc.narg(description), sqlc.arg(category)::expense_category)
 RETURNING *;
 
 -- name: CreateExpenseLineItems :many

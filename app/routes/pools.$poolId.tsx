@@ -29,8 +29,8 @@ function PostComponent() {
       },
       {
         enabled: !!id,
-      },
-    ),
+      }
+    )
   );
 
   const { data, isLoading } = useQuery(
@@ -42,8 +42,8 @@ function PostComponent() {
       },
       {
         enabled: !!id,
-      },
-    ),
+      }
+    )
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = useQuery(
@@ -54,8 +54,8 @@ function PostComponent() {
       },
       {
         enabled: !!id,
-      },
-    ),
+      }
+    )
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } = useMutation(
@@ -65,7 +65,7 @@ function PostComponent() {
           queryKey: trpc.listMembersOfPool.queryKey(),
         });
       },
-    }),
+    })
   );
   const { mutate: removeFriendFromPool, isPending: isRemovePending } =
     useMutation(
@@ -75,7 +75,7 @@ function PostComponent() {
             queryKey: trpc.listMembersOfPool.queryKey(),
           });
         },
-      }),
+      })
     );
 
   const expenses = data || [];

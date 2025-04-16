@@ -7,6 +7,43 @@ import {
   FormLabel,
   FormMessage,
 } from "./ui/form";
+import {
+  Utensils,
+  Coffee,
+  ShoppingCart,
+  ShoppingBag,
+  Car,
+  Bus,
+  Home,
+  Lightbulb,
+  Plug,
+  Stethoscope,
+  Heart,
+  Tv,
+  Film,
+  Shirt,
+  BookOpen,
+  GraduationCap,
+  Plane,
+  Luggage,
+  Scissors,
+  Bath,
+  Dumbbell,
+  Activity,
+  CreditCard,
+  Calendar,
+  Receipt,
+  FileText,
+  Briefcase,
+  TrendingUp,
+  BarChart,
+  Shield,
+  Umbrella,
+  Gift,
+  HelpingHand,
+  Ellipsis,
+  MoreHorizontal,
+} from "lucide-react";
 import { Input } from "./ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -21,11 +58,183 @@ import { useState } from "react";
 import { Separator } from "./ui/separator";
 import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
 import { useAuth } from "../hooks/auth";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
+import { Textarea } from "./ui/textarea";
 
 enum SplitMethodType {
   Percentage = "percentage",
   Amount = "amount",
 }
+
+export type ExpenseCategory =
+  | "food_dining"
+  | "groceries"
+  | "transportation"
+  | "housing_rent"
+  | "utilities"
+  | "healthcare"
+  | "entertainment"
+  | "shopping"
+  | "education"
+  | "travel"
+  | "personal_care"
+  | "fitness"
+  | "subscriptions"
+  | "bills_payments"
+  | "business_expenses"
+  | "investments"
+  | "insurance"
+  | "gifts"
+  | "charity"
+  | "miscellaneous";
+
+export const expenseCategories: ExpenseCategory[] = [
+  "food_dining",
+  "groceries",
+  "transportation",
+  "housing_rent",
+  "utilities",
+  "healthcare",
+  "entertainment",
+  "shopping",
+  "education",
+  "travel",
+  "personal_care",
+  "fitness",
+  "subscriptions",
+  "bills_payments",
+  "business_expenses",
+  "investments",
+  "insurance",
+  "gifts",
+  "charity",
+  "miscellaneous",
+];
+
+export const categoryToIcon = ({
+  category,
+  size = 4,
+}: {
+  category: ExpenseCategory;
+  size?: number;
+}) => {
+  switch (category) {
+    case "food_dining":
+      return <Utensils className={`size-${size}`} />;
+    case "groceries":
+      return <ShoppingCart className={`size-${size}`} />;
+    case "transportation":
+      return <Car className={`size-${size}`} />;
+    case "housing_rent":
+      return <Home className={`size-${size}`} />;
+    case "utilities":
+      return <Plug className={`size-${size}`} />;
+    case "healthcare":
+      return <Stethoscope className={`size-${size}`} />;
+    case "entertainment":
+      return <Tv className={`size-${size}`} />;
+    case "shopping":
+      return <ShoppingBag className={`size-${size}`} />;
+    case "education":
+      return <GraduationCap className={`size-${size}`} />;
+    case "travel":
+      return <Plane className={`size-${size}`} />;
+    case "personal_care":
+      return <Bath className={`size-${size}`} />;
+    case "fitness":
+      return <Dumbbell className={`size-${size}`} />;
+    case "subscriptions":
+      return <CreditCard className={`size-${size}`} />;
+    case "bills_payments":
+      return <Receipt className={`size-${size}`} />;
+    case "business_expenses":
+      return <Briefcase className={`size-${size}`} />;
+    case "investments":
+      return <TrendingUp className={`size-${size}`} />;
+    case "insurance":
+      return <Shield className={`size-${size}`} />;
+    case "gifts":
+      return <Gift className={`size-${size}`} />;
+    case "charity":
+      return <HelpingHand className={`size-${size}`} />;
+    case "miscellaneous":
+      return <Ellipsis className={`size-${size}`} />;
+    case "bills_payments":
+      return <FileText className={`size-${size}`} />;
+    default:
+      const exhaustiveCheck: never = category;
+      throw new Error(`Unhandled category: ${exhaustiveCheck}`);
+  }
+};
+
+export const categoryToDisplayName = ({
+  category,
+}: {
+  category: ExpenseCategory;
+}) => {
+  switch (category) {
+    case "food_dining":
+      return "Food & Dining";
+    case "groceries":
+      return "Groceries";
+    case "transportation":
+      return "Transportation";
+    case "housing_rent":
+      return "Housing & Rent";
+    case "utilities":
+      return "Utilities";
+    case "healthcare":
+      return "Healthcare";
+    case "entertainment":
+      return "Entertainment";
+    case "shopping":
+      return "Shopping";
+    case "education":
+      return "Education";
+    case "travel":
+      return "Travel";
+    case "personal_care":
+      return "Personal Care";
+    case "fitness":
+      return "Fitness";
+    case "subscriptions":
+      return "Subscriptions";
+    case "bills_payments":
+      return "Bills & Payments";
+    case "business_expenses":
+      return "Business Expenses";
+    case "investments":
+      return "Investments";
+    case "insurance":
+      return "Insurance";
+    case "gifts":
+      return "Gifts";
+    case "charity":
+      return "Charity";
+    case "miscellaneous":
+      return "Miscellaneous";
+    default:
+      const exhaustiveCheck: never = category;
+      throw new Error(`Unhandled category: ${exhaustiveCheck}`);
+  }
+};
+
+export const ExpenseIcon = ({
+  category,
+  size = 4,
+}: {
+  category: ExpenseCategory;
+  size?: number;
+}) => {
+  return categoryToIcon({ category, size });
+};
 
 const splitMethodType = Object.values(SplitMethodType);
 
@@ -78,6 +287,8 @@ export function SplitMethod({ value, setValue }: SplitMethodProps) {
 const expenseSchema = z.object({
   expenseName: z.string().min(1, "Required"),
   amount: z.coerce.number().positive("Must be greater than 0"),
+  category: z.string(),
+  description: z.string().optional(),
   splitMethod: z.enum([SplitMethodType.Amount, SplitMethodType.Percentage], {
     errorMap: () => ({ message: "Required" }),
   }),
@@ -116,8 +327,8 @@ export function AddExpenseModal({
       },
       {
         enabled: !!id,
-      },
-    ),
+      }
+    )
   );
   const members = data ?? [];
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
@@ -133,6 +344,8 @@ export function AddExpenseModal({
     defaultValues: {
       expenseName: "",
       amount: 0,
+      category: "miscellaneous",
+      description: undefined,
       splitMethod: SplitMethodType.Percentage,
     },
   });
@@ -151,7 +364,7 @@ export function AddExpenseModal({
         }
       }}
     >
-      <DialogContent className="ml-32">
+      <DialogContent className="ml-32 max-h-10/12 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
@@ -170,17 +383,17 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                },
+                }
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0,
+                0
               );
 
               if (total !== data.amount) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`,
+                  `Total amount (${data.amount}) does not match split amounts (${total})`
                 );
                 return;
               }
@@ -192,6 +405,8 @@ export function AddExpenseModal({
                   name: data.expenseName,
                   amount: data.amount,
                   lineItems: memberLineItemAmounts,
+                  description: data.description,
+                  category: data.category,
                 },
                 {
                   onSuccess: async () => {
@@ -204,7 +419,7 @@ export function AddExpenseModal({
                   },
                   onError: (err) =>
                     alert("Failed to add expense: " + err.message),
-                },
+                }
               );
             })}
             className="space-y-4"
@@ -225,12 +440,63 @@ export function AddExpenseModal({
 
             <FormField
               control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder="Our hotel room in Yosemite" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Total Amount</FormLabel>
                   <FormControl>
                     <Input type="number" step="0.01" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expense Category</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {expenseCategories
+                            .sort((a, b) => a.localeCompare(b))
+                            .map((c) => (
+                              <SelectItem
+                                key={c}
+                                value={c}
+                                className="flex items-center gap-x-2"
+                              >
+                                <div className="flex items-center gap-x-2">
+                                  <ExpenseIcon category={c} />
+                                  <span>
+                                    {categoryToDisplayName({ category: c })}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -287,7 +553,7 @@ export function AddExpenseModal({
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.id,
+                                    (a) => a.memberId == m.id
                                   )?.amount
                                 }
                                 onChange={(e) => {
@@ -303,7 +569,7 @@ export function AddExpenseModal({
                                           };
                                         }
                                         return a;
-                                      },
+                                      }
                                     );
 
                                     return {

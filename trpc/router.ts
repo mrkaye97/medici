@@ -169,6 +169,8 @@ export const trpcRouter = createTRPCRouter({
             amount: z.number(),
           }),
         ),
+        category: z.string(),
+        description: z.string().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -177,6 +179,8 @@ export const trpcRouter = createTRPCRouter({
         paidByMemberId: input.paidByMemberId,
         name: input.name,
         amount: input.amount,
+        category: input.category,
+        description: input.description ?? null,
       });
 
       if (!expense) {
