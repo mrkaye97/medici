@@ -8,7 +8,7 @@ async function main() {
 
   app.use(
     cors({
-      origin: "http://localhost:3001",
+      origin: "http://0.0.0.0:3001",
       methods: ["GET", "POST", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization", "trpc-accept"],
     }),

@@ -12,7 +12,7 @@ import { TRPCRouter } from "../trpc/router";
 
 function getUrl() {
   const base = (() => {
-    return `http://localhost:${process.env.PORT ?? 8000}`;
+    return `http://0.0.0.0:${process.env.PORT ?? 8000}`;
   })();
   return base + "/api/trpc";
 }
