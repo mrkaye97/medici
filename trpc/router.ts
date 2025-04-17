@@ -22,7 +22,7 @@ import {
   loginMember,
   removeFriendFromPool,
 } from "../backend/src/db/query_sql";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const PASSWORD_SALT = "$2b$10$dBUuuGRQ9bl2nOu/FkgVUe";
 const DAYS = 1000 * 60 * 60 * 24;
