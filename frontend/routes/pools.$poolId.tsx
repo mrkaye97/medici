@@ -1,37 +1,66 @@
-import { Expense } from "frontend/components/expense";
-import { Spinner } from "frontend/components/ui/spinner";
+import { Expense } from "@/components/expense";
+import { Spinner } from "@/components/ui/spinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useAuth } from "frontend/hooks/auth";
-import { useTRPC } from "trpc/react";
-import { AddExpenseModal } from "frontend/components/add-expense-modal";
+import { useAuth } from "@/hooks/auth";
+import { AddExpenseModal } from "@/components/add-expense-modal";
 import { useState } from "react";
-import { Button } from "frontend/components/ui/button";
-import { Label } from "frontend/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: PostComponent,
 });
 
+type Pool = {
+  id: string;
+  name: string;
+  description?: string;
+  inserted_at: string;
+  updated_at: string;
+};
+
+type PoolDetails = {
+  pool: Pool;
+  total_debt?: number;
+};
+
+const usePoolDetails = (
+  poolId: string,
+  memberId?: string
+): {
+  data: PoolDetails | undefined;
+  isLoading: boolean;
+} => {
+  const { data, isLoading } = useQuery({
+    queryFn: async () => {
+      const response = await fetch("http://localhost:8000/api/pools/details", {
+        body: JSON.stringify({
+          memberId: memberId,
+          poolId,
+        }),
+      });
+
+      return (await response.json()) as PoolDetails;
+    },
+    enabled: !!memberId,
+    queryKey: ["pool", poolId, memberId],
+  });
+
+  return {
+    data,
+    isLoading,
+  };
+};
+
 function PostComponent() {
   const { poolId } = Route.useParams();
   const { id } = useAuth();
-  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
-  const { data: pool } = useQuery(
-    trpc.getPoolDetails.queryOptions(
-      {
-        memberId: id || "",
-        poolId,
-      },
-      {
-        enabled: !!id,
-      }
-    )
-  );
+  const { data: pool } = usePoolDetails;
 
   const { data, isLoading } = useQuery(
     trpc.getPoolRecentExpenses.queryOptions(

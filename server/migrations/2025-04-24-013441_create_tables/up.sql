@@ -16,7 +16,7 @@ CREATE INDEX "ix_pool_membership_member_id" ON "public"."pool_membership" ("memb
 
 CREATE INDEX "ix_pool_membership_pool_id" ON "public"."pool_membership" ("pool_id");
 
-CREATE TABLE "public"."expense" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "name" text NOT NULL, "amount" numeric NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "inserted_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), PRIMARY KEY ("id", "is_settled")) PARTITION BY LIST ("is_settled");
+CREATE TABLE "public"."expense" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "name" text NOT NULL, "amount" DOUBLE PRECISION NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "inserted_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), PRIMARY KEY ("id", "is_settled")) PARTITION BY LIST ("is_settled");
 
 CREATE TABLE expense_p_is_settled_true
 PARTITION OF expense
@@ -26,7 +26,7 @@ CREATE TABLE expense_p_is_settled_false
 PARTITION OF expense
 FOR VALUES IN (FALSE);
 
-CREATE TABLE "public"."expense_line_item" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "expense_id" uuid NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "amount" numeric NOT NULL, "inserted_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), PRIMARY KEY ("id"), CONSTRAINT "expense_line_item_expense_id_is_settled_fkey" FOREIGN KEY ("expense_id", "is_settled") REFERENCES "public"."expense" ("id", "is_settled"));
+CREATE TABLE "public"."expense_line_item" ("id" uuid NOT NULL DEFAULT gen_random_uuid(), "expense_id" uuid NOT NULL, "is_settled" boolean NOT NULL DEFAULT false, "amount" DOUBLE PRECISION NOT NULL, "inserted_at" timestamptz NOT NULL DEFAULT now(), "updated_at" timestamptz NOT NULL DEFAULT now(), PRIMARY KEY ("id"), CONSTRAINT "expense_line_item_expense_id_is_settled_fkey" FOREIGN KEY ("expense_id", "is_settled") REFERENCES "public"."expense" ("id", "is_settled"));
 
 
 ALTER TABLE "public"."pool" ALTER COLUMN "name" SET NOT NULL;

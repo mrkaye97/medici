@@ -1,8 +1,10 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::sql_types::Double;
+use diesel::{pg::PgConnection, sql_types::Numeric};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 use crate::schema::{
     expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
@@ -10,21 +12,27 @@ use crate::schema::{
 
 // Enums
 
-#[derive(diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
+)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::PoolRole")]
 pub enum PoolRole {
     PARTICIPANT,
     ADMIN,
 }
 
-#[derive(diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
+)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::FriendshipStatus")]
 pub enum FriendshipStatus {
     Pending,
     Accepted,
 }
 
-#[derive(diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
+)]
 #[db_enum(existing_type_path = "crate::schema::sql_types::ExpenseCategory")]
 pub enum ExpenseCategory {
     FoodDining,
@@ -51,7 +59,7 @@ pub enum ExpenseCategory {
 
 // Member models
 
-#[derive(Debug, Queryable, Identifiable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = member)]
 pub struct Member {
     pub id: uuid::Uuid,
@@ -63,7 +71,7 @@ pub struct Member {
     pub bio: Option<String>,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = member)]
 pub struct NewMember {
     pub first_name: String,
@@ -72,7 +80,7 @@ pub struct NewMember {
     pub bio: Option<String>,
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = member)]
 pub struct MemberChangeset {
     pub first_name: Option<String>,
@@ -83,7 +91,7 @@ pub struct MemberChangeset {
 
 // Member password models
 
-#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = member_password)]
 #[diesel(belongs_to(Member))]
 pub struct MemberPassword {
@@ -94,7 +102,7 @@ pub struct MemberPassword {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = member_password)]
 pub struct NewMemberPassword {
     pub member_id: uuid::Uuid,
@@ -103,7 +111,7 @@ pub struct NewMemberPassword {
 
 // Pool models
 
-#[derive(Debug, Queryable, Identifiable, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = pool)]
 pub struct Pool {
     pub id: uuid::Uuid,
@@ -113,14 +121,14 @@ pub struct Pool {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = pool)]
 pub struct NewPool {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = pool)]
 pub struct PoolChangeset {
     pub name: Option<String>,
@@ -129,7 +137,7 @@ pub struct PoolChangeset {
 
 // Pool membership models
 
-#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = pool_membership)]
 #[diesel(belongs_to(Pool))]
 #[diesel(belongs_to(Member))]
@@ -142,7 +150,7 @@ pub struct PoolMembership {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Insertable, Deserialize, Selectable)]
+#[derive(Debug, Insertable, Deserialize, Selectable, ToSchema)]
 #[diesel(table_name = pool_membership)]
 pub struct NewPoolMembership {
     pub pool_id: uuid::Uuid,
@@ -152,7 +160,7 @@ pub struct NewPoolMembership {
 
 // Expense models
 
-#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = expense)]
 #[diesel(belongs_to(Pool))]
 #[diesel(belongs_to(Member, foreign_key = paid_by_member_id))]
@@ -160,7 +168,7 @@ pub struct NewPoolMembership {
 pub struct Expense {
     pub id: uuid::Uuid,
     pub name: String,
-    pub amount: BigDecimal,
+    pub amount: f64,
     pub is_settled: bool,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -171,11 +179,11 @@ pub struct Expense {
     pub category: ExpenseCategory,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = expense)]
 pub struct NewExpense {
     pub name: String,
-    pub amount: BigDecimal,
+    pub amount: f64,
     pub is_settled: bool,
     pub pool_id: uuid::Uuid,
     pub paid_by_member_id: uuid::Uuid,
@@ -184,11 +192,11 @@ pub struct NewExpense {
     pub category: ExpenseCategory,
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = expense)]
 pub struct ExpenseChangeset {
     pub name: Option<String>,
-    pub amount: Option<BigDecimal>,
+    pub amount: Option<f64>,
     pub is_settled: Option<bool>,
     pub description: Option<String>,
     pub notes: Option<String>,
@@ -197,7 +205,7 @@ pub struct ExpenseChangeset {
 
 // Expense line item models
 
-#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = expense_line_item)]
 #[diesel(belongs_to(Expense, foreign_key = expense_id))]
 #[diesel(belongs_to(Member, foreign_key = debtor_member_id))]
@@ -205,33 +213,33 @@ pub struct ExpenseLineItem {
     pub id: uuid::Uuid,
     pub expense_id: uuid::Uuid,
     pub is_settled: bool,
-    pub amount: BigDecimal,
+    pub amount: f64,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub debtor_member_id: uuid::Uuid,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = expense_line_item)]
 pub struct NewExpenseLineItem {
     pub expense_id: uuid::Uuid,
     pub is_settled: bool,
-    pub amount: BigDecimal,
+    pub amount: f64,
     pub debtor_member_id: uuid::Uuid,
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = expense_line_item)]
 pub struct ExpenseLineItemChangeset {
     pub is_settled: Option<bool>,
-    pub amount: Option<BigDecimal>,
+    pub amount: Option<f64>,
 }
 
 // Friendship models
 
 pub struct DummyMember(Member);
 
-#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize)]
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = friendship)]
 #[diesel(belongs_to(Member, foreign_key = inviting_member_id))]
 #[diesel(belongs_to(DummyMember, foreign_key = friend_member_id))]
@@ -244,7 +252,7 @@ pub struct Friendship {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Insertable, Deserialize)]
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = friendship)]
 pub struct NewFriendship {
     pub inviting_member_id: uuid::Uuid,
@@ -252,7 +260,7 @@ pub struct NewFriendship {
     pub status: FriendshipStatus,
 }
 
-#[derive(Debug, AsChangeset, Deserialize)]
+#[derive(Debug, AsChangeset, Deserialize, ToSchema)]
 #[diesel(table_name = friendship)]
 pub struct FriendshipChangeset {
     pub status: Option<FriendshipStatus>,
@@ -413,7 +421,7 @@ impl Pool {
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
         member_id_query: uuid::Uuid,
-    ) -> QueryResult<(Self, Option<BigDecimal>)> {
+    ) -> QueryResult<(Self, Option<f64>)> {
         // First ensure the member belongs to the pool
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
@@ -435,10 +443,10 @@ impl Pool {
                 expense_line_item::amount,
                 expense::amount,
             ))
-            .load::<(uuid::Uuid, BigDecimal, BigDecimal)>(conn)?;
+            .load::<(uuid::Uuid, f64, f64)>(conn)?;
 
         // Calculate total debt
-        let mut total_debt = BigDecimal::from(0);
+        let mut total_debt = f64::from(0);
         for (paid_by_id, line_amount, expense_amount) in debts {
             if paid_by_id == member_id_query {
                 // If I paid, I owe (line_amount - expense_amount)
@@ -452,7 +460,7 @@ impl Pool {
 
         Ok((
             pool,
-            if total_debt == BigDecimal::from(0) {
+            if total_debt == f64::from(0) {
                 None
             } else {
                 Some(total_debt)
@@ -578,7 +586,7 @@ impl Expense {
         pool_id_query: uuid::Uuid,
         member_id_query: uuid::Uuid,
         limit: i64,
-    ) -> QueryResult<Vec<(Self, BigDecimal)>> {
+    ) -> QueryResult<Vec<(Self, f64)>> {
         // Join expenses with line items to get amounts owed by this member
         let results = expense::table
             .inner_join(
@@ -596,7 +604,7 @@ impl Expense {
                 expense::paid_by_member_id,
                 expense_line_item::amount,
             ))
-            .load::<(Expense, uuid::Uuid, BigDecimal)>(conn)?;
+            .load::<(Expense, uuid::Uuid, f64)>(conn)?;
 
         // Calculate the amount owed for each expense
         let mut formatted_results = Vec::new();
@@ -620,7 +628,7 @@ impl Expense {
         conn: &mut PgConnection,
         new_expense: &NewExpense,
         debtor_member_ids: &[uuid::Uuid],
-        amounts: &[BigDecimal],
+        amounts: &[f64],
     ) -> QueryResult<(Self, Vec<ExpenseLineItem>)> {
         // Create the expense
         let expense = Self::create(conn, new_expense)?;

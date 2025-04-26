@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "frontend/hooks/auth";
+import { useAuth } from "@/hooks/auth";
 import { ListPoolRecentExpensesRow } from "backend/src/db/query_sql";
 import { useTRPC } from "trpc/react";
 import { cn } from "./lib/utils";

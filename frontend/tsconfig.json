@@ -11,8 +11,9 @@
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["frontend/components/*"],
-      "@/lib/*": ["frontend/components/lib/*"]
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./components/lib/*"],
+      "@/hooks/*": ["./hooks/*"]
     },
     "types": ["vite/client"]
   },

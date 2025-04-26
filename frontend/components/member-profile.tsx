@@ -1,13 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTRPC } from "trpc/react";
 import { formatDate } from "./expense";
-import { Badge } from "frontend/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
-} from "frontend/components/ui/card";
+} from "@/components/ui/card";
 import {
   CalendarIcon,
   MailIcon,
@@ -16,12 +16,12 @@ import {
 } from "lucide-react";
 import { Skeleton } from "./ui/skeleton";
 import { useState } from "react";
-import { Button } from "frontend/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "frontend/components/ui/collapsible";
+} from "@/components/ui/collapsible";
 
 export const MemberProfile = ({ id }: { id: string }) => {
   const trpc = useTRPC();

@@ -1,13 +1,16 @@
-#![recursion_limit = "1024"]
-
 use axum::{
-    Router,
+    Json, Router,
+    response::IntoResponse,
     routing::{get, post},
 };
+mod api_doc;
+use api_doc::ApiDoc;
+use hyper::StatusCode;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
 use tracing_subscriber;
+use utoipa::OpenApi;
 
 mod handlers;
 use handlers::{
@@ -20,12 +23,16 @@ use handlers::{
 };
 use handlers::{create_pool_handler, health_check};
 
+async fn openapi_handler() -> impl IntoResponse {
+    let openapi = ApiDoc::openapi();
+    (StatusCode::OK, Json(openapi))
+}
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
 
     let app = Router::new()
-        .route("/api/list-members", get(list_members_handler))
         .route("/api/health", get(health_check))
         // Member routes
         .route("/api/members", get(list_members_handler))
@@ -66,9 +73,10 @@ async fn main() {
             "/api/friend-requests/accept",
             post(accept_friend_request_handler),
         )
+        .route("/api/openapi.json", get(openapi_handler))
         .layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = TcpListener::bind(addr).await.unwrap();
     tracing::info!("Listening on {}", addr);
 

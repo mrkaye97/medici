@@ -17,9 +17,9 @@ import { TRPCRouter } from "../../trpc/router";
 import * as React from "react";
 import { AuthContext, AuthProvider, useAuth } from "../hooks/auth";
 import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
-import { Button } from "frontend/components/ui/button";
-import { Separator } from "frontend/components/ui/separator";
-import { CreatePoolModal } from "frontend/components/create-pool-modal";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { CreatePoolModal } from "@/components/create-pool-modal";
 import { useTRPC } from "trpc/react";
 
 function InnerApp() {

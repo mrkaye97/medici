@@ -1,9 +1,9 @@
-import { AddFriendModal } from "frontend/components/add-friend-modal";
-import { MemberProfile } from "frontend/components/member-profile";
-import { Button } from "frontend/components/ui/button";
+import { AddFriendModal } from "@/components/add-friend-modal";
+import { MemberProfile } from "@/components/member-profile";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useAuth } from "frontend/hooks/auth";
+import { useAuth } from "@/hooks/auth";
 import { useState } from "react";
 import { useTRPC } from "trpc/react";
 

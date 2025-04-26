@@ -27,13 +27,16 @@ diesel = { version = "2.2.0", features = [
     "serde_json",
     "chrono",
     "r2d2",
+    "numeric",
 ] }
 diesel_migrations = "2.2.0"
 dotenvy = "0.15.7"
 chrono = { version = "0.4", features = ["serde"] }
-bigdecimal = { version = "0.4.8", features = ["serde"] }
 diesel-derive-enum = { version = "3.0.0-beta.1", features = ["postgres"] }
 r2d2 = "0.8.10"
 once_cell = "1.18.0"
 anyhow = "1.0"
 bcrypt = "0.17.0"
+utoipa = { version = "5", features = ["uuid", "chrono", "decimal", "time"] }
+utoipa-axum = "0.2"
+rust_decimal_macros = "1.32"

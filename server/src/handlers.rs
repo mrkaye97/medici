@@ -1,27 +1,13 @@
 use axum::http::StatusCode;
 use axum::{Json, extract::Path};
 use bcrypt::{DEFAULT_COST, hash_with_salt};
-use bigdecimal::{BigDecimal, FromPrimitive};
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
-use server::models::{self, Friendship, Member, MemberPassword, NewPool, PoolMembership};
-
-pub async fn list_members_handler() -> Json<Vec<Member>> {
-    let mut conn = get_db_connection()
-        .await
-        .expect("Failed to get database connection");
-
-    let members = tokio::task::spawn_blocking(move || {
-        Member::list_all(&mut conn).expect("Failed to list members")
-    })
-    .await
-    .expect("Task panicked");
-
-    Json(members)
-}
+use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool, PoolMembership};
+use utoipa::ToSchema;
 
 type PgPool = Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -39,7 +25,6 @@ pub async fn get_db_connection() -> Result<PgPooledConnection, anyhow::Error> {
 }
 
 const PASSWORD_SALT: [u8; 16] = *b"MediciSalt123456"; // 16-byte salt
-const DAYS: i64 = 60 * 60 * 24;
 
 // Helper function to hash passwords
 fn hash_password(password: &str) -> String {
@@ -49,7 +34,7 @@ fn hash_password(password: &str) -> String {
 }
 
 // Auth result types
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum AuthResult {
     Authenticated {
@@ -67,31 +52,31 @@ pub enum AuthResult {
 }
 
 // Input types
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PoolInput {
     name: String,
     description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PoolMembershipInput {
     pool_id: uuid::Uuid,
     member_id: uuid::Uuid,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PoolDetailsInput {
     pool_id: uuid::Uuid,
     member_id: uuid::Uuid,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ExpenseLineItem {
     debtor_member_id: uuid::Uuid,
     amount: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ExpenseInput {
     paid_by_member_id: uuid::Uuid,
     pool_id: uuid::Uuid,
@@ -102,7 +87,7 @@ pub struct ExpenseInput {
     description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SignupInput {
     first_name: String,
     last_name: String,
@@ -110,26 +95,25 @@ pub struct SignupInput {
     password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LoginInput {
     email: String,
     password: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AuthInput {
     id: uuid::Uuid,
     token: String,
-    expires_at: DateTime<Utc>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct FriendRequestInput {
     member_id: uuid::Uuid,
     friend_email: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AcceptFriendRequestInput {
     member_id: uuid::Uuid,
     friend_member_id: uuid::Uuid,
@@ -137,10 +121,42 @@ pub struct AcceptFriendRequestInput {
 
 // Handler implementations
 
+#[utoipa::path(
+    get,
+    path = "/api/members",
+    responses(
+        (status = 200, description = "List all members successfully", body = Vec<Member>),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn list_members_handler() -> Json<Vec<Member>> {
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let members = tokio::task::spawn_blocking(move || {
+        Member::list_all(&mut conn).expect("Failed to list members")
+    })
+    .await
+    .expect("Task panicked");
+
+    Json(members)
+}
+
+#[utoipa::path(get, path = "/api/health", responses((status = OK, body = &'static str)))]
 pub async fn health_check() -> &'static str {
     "OK"
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools",
+    request_body = PoolInput,
+    responses(
+        (status = 200, description = "Create a pool successfully", body = models::Pool),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<models::Pool> {
     let mut conn = get_db_connection()
         .await
@@ -160,6 +176,15 @@ pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<mode
     Json(pool)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools/add-member",
+    request_body = PoolMembershipInput,
+    responses(
+        (status = 200, description = "Add a friend to a pool successfully", body = PoolMembership),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn add_friend_to_pool_handler(
     Json(input): Json<PoolMembershipInput>,
 ) -> Json<PoolMembership> {
@@ -177,6 +202,15 @@ pub async fn add_friend_to_pool_handler(
     Json(result)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools/remove-member",
+    request_body = PoolMembershipInput,
+    responses(
+        (status = 200, description = "Remove a friend from a pool successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn remove_friend_from_pool_handler(
     Json(input): Json<PoolMembershipInput>,
 ) -> Json<serde_json::Value> {
@@ -194,9 +228,17 @@ pub async fn remove_friend_from_pool_handler(
     Json(serde_json::json!({"success": result > 0}))
 }
 
-// Continue converting other handlers similarly...
-// I'll show a few more key examples:
-
+#[utoipa::path(
+    get,
+    path = "/api/members/{id}",
+    params(
+        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch")
+    ),
+    responses(
+        (status = 200, description = "Get a member successfully", body = Member),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_member_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Result<Json<Member>, (StatusCode, Json<serde_json::Value>)> {
@@ -217,6 +259,15 @@ pub async fn get_member_handler(
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/login",
+    request_body = LoginInput,
+    responses(
+        (status = 200, description = "Log in a member successfully", body = AuthResult),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
     let mut conn = get_db_connection()
         .await
@@ -258,6 +309,15 @@ pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
     Json(result)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/authenticate",
+    request_body = AuthInput,
+    responses(
+        (status = 200, description = "Authenticate a member successfully", body = AuthResult),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn authenticate_handler(Json(input): Json<AuthInput>) -> Json<AuthResult> {
     let mut conn = get_db_connection()
         .await
@@ -298,6 +358,17 @@ pub async fn authenticate_handler(Json(input): Json<AuthInput>) -> Json<AuthResu
     Json(result)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/members/{id}/friends",
+    params(
+        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch friends for")
+    ),
+    responses(
+        (status = 200, description = "List friends of a member successfully", body = Vec<Member>),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec<Member>> {
     let mut conn = get_db_connection()
         .await
@@ -312,6 +383,17 @@ pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec
     Json(friends)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/members/{id}/friend-requests",
+    params(
+        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch friend requests for")
+    ),
+    responses(
+        (status = 200, description = "List inbound friend requests of a member successfully", body = Vec<Member>),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_inbound_friend_requests_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Json<Vec<Member>> {
@@ -329,6 +411,15 @@ pub async fn list_inbound_friend_requests_handler(
     Json(requests)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/friend-requests",
+    request_body = FriendRequestInput,
+    responses(
+        (status = 200, description = "Create a friend request successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn create_friend_request_handler(
     Json(input): Json<FriendRequestInput>,
 ) -> Json<serde_json::Value> {
@@ -348,6 +439,15 @@ pub async fn create_friend_request_handler(
     Json(serde_json::json!({"success": true, "request": result}))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/friend-requests/accept",
+    request_body = AcceptFriendRequestInput,
+    responses(
+        (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn accept_friend_request_handler(
     Json(input): Json<AcceptFriendRequestInput>,
 ) -> Json<serde_json::Value> {
@@ -371,6 +471,18 @@ pub async fn accept_friend_request_handler(
 
     Json(serde_json::json!({"success": true, "friendship": result}))
 }
+
+#[utoipa::path(
+    get,
+    path = "/api/expenses/{id}",
+    params(
+        ("id" = uuid::Uuid, Path, description = "ID of the expense to fetch")
+    ),
+    responses(
+        (status = 200, description = "Get expenses", body = models::Expense),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_expense_handler(
     Path(expense_id): Path<uuid::Uuid>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
@@ -395,6 +507,15 @@ pub async fn get_expense_handler(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/signup",
+    request_body = SignupInput,
+    responses(
+        (status = 200, description = "Get expenses", body = Member),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn signup_handler(
     Json(input): Json<SignupInput>,
 ) -> Result<Json<Member>, (StatusCode, Json<serde_json::Value>)> {
@@ -434,6 +555,15 @@ pub async fn signup_handler(
     }
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/expenses",
+    request_body = ExpenseInput,
+    responses(
+        (status = 200, description = "Create expense", body = Expense),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models::Expense> {
     let mut conn = get_db_connection()
         .await
@@ -441,7 +571,7 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
 
     let new_expense = models::NewExpense {
         name: input.name,
-        amount: BigDecimal::from_f64(input.amount).expect("Failed to convert amount to BigDecimal"),
+        amount: input.amount,
         is_settled: false,
         pool_id: input.pool_id,
         paid_by_member_id: input.paid_by_member_id,
@@ -477,11 +607,7 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
         .map(|item| item.debtor_member_id)
         .collect();
 
-    let amounts: Vec<BigDecimal> = input
-        .line_items
-        .iter()
-        .map(|item| BigDecimal::from_f64(item.amount).unwrap_or_default())
-        .collect();
+    let amounts: Vec<f64> = input.line_items.iter().map(|item| item.amount).collect();
 
     let (expense, _line_items) = tokio::task::spawn_blocking(move || {
         models::Expense::create_with_line_items(
@@ -498,13 +624,22 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
     Json(expense)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PoolDetails {
     #[serde(flatten)]
     pool: models::Pool,
-    total_debt: Option<BigDecimal>,
+    total_debt: Option<f64>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools/details",
+    request_body = PoolDetailsInput,
+    responses(
+        (status = 200, description = "Create expense", body = PoolDetails),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_pool_details_handler(Json(input): Json<PoolDetailsInput>) -> Json<PoolDetails> {
     let mut conn = get_db_connection()
         .await
@@ -525,20 +660,29 @@ pub async fn get_pool_details_handler(Json(input): Json<PoolDetailsInput>) -> Js
     Json(details)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RecentExpenseDetails {
     #[serde(flatten)]
     expense: models::Expense,
-    line_amount: BigDecimal,
+    line_amount: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct GetPoolExpensesInput {
     pool_id: uuid::Uuid,
     member_id: uuid::Uuid,
     limit: Option<i64>,
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools/expenses",
+    request_body = GetPoolExpensesInput,
+    responses(
+        (status = 200, description = "Create expense", body = Vec<RecentExpenseDetails>),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn get_pool_recent_expenses_handler(
     Json(input): Json<GetPoolExpensesInput>,
 ) -> Json<Vec<RecentExpenseDetails>> {
@@ -569,12 +713,21 @@ pub async fn get_pool_recent_expenses_handler(
     )
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, ToSchema)]
 pub struct MembersWithPoolStatus {
     member: models::Member,
     is_pool_member: bool,
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/pools/members",
+    request_body = PoolDetailsInput,
+    responses(
+        (status = 200, description = "List all members of a pool successfully", body = Vec<MembersWithPoolStatus>),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_members_of_pool_handler(
     Json(input): Json<PoolDetailsInput>,
 ) -> Json<Vec<MembersWithPoolStatus>> {
@@ -600,6 +753,17 @@ pub async fn list_members_of_pool_handler(
     )
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/members/:id/pools",
+    params(
+        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch pools for")
+    ),
+    responses(
+        (status = 200, description = "List pools for member", body = Vec<models::Pool>),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn list_pools_for_member_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Json<Vec<models::Pool>> {
@@ -617,6 +781,15 @@ pub async fn list_pools_for_member_handler(
     Json(pools)
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/pools/membership",
+    request_body = PoolMembershipInput,
+    responses(
+        (status = 200, description = "Create pool membership", body = PoolMembership),
+        (status = 500, description = "Internal server error")
+    )
+)]
 pub async fn create_pool_membership_handler(
     Json(input): Json<PoolMembershipInput>,
 ) -> Json<PoolMembership> {
