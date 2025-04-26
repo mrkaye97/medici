@@ -20,70 +20,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/expenses": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["add_expense_handler"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/expenses/:id": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["get_expense_handler"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/friend-requests": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["create_friend_request_handler"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/friend-requests/accept": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["accept_friend_request_handler"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/login": {
         parameters: {
             query?: never;
@@ -100,23 +36,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_members_handler"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/members/:id": {
+    "/api/members/{member_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,7 +52,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/members/:id/friend-requests": {
+    "/api/members/{member_id}/friend-requests": {
         parameters: {
             query?: never;
             header?: never;
@@ -141,14 +61,30 @@ export interface paths {
         };
         get: operations["list_inbound_friend_requests_handler"];
         put?: never;
-        post?: never;
+        post: operations["create_friend_request_handler"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/members/:id/friends": {
+    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["accept_friend_request_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/friends": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,14 +100,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/members/:id/pools": {
+    "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["list_pools_for_member_handler"];
+        get: operations["get_expense_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/pools/{pool_id}/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_members_of_pool_handler"];
         put?: never;
         post?: never;
         delete?: never;
@@ -196,7 +148,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pools/add-member": {
+    "/api/pools/{pool_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get_pool_details_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pools/{pool_id}/expenses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["add_expense_handler"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/pools/{pool_id}/members": {
         parameters: {
             query?: never;
             header?: never;
@@ -212,7 +196,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pools/details": {
+    "/api/pools/{pool_id}/members/{member_id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -221,14 +205,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["get_pool_details_handler"];
-        delete?: never;
+        post?: never;
+        delete: operations["remove_friend_from_pool_handler"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/pools/expenses": {
+    "/api/pools/{pool_id}/members/{member_id}/expenses": {
         parameters: {
             query?: never;
             header?: never;
@@ -244,23 +228,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/pools/members": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_members_of_pool_handler"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pools/membership": {
+    "/api/pools/{pool_id}/memberships": {
         parameters: {
             query?: never;
             header?: never;
@@ -270,22 +238,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["create_pool_membership_handler"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/pools/remove-member": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["remove_friend_from_pool_handler"];
         delete?: never;
         options?: never;
         head?: never;
@@ -312,6 +264,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AuthInput: {
+            /** Format: uuid */
+            id: string;
+            token: string;
+        };
         AuthResult: {
             /** Format: date-time */
             expires_at: string;
@@ -348,6 +305,31 @@ export interface components {
         };
         /** @enum {string} */
         ExpenseCategory: "FoodDining" | "Groceries" | "Transportation" | "HousingRent" | "Utilities" | "Healthcare" | "Entertainment" | "Shopping" | "Education" | "Travel" | "PersonalCare" | "Fitness" | "Subscriptions" | "BillsPayments" | "BusinessExpenses" | "Investments" | "Insurance" | "Gifts" | "Charity" | "Miscellaneous";
+        ExpenseInput: {
+            /** Format: double */
+            amount: number;
+            category: string;
+            description?: string | null;
+            line_items: components["schemas"]["ExpenseLineItem"][];
+            name: string;
+            /** Format: uuid */
+            paid_by_member_id: string;
+            /** Format: uuid */
+            pool_id: string;
+        };
+        ExpenseLineItem: {
+            /** Format: double */
+            amount: number;
+            /** Format: uuid */
+            debtor_member_id: string;
+        };
+        FriendRequestInput: {
+            friend_email: string;
+        };
+        LoginInput: {
+            email: string;
+            password: string;
+        };
         Member: {
             bio?: string | null;
             email: string;
@@ -378,6 +360,10 @@ export interface components {
             /** Format: double */
             total_debt?: number | null;
         };
+        PoolInput: {
+            description?: string | null;
+            name: string;
+        };
         PoolMembership: {
             /** Format: uuid */
             id: string;
@@ -390,6 +376,10 @@ export interface components {
             role: components["schemas"]["PoolRole"];
             /** Format: date-time */
             updated_at: string;
+        };
+        PoolMembershipInput: {
+            /** Format: uuid */
+            member_id: string;
         };
         /** @enum {string} */
         PoolRole: "PARTICIPANT" | "ADMIN";
@@ -419,7 +409,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthInput"];
+            };
+        };
         responses: {
             /** @description Authenticate a member successfully */
             200: {
@@ -439,114 +433,6 @@ export interface operations {
             };
         };
     };
-    add_expense_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Create expense */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Expense"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_expense_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Get expenses */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Expense"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    create_friend_request_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Create a friend request successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    accept_friend_request_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Accept a friend request successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": unknown;
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     login_handler: {
         parameters: {
             query?: never;
@@ -554,7 +440,11 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginInput"];
+            };
+        };
         responses: {
             /** @description Log in a member successfully */
             200: {
@@ -574,38 +464,14 @@ export interface operations {
             };
         };
     };
-    list_members_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description List all members successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Member"][];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     get_member_handler: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the member to fetch */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -632,7 +498,10 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the member to fetch friend requests for */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -655,11 +524,77 @@ export interface operations {
             };
         };
     };
-    list_friends_handler: {
+    create_friend_request_handler: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FriendRequestInput"];
+            };
+        };
+        responses: {
+            /** @description Create a friend request successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    accept_friend_request_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the member accepting the request */
+                member_id: string;
+                /** @description ID of the friend request to accept */
+                friend_member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accept a friend request successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_friends_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the member to fetch friends for */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -682,130 +617,29 @@ export interface operations {
             };
         };
     };
-    list_pools_for_member_handler: {
+    get_expense_handler: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the member to fetch expenses for */
+                member_id: string;
+                /** @description ID of the pool to fetch expenses for */
+                pool_id: string;
+                /** @description ID of the expense to fetch */
+                expense_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description List pools for member */
+            /** @description Get expenses */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Pool"][];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    create_pool_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Create a pool successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Pool"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    add_friend_to_pool_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Add a friend to a pool successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PoolMembership"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_pool_details_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Create expense */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PoolDetails"];
-                };
-            };
-            /** @description Internal server error */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    get_pool_recent_expenses_handler: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Create expense */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RecentExpenseDetails"][];
+                    "application/json": components["schemas"]["Expense"];
                 };
             };
             /** @description Internal server error */
@@ -821,7 +655,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the pool to fetch members for */
+                pool_id: string;
+                /** @description ID of the member to fetch members for */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -844,16 +683,118 @@ export interface operations {
             };
         };
     };
-    create_pool_membership_handler: {
+    create_pool_handler: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PoolInput"];
+            };
+        };
+        responses: {
+            /** @description Create a pool successfully */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pool"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_pool_details_handler: {
+        parameters: {
+            query: {
+                /** @description ID of the member to fetch details for */
+                member_id: string;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the pool to fetch details for */
+                pool_id: string;
+            };
+            cookie?: never;
+        };
         requestBody?: never;
         responses: {
-            /** @description Create pool membership */
+            /** @description Create expense */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolDetails"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    add_expense_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the pool to add expense to */
+                pool_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExpenseInput"];
+            };
+        };
+        responses: {
+            /** @description Create expense */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    add_friend_to_pool_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PoolMembershipInput"];
+            };
+        };
+        responses: {
+            /** @description Add a friend to a pool successfully */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -875,7 +816,12 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the pool */
+                pool_id: string;
+                /** @description ID of the member to remove */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -887,6 +833,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_pool_recent_expenses_handler: {
+        parameters: {
+            query?: {
+                /** @description Limit the number of expenses returned */
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the pool to fetch expenses for */
+                pool_id: string;
+                /** @description ID of the member to fetch expenses for */
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Create expense */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecentExpenseDetails"][];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    create_pool_membership_handler: {
+        parameters: {
+            query: {
+                /** @description ID of the member to create membership for */
+                member_id: string;
+            };
+            header?: never;
+            path: {
+                /** @description ID of the pool to create membership for */
+                pool_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Create pool membership */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PoolMembership"];
                 };
             };
             /** @description Internal server error */
