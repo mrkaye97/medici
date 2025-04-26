@@ -1,3 +1,4 @@
+use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::{Json, extract::Path};
 use bcrypt::{DEFAULT_COST, hash_with_salt};
@@ -8,6 +9,8 @@ use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool, PoolMembership};
 use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 type PgPool = Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -60,7 +63,6 @@ pub struct PoolInput {
 
 #[derive(Deserialize, ToSchema)]
 pub struct PoolMembershipInput {
-    pool_id: uuid::Uuid,
     member_id: uuid::Uuid,
 }
 
@@ -109,7 +111,6 @@ pub struct AuthInput {
 
 #[derive(Deserialize, ToSchema)]
 pub struct FriendRequestInput {
-    member_id: uuid::Uuid,
     friend_email: String,
 }
 
@@ -120,29 +121,6 @@ pub struct AcceptFriendRequestInput {
 }
 
 // Handler implementations
-
-#[utoipa::path(
-    get,
-    path = "/api/members",
-    responses(
-        (status = 200, description = "List all members successfully", body = Vec<Member>),
-        (status = 500, description = "Internal server error")
-    )
-)]
-pub async fn list_members_handler() -> Json<Vec<Member>> {
-    let mut conn = get_db_connection()
-        .await
-        .expect("Failed to get database connection");
-
-    let members = tokio::task::spawn_blocking(move || {
-        Member::list_all(&mut conn).expect("Failed to list members")
-    })
-    .await
-    .expect("Task panicked");
-
-    Json(members)
-}
-
 #[utoipa::path(get, path = "/api/health", responses((status = OK, body = &'static str)))]
 pub async fn health_check() -> &'static str {
     "OK"
@@ -178,7 +156,7 @@ pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<mode
 
 #[utoipa::path(
     post,
-    path = "/api/pools/add-member",
+    path = "/api/pools/{pool_id}/members",
     request_body = PoolMembershipInput,
     responses(
         (status = 200, description = "Add a friend to a pool successfully", body = PoolMembership),
@@ -186,6 +164,7 @@ pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<mode
     )
 )]
 pub async fn add_friend_to_pool_handler(
+    Path(pool_id): Path<uuid::Uuid>,
     Json(input): Json<PoolMembershipInput>,
 ) -> Json<PoolMembership> {
     let mut conn = get_db_connection()
@@ -193,7 +172,7 @@ pub async fn add_friend_to_pool_handler(
         .expect("Failed to get database connection");
 
     let result = tokio::task::spawn_blocking(move || {
-        PoolMembership::add_member(&mut conn, input.pool_id, input.member_id)
+        PoolMembership::add_member(&mut conn, pool_id, input.member_id)
             .expect("Failed to add friend to pool")
     })
     .await
@@ -203,23 +182,27 @@ pub async fn add_friend_to_pool_handler(
 }
 
 #[utoipa::path(
-    post,
-    path = "/api/pools/remove-member",
-    request_body = PoolMembershipInput,
+    delete,
+    path = "/api/pools/{pool_id}/members/{member_id}",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to remove")
+    ),
     responses(
         (status = 200, description = "Remove a friend from a pool successfully", body = serde_json::Value),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn remove_friend_from_pool_handler(
-    Json(input): Json<PoolMembershipInput>,
+    Path(pool_id): Path<uuid::Uuid>,
+    Path(member_id): Path<uuid::Uuid>,
 ) -> Json<serde_json::Value> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let result = tokio::task::spawn_blocking(move || {
-        PoolMembership::remove_member(&mut conn, input.pool_id, input.member_id)
+        PoolMembership::remove_member(&mut conn, pool_id, member_id)
             .expect("Failed to remove friend from pool")
     })
     .await
@@ -230,9 +213,9 @@ pub async fn remove_friend_from_pool_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/{id}",
+    path = "/api/members/{member_id}",
     params(
-        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch")
     ),
     responses(
         (status = 200, description = "Get a member successfully", body = Member),
@@ -360,9 +343,9 @@ pub async fn authenticate_handler(Json(input): Json<AuthInput>) -> Json<AuthResu
 
 #[utoipa::path(
     get,
-    path = "/api/members/{id}/friends",
+    path = "/api/members/{member_id}/friends",
     params(
-        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch friends for")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch friends for")
     ),
     responses(
         (status = 200, description = "List friends of a member successfully", body = Vec<Member>),
@@ -385,9 +368,9 @@ pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec
 
 #[utoipa::path(
     get,
-    path = "/api/members/{id}/friend-requests",
+    path = "/api/members/{member_id}/friend-requests",
     params(
-        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch friend requests for")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch friend requests for")
     ),
     responses(
         (status = 200, description = "List inbound friend requests of a member successfully", body = Vec<Member>),
@@ -413,7 +396,7 @@ pub async fn list_inbound_friend_requests_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/friend-requests",
+    path = "/api/members/{member_id}/friend-requests",
     request_body = FriendRequestInput,
     responses(
         (status = 200, description = "Create a friend request successfully", body = serde_json::Value),
@@ -421,12 +404,13 @@ pub async fn list_inbound_friend_requests_handler(
     )
 )]
 pub async fn create_friend_request_handler(
+    Path(member_id): Path<uuid::Uuid>,
     Json(input): Json<FriendRequestInput>,
 ) -> Json<serde_json::Value> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
-    let member_id = input.member_id;
+    let member_id = member_id;
     let friend_email = input.friend_email.clone();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -441,27 +425,28 @@ pub async fn create_friend_request_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/friend-requests/accept",
-    request_body = AcceptFriendRequestInput,
+    path = "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member accepting the request"),
+        ("friend_member_id" = uuid::Uuid, Path, description = "ID of the friend request to accept")
+    ),
     responses(
         (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn accept_friend_request_handler(
-    Json(input): Json<AcceptFriendRequestInput>,
+    Path(member_id): Path<uuid::Uuid>,
+    Path(friend_member_id): Path<uuid::Uuid>,
 ) -> Json<serde_json::Value> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
-    let member_id = input.member_id;
-    let friend_member_id = input.friend_member_id;
-
     let result = tokio::task::spawn_blocking(move || {
         Friendship::update_status(
             &mut conn,
-            friend_member_id, // inviting_member_id
-            member_id,        // friend_member_id
+            friend_member_id,
+            member_id,
             models::FriendshipStatus::Accepted,
         )
         .expect("Failed to accept friend request")
@@ -474,9 +459,11 @@ pub async fn accept_friend_request_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/expenses/{id}",
+    path = "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
     params(
-        ("id" = uuid::Uuid, Path, description = "ID of the expense to fetch")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
+        ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to fetch")
     ),
     responses(
         (status = 200, description = "Get expenses", body = models::Expense),
@@ -485,6 +472,8 @@ pub async fn accept_friend_request_handler(
 )]
 pub async fn get_expense_handler(
     Path(expense_id): Path<uuid::Uuid>,
+    Path(pool_id): Path<uuid::Uuid>,
+    Path(member_id): Path<uuid::Uuid>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
     let mut conn = get_db_connection()
         .await
@@ -557,7 +546,10 @@ pub async fn signup_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/expenses",
+    path = "/api/pools/{pool_id}/expenses",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to add expense to")
+    ),
     request_body = ExpenseInput,
     responses(
         (status = 200, description = "Create expense", body = Expense),
@@ -632,21 +624,27 @@ pub struct PoolDetails {
 }
 
 #[utoipa::path(
-    post,
-    path = "/api/pools/details",
-    request_body = PoolDetailsInput,
+    get,
+    path = "/api/pools/{pool_id}",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch details for"),
+        ("member_id" = uuid::Uuid, Query, description = "ID of the member to fetch details for")
+    ),
     responses(
         (status = 200, description = "Create expense", body = PoolDetails),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn get_pool_details_handler(Json(input): Json<PoolDetailsInput>) -> Json<PoolDetails> {
+pub async fn get_pool_details_handler(
+    Path(pool_id): Path<uuid::Uuid>,
+    Query(member_id): Query<uuid::Uuid>,
+) -> Json<PoolDetails> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let pool_details = tokio::task::spawn_blocking(move || {
-        models::Pool::get_with_debt_for_member(&mut conn, input.pool_id, input.member_id)
+        models::Pool::get_with_debt_for_member(&mut conn, pool_id, member_id)
             .expect("Failed to get pool details")
     })
     .await
@@ -676,29 +674,30 @@ pub struct GetPoolExpensesInput {
 
 #[utoipa::path(
     post,
-    path = "/api/pools/expenses",
-    request_body = GetPoolExpensesInput,
+    path = "/api/pools/{pool_id}/members/{member_id}/expenses",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
+        ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned")
+    ),
     responses(
         (status = 200, description = "Create expense", body = Vec<RecentExpenseDetails>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn get_pool_recent_expenses_handler(
-    Json(input): Json<GetPoolExpensesInput>,
+    Path(pool_id): Path<uuid::Uuid>,
+    Path(member_id): Path<uuid::Uuid>,
+    Query(limit): Query<Option<i64>>,
 ) -> Json<Vec<RecentExpenseDetails>> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
-    let limit = input.limit.unwrap_or(5);
+    let limit = limit.unwrap_or(5);
 
     let expenses = tokio::task::spawn_blocking(move || {
-        models::Expense::get_recent_for_member_in_pool(
-            &mut conn,
-            input.pool_id,
-            input.member_id,
-            limit,
-        )
-        .expect("Failed to get recent expenses")
+        models::Expense::get_recent_for_member_in_pool(&mut conn, pool_id, member_id, limit)
+            .expect("Failed to get recent expenses")
     })
     .await
     .expect("Task panicked");
@@ -721,22 +720,26 @@ pub struct MembersWithPoolStatus {
 
 #[utoipa::path(
     get,
-    path = "/api/pools/members",
-    request_body = PoolDetailsInput,
+    path = "/api/members/{member_id}/pools/{pool_id}/members",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch members for"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch members for")
+    ),
     responses(
         (status = 200, description = "List all members of a pool successfully", body = Vec<MembersWithPoolStatus>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_members_of_pool_handler(
-    Json(input): Json<PoolDetailsInput>,
+    Path(pool_id): Path<uuid::Uuid>,
+    Path(member_id): Path<uuid::Uuid>,
 ) -> Json<Vec<MembersWithPoolStatus>> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let members = tokio::task::spawn_blocking(move || {
-        Friendship::get_friends_with_pool_status(&mut conn, input.member_id, input.pool_id)
+        Friendship::get_friends_with_pool_status(&mut conn, member_id, pool_id)
             .expect("Failed to list members of pool")
     })
     .await
@@ -755,9 +758,9 @@ pub async fn list_members_of_pool_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/:id/pools",
+    path = "/api/members/{member_id}/pools",
     params(
-        ("id" = uuid::Uuid, Path, description = "ID of the member to fetch pools for")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch pools for")
     ),
     responses(
         (status = 200, description = "List pools for member", body = Vec<models::Pool>),
@@ -783,23 +786,27 @@ pub async fn list_pools_for_member_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/pools/membership",
-    request_body = PoolMembershipInput,
+    path = "/api/pools/{pool_id}/memberships",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to create membership for"),
+        ("member_id" = uuid::Uuid, Query, description = "ID of the member to create membership for")
+    ),
     responses(
         (status = 200, description = "Create pool membership", body = PoolMembership),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn create_pool_membership_handler(
-    Json(input): Json<PoolMembershipInput>,
+    Path(pool_id): Path<uuid::Uuid>,
+    Query(member_id): Query<uuid::Uuid>,
 ) -> Json<PoolMembership> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let new_membership = models::NewPoolMembership {
-        pool_id: input.pool_id,
-        member_id: input.member_id,
+        pool_id: pool_id,
+        member_id: member_id,
         role: models::PoolRole::PARTICIPANT,
     };
 
@@ -811,4 +818,25 @@ pub async fn create_pool_membership_handler(
     .expect("Task panicked");
 
     Json(membership)
+}
+
+pub fn handlers_routes() -> OpenApiRouter {
+    OpenApiRouter::new()
+        .routes(routes!(get_member_handler))
+        .routes(routes!(signup_handler))
+        .routes(routes!(login_handler))
+        .routes(routes!(authenticate_handler))
+        .routes(routes!(create_pool_handler))
+        .routes(routes!(create_pool_membership_handler))
+        .routes(routes!(add_friend_to_pool_handler))
+        .routes(routes!(remove_friend_from_pool_handler))
+        .routes(routes!(list_friends_handler))
+        .routes(routes!(list_inbound_friend_requests_handler))
+        .routes(routes!(create_friend_request_handler))
+        .routes(routes!(accept_friend_request_handler))
+        .routes(routes!(get_expense_handler))
+        .routes(routes!(add_expense_handler))
+        .routes(routes!(get_pool_details_handler))
+        .routes(routes!(get_pool_recent_expenses_handler))
+        .routes(routes!(list_members_of_pool_handler))
 }

@@ -3,7 +3,6 @@ use utoipa::OpenApi;
 
 #[derive(OpenApi)]
 #[openapi(paths(
-    handlers::list_members_handler,
     handlers::list_members_of_pool_handler,
     handlers::list_pools_for_member_handler,
     handlers::get_member_handler,
