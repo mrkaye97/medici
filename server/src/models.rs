@@ -425,6 +425,7 @@ impl Pool {
                     .and(expense_line_item::is_settled.eq(false))),
             )
             .filter(expense_line_item::debtor_member_id.eq(member_id_query))
+            .filter(expense::pool_id.eq(pool_id_query))
             .select((
                 expense::paid_by_member_id,
                 expense_line_item::amount,

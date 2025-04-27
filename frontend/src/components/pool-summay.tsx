@@ -94,13 +94,19 @@ export function PoolSummary({ poolId }: { poolId: string }) {
                 </CardDescription>
               )}
             </div>
-            <Badge
-              className={`ml-2 py-2 ${poolDetails.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
-            >
-              <p className="text-base font-light">
-                {formatCurrency(poolDetails.total_debt)}
-              </p>
-            </Badge>
+            {poolDetails.total_debt === 0 ? (
+              <Badge className={`ml-2 py-2 bg-white text-black hover:bg-white`}>
+                <p className="text-base font-light">All settled up!</p>
+              </Badge>
+            ) : (
+              <Badge
+                className={`ml-2 py-2 ${poolDetails.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
+              >
+                <p className="text-base font-light">
+                  {formatCurrency(poolDetails.total_debt)}
+                </p>
+              </Badge>
+            )}
           </div>
         </CardHeader>
 
@@ -132,12 +138,11 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           )}
 
           {isExpanded && (
-            <div className="mt-3 px-4  rounded-md">
+            <div className="mt-3 px-4 rounded-md gap-y-2 flex flex-col">
               {poolRecentExpenses.map((expense, index) => {
                 return (
                   <>
                     <Expense key={index} expense={expense} />
-                    {index !== poolRecentExpenses.length - 1 && <Separator />}
                   </>
                 );
               })}
