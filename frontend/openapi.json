@@ -14,13 +14,13 @@
     "version": "0.2.0"
   },
   "paths": {
-    "/api/authenticate": {
+    "/api/authenticate/{member_id}": {
       "get": {
         "operationId": "authenticate_handler",
         "parameters": [
           {
-            "name": "id",
-            "in": "query",
+            "name": "member_id",
+            "in": "path",
             "description": "ID of the member to authenticate",
             "required": true,
             "schema": {
@@ -727,7 +727,12 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["id", "token", "is_authenticated", "expires_at"],
+            "required": [
+              "id",
+              "token",
+              "is_authenticated",
+              "expires_at"
+            ],
             "properties": {
               "expires_at": {
                 "type": "string",
@@ -747,21 +752,32 @@
           },
           {
             "type": "object",
-            "required": ["is_authenticated"],
+            "required": [
+              "is_authenticated"
+            ],
             "properties": {
               "expires_at": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date-time"
               },
               "id": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "uuid"
               },
               "is_authenticated": {
                 "type": "boolean"
               },
               "token": {
-                "type": ["string", "null"]
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           }
@@ -789,7 +805,10 @@
             "$ref": "#/components/schemas/ExpenseCategory"
           },
           "description": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -806,7 +825,10 @@
             "type": "string"
           },
           "notes": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "paid_by_member_id": {
             "type": "string",
@@ -866,7 +888,10 @@
             "type": "string"
           },
           "description": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "line_items": {
             "type": "array",
@@ -889,7 +914,10 @@
       },
       "ExpenseLineItem": {
         "type": "object",
-        "required": ["debtor_member_id", "amount"],
+        "required": [
+          "debtor_member_id",
+          "amount"
+        ],
         "properties": {
           "amount": {
             "type": "number",
@@ -903,7 +931,9 @@
       },
       "FriendRequestInput": {
         "type": "object",
-        "required": ["friend_email"],
+        "required": [
+          "friend_email"
+        ],
         "properties": {
           "friend_email": {
             "type": "string"
@@ -912,7 +942,10 @@
       },
       "LoginInput": {
         "type": "object",
-        "required": ["email", "password"],
+        "required": [
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string"
@@ -934,7 +967,10 @@
         ],
         "properties": {
           "bio": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "email": {
             "type": "string"
@@ -961,7 +997,10 @@
       },
       "MembersWithPoolStatus": {
         "type": "object",
-        "required": ["member", "is_pool_member"],
+        "required": [
+          "member",
+          "is_pool_member"
+        ],
         "properties": {
           "is_pool_member": {
             "type": "boolean"
@@ -973,10 +1012,18 @@
       },
       "Pool": {
         "type": "object",
-        "required": ["id", "name", "inserted_at", "updated_at"],
+        "required": [
+          "id",
+          "name",
+          "inserted_at",
+          "updated_at"
+        ],
         "properties": {
           "description": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "string",
@@ -1002,7 +1049,9 @@
           },
           {
             "type": "object",
-            "required": ["total_debt"],
+            "required": [
+              "total_debt"
+            ],
             "properties": {
               "total_debt": {
                 "type": "number",
@@ -1014,10 +1063,15 @@
       },
       "PoolInput": {
         "type": "object",
-        "required": ["name"],
+        "required": [
+          "name"
+        ],
         "properties": {
           "description": {
-            "type": ["string", "null"]
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "name": {
             "type": "string"
@@ -1062,7 +1116,9 @@
       },
       "PoolMembershipInput": {
         "type": "object",
-        "required": ["member_id"],
+        "required": [
+          "member_id"
+        ],
         "properties": {
           "member_id": {
             "type": "string",
@@ -1072,7 +1128,10 @@
       },
       "PoolRole": {
         "type": "string",
-        "enum": ["PARTICIPANT", "ADMIN"]
+        "enum": [
+          "PARTICIPANT",
+          "ADMIN"
+        ]
       },
       "RecentExpenseDetails": {
         "allOf": [
@@ -1081,7 +1140,9 @@
           },
           {
             "type": "object",
-            "required": ["line_amount"],
+            "required": [
+              "line_amount"
+            ],
             "properties": {
               "line_amount": {
                 "type": "number",
@@ -1093,7 +1154,12 @@
       },
       "SignupInput": {
         "type": "object",
-        "required": ["first_name", "last_name", "email", "password"],
+        "required": [
+          "first_name",
+          "last_name",
+          "email",
+          "password"
+        ],
         "properties": {
           "email": {
             "type": "string"

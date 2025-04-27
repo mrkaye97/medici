@@ -81,12 +81,14 @@ export function useAuth() {
 
   const authenticateQuery = apiClient.useQuery(
     "get",
-    "/api/authenticate",
+    "/api/authenticate/{member_id}",
     {
       params: {
         query: {
-          id: metadata?.id || "",
           token: metadata?.token || "",
+        },
+        path: {
+          member_id: metadata?.id || "",
         },
       },
     },

@@ -277,11 +277,16 @@ pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
     Json(result)
 }
 
+#[derive(Debug, Deserialize)]
+pub struct AuthQuery {
+    pub token: String,
+}
+
 #[utoipa::path(
     get,
-    path = "/api/authenticate",
+    path = "/api/authenticate/{member_id}",
     params(
-        ("id" = uuid::Uuid, Query, description = "ID of the member to authenticate"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to authenticate"),
         ("token" = String, Query, description = "Token to authenticate the member"),
     ),
     responses(
@@ -290,19 +295,22 @@ pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
     )
 )]
 pub async fn authenticate_handler(
-    Query(id): Query<uuid::Uuid>,
-    Query(token): Query<String>,
+    Path(member_id): Path<uuid::Uuid>,
+    Query(query): Query<AuthQuery>,
 ) -> Json<AuthResult> {
+    let token = query.token;
+
+    
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let result: AuthResult = tokio::task::spawn_blocking(move || {
-        match MemberPassword::verify_password(&mut conn, id, &token) {
+        match MemberPassword::verify_password(&mut conn, member_id, &token) {
             Ok(is_authenticated) => {
                 if is_authenticated {
                     AuthResult::Authenticated {
-                        id,
+                        id: member_id,
                         token,
                         is_authenticated: true,
                         expires_at: Utc::now() + Duration::days(7),
