@@ -300,7 +300,6 @@ pub async fn authenticate_handler(
 ) -> Json<AuthResult> {
     let token = query.token;
 
-    
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -630,6 +629,11 @@ pub struct PoolDetails {
     total_debt: f64,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct PoolDetailsQuery {
+    member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     get,
     path = "/api/pools/{pool_id}",
@@ -644,8 +648,9 @@ pub struct PoolDetails {
 )]
 pub async fn get_pool_details_handler(
     Path(pool_id): Path<uuid::Uuid>,
-    Query(member_id): Query<uuid::Uuid>,
+    Query(query): Query<PoolDetailsQuery>,
 ) -> Json<PoolDetails> {
+    let member_id = query.member_id;
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -672,6 +677,11 @@ pub struct RecentExpenseDetails {
     line_amount: f64,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct RecentExpensesQuery {
+    limit: Option<i64>,
+}
+
 #[utoipa::path(
     get,
     path = "/api/pools/{pool_id}/members/{member_id}/expenses",
@@ -688,8 +698,9 @@ pub struct RecentExpenseDetails {
 pub async fn get_pool_recent_expenses_handler(
     Path(pool_id): Path<uuid::Uuid>,
     Path(member_id): Path<uuid::Uuid>,
-    Query(limit): Query<Option<i64>>,
+    Query(query): Query<RecentExpensesQuery>,
 ) -> Json<Vec<RecentExpenseDetails>> {
+    let limit = query.limit;
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -784,6 +795,11 @@ pub async fn list_pools_for_member_handler(
     Json(pools)
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct PoolMembershipQuery {
+    member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     post,
     path = "/api/pools/{pool_id}/memberships",
@@ -798,8 +814,9 @@ pub async fn list_pools_for_member_handler(
 )]
 pub async fn create_pool_membership_handler(
     Path(pool_id): Path<uuid::Uuid>,
-    Query(member_id): Query<uuid::Uuid>,
+    Query(query): Query<PoolMembershipQuery>,
 ) -> Json<PoolMembership> {
+    let member_id = query.member_id;
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
