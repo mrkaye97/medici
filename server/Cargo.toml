@@ -40,3 +40,7 @@ bcrypt = "0.17.0"
 utoipa = { version = "5", features = ["uuid", "chrono", "decimal", "time"] }
 utoipa-axum = "0.2"
 rust_decimal_macros = "1.32"
+
+[[bin]]
+name = "server"
+path = "src/main.rs"

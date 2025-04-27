@@ -33,7 +33,7 @@ export function AddFriendModal({
   const { id } = useAuth();
   const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests"
+    "/api/members/{member_id}/friend-requests",
   );
 
   const form = useForm<FriendRequestFormValues>({

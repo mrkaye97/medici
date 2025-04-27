@@ -39,7 +39,9 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
     "tw-animate-css": "^1.2.5",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "vite": "^6.3.3",
+    "@vitejs/plugin-react": "^4.4.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.24.0",
@@ -48,7 +50,6 @@
     "@types/react": "^19.1.1",
     "@types/react-dom": "^19.1.2",
     "@types/react-no-ssr": "^1.1.8",
-    "@vitejs/plugin-react": "^4.4.1",
     "esbuild": "^0.17.19",
     "eslint": "^9.24.0",
     "eslint-plugin-react": "^7.37.5",
@@ -61,10 +62,12 @@
     "tsx": "^4.19.3",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.29.1",
-    "vite": "^6.3.3",
     "vite-tsconfig-paths": "^5.1.4",
     "wait-port": "^1.0.1"
   },
   "version": "11.1.0",
-  "packageManager": "pnpm@9.14.2"
+  "packageManager": "pnpm@9.14.2",
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "^4.40.0"
+  }
 }

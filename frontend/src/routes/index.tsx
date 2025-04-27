@@ -23,7 +23,7 @@ function Home() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const pools = data || [];

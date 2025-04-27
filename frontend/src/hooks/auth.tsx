@@ -80,7 +80,7 @@ export function useAuth() {
     },
     {
       enabled: !!metadata && !!metadata.token && !!metadata.id,
-    }
+    },
   );
 
   const loginMutation = apiClient.useMutation("post", "/api/login");
@@ -160,7 +160,7 @@ export function useAuth() {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => {
     const result = await signupMutation.mutateAsync({
       body: {
