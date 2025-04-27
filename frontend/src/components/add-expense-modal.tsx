@@ -317,10 +317,10 @@ export function AddExpenseModal({
     defaultValues: {
       expenseName: "",
       amount: 0,
-      category: "miscellaneous",
+      category: "Miscellaneous",
       description: undefined,
       splitMethod: SplitMethodType.Percentage,
-      paidByMemberId: "",
+      paidByMemberId: id || "",
     },
   });
 
