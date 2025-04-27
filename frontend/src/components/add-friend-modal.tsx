@@ -33,7 +33,7 @@ export function AddFriendModal({
   const { id } = useAuth();
   const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests",
+    "/api/members/{member_id}/friend-requests"
   );
 
   const form = useForm<FriendRequestFormValues>({
@@ -77,7 +77,7 @@ export function AddFriendModal({
               });
 
               await queryClient.invalidateQueries({
-                queryKey: ["friend-requests"],
+                queryKey: ["get", "/api/members/{member_id}/friend-requests"],
               });
 
               setIsOpen(false);
