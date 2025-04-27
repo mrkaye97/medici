@@ -1,7 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./app/**/*.{ts,tsx}"],
+  content: ["./pages/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   plugins: [require("tailwindcss-animate")],
   theme: {
     extend: {

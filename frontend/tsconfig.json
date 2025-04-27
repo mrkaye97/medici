@@ -1,22 +1,46 @@
 {
   "compilerOptions": {
     "strict": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "module": "Preserve",
     "noEmit": true,
-    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
     "target": "ES2022",
     "isolatedModules": true,
     "skipLibCheck": true,
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["src/components/*"],
-      "@/lib/*": ["src/components/lib/*"],
-      "@/hooks/*": ["src/hooks/*"],
-      "@/api/*": ["src/api/*"]
+      "@/components/*": [
+        "src/components/*"
+      ],
+      "@/lib/*": [
+        "src/components/lib/*"
+      ],
+      "@/hooks/*": [
+        "src/hooks/*"
+      ],
+      "@/api/*": [
+        "src/api/*"
+      ]
     },
-    "types": ["vite/client"]
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["**/*.ts", "**/*.tsx"]
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

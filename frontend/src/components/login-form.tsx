@@ -1,4 +1,6 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
 import { cn } from "./lib/utils";
 import { Button } from "./ui/button";
 import {
@@ -21,12 +23,14 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    },
+    }
   ) => void;
   formType: "login" | "signup";
 };
 
 export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
+  console.log("Rendering login form", formType);
+
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -41,7 +45,7 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit],
+    [onSubmit]
   );
 
   return (
@@ -104,26 +108,22 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
                 {formType === "login" ? "Login" : "Sign Up"}
               </Button>
             </div>
-            {formType === "login" ? (
-              <Link to="/signup">
-                <div className="mt-4 text-center text-sm">
-                  Don&apos;t have an account?{" "}
-                  <a href="#" className="underline underline-offset-4">
-                    Sign up
-                  </a>
-                </div>
-              </Link>
-            ) : (
-              <Link to="/login">
-                <div className="mt-4 text-center text-sm">
-                  Already have an account?{" "}
-                  <a href="#" className="underline underline-offset-4">
-                    Log in
-                  </a>
-                </div>
-              </Link>
-            )}
           </form>
+          {formType === "login" ? (
+            <Link href="/signup">
+              <div className="mt-4 text-center text-sm">
+                Don&apos;t have an account?{" "}
+                <p className="underline underline-offset-4">Sign up</p>
+              </div>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <div className="mt-4 text-center text-sm">
+                Already have an account?{" "}
+                <p className="underline underline-offset-4">Log in</p>
+              </div>
+            </Link>
+          )}{" "}
         </CardContent>
       </Card>
     </div>

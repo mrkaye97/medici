@@ -1,6 +1,5 @@
 import { Expense } from "@/components/expense";
 import { Spinner } from "@/components/ui/spinner";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
 import { useState } from "react";
@@ -8,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
 import { apiClient } from "@/api/client";
+import { useParams } from "next/navigation";
 
-export const Route = createFileRoute("/pools/$poolId")({
-  component: PostComponent,
-});
-
-function PostComponent() {
-  const { poolId } = Route.useParams();
+export default async function PostComponent({
+  params,
+}: {
+  params: Promise<{ poolId: string }>;
+}) {
+  const { poolId } = await params;
   const { id } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
@@ -75,7 +75,7 @@ function PostComponent() {
   const friends = (friendsRaw || []).filter((f) => f.member.id !== id);
 
   if (!id) {
-    return <Navigate to="/login" />;
+    return null;
   }
 
   if (isLoading || isFriendsLoading || !pool) {

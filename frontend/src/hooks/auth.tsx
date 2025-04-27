@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import { apiClient } from "@/api/client";
+import { useState } from "react";
+import { useRouter } from "next/router";
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -11,7 +12,7 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -19,6 +20,7 @@ export interface AuthContext {
 }
 
 export function useAuth() {
+  const [initialRenderAt] = useState(() => new Date());
   const getAuthMetadata = () => {
     try {
       const token = localStorage.getItem("token") as string;
@@ -53,7 +55,8 @@ export function useAuth() {
 
       return {
         isAuthenticated:
-          (token && expiresAt && new Date(expiresAt) > new Date()) === true,
+          (token && expiresAt && new Date(expiresAt) > initialRenderAt) ===
+          true,
         metadata: {
           id,
           token,
@@ -74,6 +77,8 @@ export function useAuth() {
 
   const { isAuthenticated, metadata } = isAlreadyAuthenticated();
 
+  console.log({ metadata });
+
   const authenticateQuery = apiClient.useQuery(
     "get",
     "/api/authenticate",
@@ -86,14 +91,14 @@ export function useAuth() {
       },
     },
     {
-      enabled: !!metadata,
-    },
+      enabled: !!metadata && !!metadata.token && !!metadata.id,
+    }
   );
 
   const loginMutation = apiClient.useMutation("post", "/api/login");
   const signupMutation = apiClient.useMutation("post", "/api/signup");
 
-  const navigate = useNavigate();
+  const router = useRouter();
   const queryClient = useQueryClient();
 
   const setAuthMetadata = ({
@@ -159,9 +164,7 @@ export function useAuth() {
       queryKey: ["get", "/api/authenticate"],
     });
 
-    navigate({
-      to: "/login",
-    });
+    router.push("/login");
   };
 
   const signup = async (
@@ -169,6 +172,7 @@ export function useAuth() {
     password: string,
     firstName: string,
     lastName: string,
+    lastName: string
   ) => {
     const result = await signupMutation.mutateAsync({
       body: {

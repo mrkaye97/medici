@@ -1,17 +1,14 @@
+"use client";
+
 import { AddFriendModal } from "@/components/add-friend-modal";
 import { MemberProfile } from "@/components/member-profile";
 import { Button } from "@/components/ui/button";
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { useState } from "react";
 import { apiClient } from "@/api/client";
 
-export const Route = createFileRoute("/friends")({
-  component: FriendsPage,
-});
-
-function FriendsPage() {
+export default function FriendsPage() {
   const { id } = useAuth();
 
   const { data: friends, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -26,7 +23,7 @@ function FriendsPage() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const { data: friendRequests, isLoading: isFriendRequestsLoading } =
@@ -42,14 +39,14 @@ function FriendsPage() {
       },
       {
         enabled: !!id,
-      },
+      }
     );
 
   const queryClient = useQueryClient();
 
   const { mutate: acceptFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
+    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept"
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -60,7 +57,7 @@ function FriendsPage() {
   }
 
   if (!id) {
-    return <Navigate to="/" />;
+    return null;
   }
 
   return (

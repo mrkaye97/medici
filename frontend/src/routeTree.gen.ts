@@ -10,12 +10,12 @@
 
 // Import Routes
 
-import { Route as rootRoute } from "./routes/__root";
-import { Route as SignupImport } from "./routes/signup";
-import { Route as LoginImport } from "./routes/login";
-import { Route as FriendsImport } from "./routes/friends";
-import { Route as IndexImport } from "./routes/index";
-import { Route as PoolsPoolIdImport } from "./routes/pools.$poolId";
+import { Route as rootRoute } from "../pages/__root";
+import { Route as SignupImport } from "../pages/signup";
+import { Route as LoginImport } from "../pages/login";
+import { Route as FriendsImport } from "../pages/friends";
+import { Route as IndexImport } from "../pages";
+import { Route as PoolsPoolIdImport } from "../pages/pools.$poolId";
 
 // Create/Update Routes
 

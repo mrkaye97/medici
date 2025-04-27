@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import Link from "next/link";
 
 export function NotFound(
   props: Readonly<{
     children?: React.ReactNode;
-  }>,
+  }>
 ) {
   return (
     <div className="space-y-2 p-2">
@@ -18,7 +18,7 @@ export function NotFound(
           Go back
         </button>
         <Link
-          to="/"
+          href="/"
           className="rounded bg-cyan-600 px-2 py-1 text-sm font-black uppercase text-white"
         >
           Start Over

@@ -1,14 +1,11 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { PoolSummary } from "../components/pool-summay";
-import { Spinner } from "../components/ui/spinner";
-import { useAuth } from "../hooks/auth";
+"use client";
+
+import { PoolSummary } from "../src/components/pool-summay";
+import { Spinner } from "../src/components/ui/spinner";
+import { useAuth } from "../src/hooks/auth";
 import { apiClient } from "@/api/client";
 
-export const Route = createFileRoute("/")({
-  component: Home,
-});
-
-function Home() {
+export default function Home() {
   const { isAuthenticated, id, token } = useAuth();
 
   const { data, isLoading, isFetching } = apiClient.useQuery(
@@ -23,20 +20,13 @@ function Home() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const pools = data || [];
 
   if (!isAuthenticated || !id || !token) {
-    return (
-      <Navigate
-        to="/login"
-        params={{
-          redirect: "/",
-        }}
-      />
-    );
+    return null;
   }
 
   if (isLoading || isFetching) {
