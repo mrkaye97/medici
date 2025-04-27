@@ -13,7 +13,10 @@ use crate::schema::{
 #[derive(
     diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
 )]
-#[db_enum(existing_type_path = "crate::schema::sql_types::PoolRole")]
+#[db_enum(
+    existing_type_path = "crate::schema::sql_types::PoolRole",
+    value_style = "UPPERCASE"
+)]
 pub enum PoolRole {
     PARTICIPANT,
     ADMIN,
@@ -22,7 +25,10 @@ pub enum PoolRole {
 #[derive(
     diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
 )]
-#[db_enum(existing_type_path = "crate::schema::sql_types::FriendshipStatus")]
+#[db_enum(
+    existing_type_path = "crate::schema::sql_types::FriendshipStatus",
+    value_style = "snake_case"
+)]
 pub enum FriendshipStatus {
     Pending,
     Accepted,
@@ -31,7 +37,10 @@ pub enum FriendshipStatus {
 #[derive(
     diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
 )]
-#[db_enum(existing_type_path = "crate::schema::sql_types::ExpenseCategory")]
+#[db_enum(
+    existing_type_path = "crate::schema::sql_types::ExpenseCategory",
+    value_style = "snake_case"
+)]
 pub enum ExpenseCategory {
     FoodDining,
     Groceries,

@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
 import { apiClient } from "@/api/client";
-import { useParams } from "next/navigation";
+import { useRouter } from "next/router";
 
-export default async function PostComponent({
+export default function PostComponent({
   params,
 }: {
   params: Promise<{ poolId: string }>;
 }) {
-  const { poolId } = await params;
+  const router = useRouter();
+  const poolId = router.query.poolId as string;
   const { id } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 

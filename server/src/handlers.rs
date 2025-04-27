@@ -166,6 +166,12 @@ pub async fn add_friend_to_pool_handler(
     Json(result)
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct RemoveFriendFromPoolPath {
+    pool_id: uuid::Uuid,
+    member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     delete,
     path = "/api/pools/{pool_id}/members/{member_id}",
@@ -179,9 +185,11 @@ pub async fn add_friend_to_pool_handler(
     )
 )]
 pub async fn remove_friend_from_pool_handler(
-    Path(pool_id): Path<uuid::Uuid>,
-    Path(member_id): Path<uuid::Uuid>,
+    Path(path): Path<RemoveFriendFromPoolPath>,
 ) -> Json<serde_json::Value> {
+    let pool_id = path.pool_id;
+    let member_id = path.member_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -422,6 +430,12 @@ pub async fn create_friend_request_handler(
     Json(serde_json::json!({"success": true, "request": result}))
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct AcceptFriendRequestPath {
+    member_id: uuid::Uuid,
+    friend_member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     post,
     path = "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
@@ -435,9 +449,11 @@ pub async fn create_friend_request_handler(
     )
 )]
 pub async fn accept_friend_request_handler(
-    Path(member_id): Path<uuid::Uuid>,
-    Path(friend_member_id): Path<uuid::Uuid>,
+    Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
+    let member_id = path.member_id;
+    let friend_member_id = path.friend_member_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -456,6 +472,13 @@ pub async fn accept_friend_request_handler(
     Json(serde_json::json!({"success": true, "friendship": result}))
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct ExpensePath {
+    member_id: uuid::Uuid,
+    pool_id: uuid::Uuid,
+    expense_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     get,
     path = "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
@@ -470,10 +493,10 @@ pub async fn accept_friend_request_handler(
     )
 )]
 pub async fn get_expense_handler(
-    Path(expense_id): Path<uuid::Uuid>,
-    Path(pool_id): Path<uuid::Uuid>,
-    Path(member_id): Path<uuid::Uuid>,
+    Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+    let expense_id = path.expense_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -682,6 +705,12 @@ pub struct RecentExpensesQuery {
     limit: Option<i64>,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct RecentExpensesPath {
+    pool_id: uuid::Uuid,
+    member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     get,
     path = "/api/pools/{pool_id}/members/{member_id}/expenses",
@@ -696,11 +725,13 @@ pub struct RecentExpensesQuery {
     )
 )]
 pub async fn get_pool_recent_expenses_handler(
-    Path(pool_id): Path<uuid::Uuid>,
-    Path(member_id): Path<uuid::Uuid>,
+    Path(path): Path<RecentExpensesPath>,
     Query(query): Query<RecentExpensesQuery>,
 ) -> Json<Vec<RecentExpenseDetails>> {
     let limit = query.limit;
+    let pool_id = path.pool_id;
+    let member_id = path.member_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -729,6 +760,12 @@ pub struct MembersWithPoolStatus {
     is_pool_member: bool,
 }
 
+#[derive(Deserialize, Serialize, ToSchema)]
+pub struct MembersOfPoolPath {
+    pool_id: uuid::Uuid,
+    member_id: uuid::Uuid,
+}
+
 #[utoipa::path(
     get,
     path = "/api/members/{member_id}/pools/{pool_id}/members",
@@ -742,9 +779,11 @@ pub struct MembersWithPoolStatus {
     )
 )]
 pub async fn list_members_of_pool_handler(
-    Path(pool_id): Path<uuid::Uuid>,
-    Path(member_id): Path<uuid::Uuid>,
+    Path(path): Path<MembersOfPoolPath>,
 ) -> Json<Vec<MembersWithPoolStatus>> {
+    let pool_id = path.pool_id;
+    let member_id = path.member_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");

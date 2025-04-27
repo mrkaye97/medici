@@ -15,7 +15,7 @@ import { Route as SignupImport } from "../pages/signup";
 import { Route as LoginImport } from "../pages/login";
 import { Route as FriendsImport } from "../pages/friends";
 import { Route as IndexImport } from "../pages";
-import { Route as PoolsPoolIdImport } from "../pages/pools.$poolId";
+import { Route as PoolsPoolIdImport } from "../pages/pools/[poolId]";
 
 // Create/Update Routes
 

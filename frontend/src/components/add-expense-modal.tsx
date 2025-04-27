@@ -58,49 +58,29 @@ enum SplitMethodType {
   Amount = "amount",
 }
 
-export type ExpenseCategory =
-  | "food_dining"
-  | "groceries"
-  | "transportation"
-  | "housing_rent"
-  | "utilities"
-  | "healthcare"
-  | "entertainment"
-  | "shopping"
-  | "education"
-  | "travel"
-  | "personal_care"
-  | "fitness"
-  | "subscriptions"
-  | "bills_payments"
-  | "business_expenses"
-  | "investments"
-  | "insurance"
-  | "gifts"
-  | "charity"
-  | "miscellaneous";
+type ExpenseCategory = components["schemas"]["ExpenseCategory"];
 
 export const expenseCategories: ExpenseCategory[] = [
-  "food_dining",
-  "groceries",
-  "transportation",
-  "housing_rent",
-  "utilities",
-  "healthcare",
-  "entertainment",
-  "shopping",
-  "education",
-  "travel",
-  "personal_care",
-  "fitness",
-  "subscriptions",
-  "bills_payments",
-  "business_expenses",
-  "investments",
-  "insurance",
-  "gifts",
-  "charity",
-  "miscellaneous",
+  "FoodDining",
+  "Groceries",
+  "Transportation",
+  "HousingRent",
+  "Utilities",
+  "Healthcare",
+  "Entertainment",
+  "Shopping",
+  "Education",
+  "Travel",
+  "PersonalCare",
+  "Fitness",
+  "Subscriptions",
+  "BillsPayments",
+  "BusinessExpenses",
+  "Investments",
+  "Insurance",
+  "Gifts",
+  "Charity",
+  "Miscellaneous",
 ];
 
 export const categoryToIcon = ({
@@ -111,45 +91,45 @@ export const categoryToIcon = ({
   size?: number;
 }) => {
   switch (category) {
-    case "food_dining":
+    case "FoodDining":
       return <Utensils className={`size-${size}`} />;
-    case "groceries":
+    case "Groceries":
       return <ShoppingCart className={`size-${size}`} />;
-    case "transportation":
+    case "Transportation":
       return <Car className={`size-${size}`} />;
-    case "housing_rent":
+    case "HousingRent":
       return <Home className={`size-${size}`} />;
-    case "utilities":
+    case "Utilities":
       return <Plug className={`size-${size}`} />;
-    case "healthcare":
+    case "Healthcare":
       return <Stethoscope className={`size-${size}`} />;
-    case "entertainment":
+    case "Entertainment":
       return <Tv className={`size-${size}`} />;
-    case "shopping":
+    case "Shopping":
       return <ShoppingBag className={`size-${size}`} />;
-    case "education":
+    case "Education":
       return <GraduationCap className={`size-${size}`} />;
-    case "travel":
+    case "Travel":
       return <Plane className={`size-${size}`} />;
-    case "personal_care":
+    case "PersonalCare":
       return <Bath className={`size-${size}`} />;
-    case "fitness":
+    case "Fitness":
       return <Dumbbell className={`size-${size}`} />;
-    case "subscriptions":
+    case "Subscriptions":
       return <CreditCard className={`size-${size}`} />;
-    case "bills_payments":
+    case "BillsPayments":
       return <Receipt className={`size-${size}`} />;
-    case "business_expenses":
+    case "BusinessExpenses":
       return <Briefcase className={`size-${size}`} />;
-    case "investments":
+    case "Investments":
       return <TrendingUp className={`size-${size}`} />;
-    case "insurance":
+    case "Insurance":
       return <Shield className={`size-${size}`} />;
-    case "gifts":
+    case "Gifts":
       return <Gift className={`size-${size}`} />;
-    case "charity":
+    case "Charity":
       return <HelpingHand className={`size-${size}`} />;
-    case "miscellaneous":
+    case "Miscellaneous":
       return <Ellipsis className={`size-${size}`} />;
     default:
       const exhaustiveCheck: never = category;
@@ -163,45 +143,45 @@ export const categoryToDisplayName = ({
   category: ExpenseCategory;
 }) => {
   switch (category) {
-    case "food_dining":
+    case "FoodDining":
       return "Food & Dining";
-    case "groceries":
+    case "Groceries":
       return "Groceries";
-    case "transportation":
+    case "Transportation":
       return "Transportation";
-    case "housing_rent":
+    case "HousingRent":
       return "Housing & Rent";
-    case "utilities":
+    case "Utilities":
       return "Utilities";
-    case "healthcare":
+    case "Healthcare":
       return "Healthcare";
-    case "entertainment":
+    case "Entertainment":
       return "Entertainment";
-    case "shopping":
+    case "Shopping":
       return "Shopping";
-    case "education":
+    case "Education":
       return "Education";
-    case "travel":
+    case "Travel":
       return "Travel";
-    case "personal_care":
+    case "PersonalCare":
       return "Personal Care";
-    case "fitness":
+    case "Fitness":
       return "Fitness";
-    case "subscriptions":
+    case "Subscriptions":
       return "Subscriptions";
-    case "bills_payments":
+    case "BillsPayments":
       return "Bills & Payments";
-    case "business_expenses":
+    case "BusinessExpenses":
       return "Business Expenses";
-    case "investments":
+    case "Investments":
       return "Investments";
-    case "insurance":
+    case "Insurance":
       return "Insurance";
-    case "gifts":
+    case "Gifts":
       return "Gifts";
-    case "charity":
+    case "Charity":
       return "Charity";
-    case "miscellaneous":
+    case "Miscellaneous":
       return "Miscellaneous";
     default:
       const exhaustiveCheck: never = category;
