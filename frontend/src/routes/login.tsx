@@ -16,7 +16,7 @@ function LoginPage() {
   const { isAuthenticated, login } = useAuth();
 
   if (isAuthenticated) {
-    return null;
+    return <Navigate to={fallback} />;
   }
 
   return (

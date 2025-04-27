@@ -29,7 +29,7 @@ function Home() {
   const pools = data || [];
 
   if (!isAuthenticated || !id || !token) {
-    return null;
+    return <Navigate to="/login" />;
   }
 
   if (isLoading || isFetching) {

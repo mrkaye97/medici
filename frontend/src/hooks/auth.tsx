@@ -1,9 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
 
 export function useAuth() {
   const [initialRenderAt] = useState(() => new Date());
+  const navigate = useNavigate();
+
   const getAuthMetadata = () => {
     try {
       const token = localStorage.getItem("token") as string;
@@ -37,11 +40,11 @@ export function useAuth() {
 
       const { token, expiresAt, id } = metadata;
 
-
       return {
         isAuthenticated:
-          (token && expiresAt && new Date(parseInt(expiresAt)) > initialRenderAt) ===
-          true,
+          (token &&
+            expiresAt &&
+            new Date(parseInt(expiresAt)) > initialRenderAt) === true,
         metadata: {
           id,
           token,
@@ -148,7 +151,9 @@ export function useAuth() {
       queryKey: ["get", "/api/authenticate"],
     });
 
-    console.log("REDIRECT HERE");
+    navigate({
+      to: "/login",
+    });
   };
 
   const signup = async (

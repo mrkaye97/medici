@@ -17,7 +17,7 @@ function SignupPage() {
   const { isAuthenticated, signup } = useAuth();
 
   if (isAuthenticated) {
-    return null;
+    return <Navigate to={fallback} />;
   }
 
   return (
