@@ -40,7 +40,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!id,
-      },
+      }
     );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
@@ -60,7 +60,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!id,
-      },
+      }
     );
 
   if (
@@ -95,7 +95,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
               )}
             </div>
             <Badge
-              className={`ml-2 py-2 ${poolDetails.total_debt < 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
+              className={`ml-2 py-2 ${poolDetails.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
             >
               <p className="text-base font-light">
                 {formatCurrency(poolDetails.total_debt)}
