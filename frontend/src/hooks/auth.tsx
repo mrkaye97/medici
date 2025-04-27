@@ -171,7 +171,6 @@ export function useAuth() {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
     lastName: string
   ) => {
     const result = await signupMutation.mutateAsync({
