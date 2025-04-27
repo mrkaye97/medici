@@ -22,7 +22,6 @@ import {
   Dumbbell,
   CreditCard,
   Receipt,
-  FileText,
   Briefcase,
   TrendingUp,
   Shield,
@@ -51,7 +50,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 import { components } from "schema";
 
 enum SplitMethodType {
@@ -152,8 +151,6 @@ export const categoryToIcon = ({
       return <HelpingHand className={`size-${size}`} />;
     case "miscellaneous":
       return <Ellipsis className={`size-${size}`} />;
-    case "bills_payments":
-      return <FileText className={`size-${size}`} />;
     default:
       const exhaustiveCheck: never = category;
       throw new Error(`Unhandled category: ${exhaustiveCheck}`);
@@ -305,12 +302,12 @@ export function AddExpenseModal({
 }) {
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutate: addExpense } = $api.useMutation(
+  const { mutate: addExpense } = apiClient.useMutation(
     "post",
     "/api/pools/{pool_id}/expenses"
   );
 
-  const { data, isLoading } = $api.useQuery(
+  const { data, isLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools/{pool_id}/members",
     {
@@ -442,7 +439,7 @@ export function AddExpenseModal({
             <FormField
               control={form.control}
               name="description"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>

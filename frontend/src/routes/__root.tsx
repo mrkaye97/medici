@@ -1,5 +1,5 @@
 // routes/__root.tsx
-import { useQuery, type QueryClient } from "@tanstack/react-query";
+import { type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
@@ -9,7 +9,6 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import appCss from "../app.css?url";
 import { DefaultCatchBoundary } from "../components/DefaultCatchBoundary";
 import { NotFound } from "../components/NotFound";
 import * as React from "react";
@@ -18,12 +17,12 @@ import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CreatePoolModal } from "@/components/create-pool-modal";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 function InnerApp() {
   const { isAuthenticated, id, logout } = useAuth();
   const [isCreatePoolOpen, setIsCreatePoolOpen] = React.useState(false);
-  const { data: member } = $api.useQuery(
+  const { data: member } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}",
     {
@@ -31,7 +30,7 @@ function InnerApp() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const email = member?.email;
@@ -105,7 +104,6 @@ export const Route = createRootRouteWithContext<{
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
   }),
   errorComponent: (props) => {
     return (

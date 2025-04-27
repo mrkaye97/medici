@@ -11,9 +11,10 @@
     "allowJs": true,
     "baseUrl": ".",
     "paths": {
-      "@/components/*": ["./components/*"],
-      "@/lib/*": ["./components/lib/*"],
-      "@/hooks/*": ["./hooks/*"]
+      "@/components/*": ["src/components/*"],
+      "@/lib/*": ["src/components/lib/*"],
+      "@/hooks/*": ["src/hooks/*"],
+      "@/api/*": ["src/api/*"]
     },
     "types": ["vite/client"]
   },

@@ -1,7 +1,7 @@
 import { useAuth } from "@/hooks/auth";
 import { cn } from "./lib/utils";
 import { ExpenseCategory, ExpenseIcon } from "./add-expense-modal";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 import { components } from "schema";
 
 export const formatDate = (date: Date) => {
@@ -23,7 +23,7 @@ type Expense = components["schemas"]["RecentExpenseDetails"];
 
 export function Expense({ expense }: { expense: Expense }) {
   const { id } = useAuth();
-  const { data, isLoading } = $api.useQuery(
+  const { data, isLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools/{pool_id}/members",
     {
@@ -36,7 +36,7 @@ export function Expense({ expense }: { expense: Expense }) {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   if (!data || isLoading || !id) {
@@ -96,7 +96,7 @@ export function Expense({ expense }: { expense: Expense }) {
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.amount < 0 ? "text-emerald-600" : "text-red-600"
+                expense.amount < 0 ? "text-emerald-600" : "text-red-600",
               )}
             >
               {formatCurrency(expense.amount)}

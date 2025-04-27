@@ -2,7 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { PoolSummary } from "../components/pool-summay";
 import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "../hooks/auth";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -11,7 +11,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const { isAuthenticated, id, token } = useAuth();
 
-  const { data, isLoading, isFetching } = $api.useQuery(
+  const { data, isLoading, isFetching } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools",
     {
@@ -23,7 +23,7 @@ function Home() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const pools = data || [];

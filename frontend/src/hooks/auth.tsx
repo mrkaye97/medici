@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createContext, useContext } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -12,16 +11,14 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
   expiresAt: string | null;
 }
 
-const AuthContext = createContext<AuthContext | null>(null);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function useAuth() {
   const getAuthMetadata = () => {
     try {
       const token = localStorage.getItem("token") as string;
@@ -77,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const { isAuthenticated, metadata } = isAlreadyAuthenticated();
 
-  const authenticateQuery = $api.useQuery(
+  const authenticateQuery = apiClient.useQuery(
     "get",
     "/api/authenticate",
     {
@@ -90,11 +87,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     {
       enabled: !!metadata,
-    }
+    },
   );
 
-  const loginMutation = $api.useMutation("post", "/api/login");
-  const signupMutation = $api.useMutation("post", "/api/signup");
+  const loginMutation = apiClient.useMutation("post", "/api/login");
+  const signupMutation = apiClient.useMutation("post", "/api/signup");
 
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -171,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => {
     const result = await signupMutation.mutateAsync({
       body: {
@@ -195,30 +192,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return false;
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        isAuthenticated,
-        authenticate,
-        login,
-        logout,
-        signup,
-        token: metadata?.token || null,
-        id: metadata?.id || null,
-        expiresAt: metadata?.expiresAt || null,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-
-  return context;
+  return {
+    isAuthenticated,
+    authenticate,
+    login,
+    logout,
+    signup,
+    token: metadata?.token || null,
+    id: metadata?.id || null,
+    expiresAt: metadata?.expiresAt || null,
+  };
 }

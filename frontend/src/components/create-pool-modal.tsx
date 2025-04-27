@@ -11,11 +11,11 @@ import { Input } from "./ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/auth";
 import { Navigate } from "@tanstack/react-router";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 const poolSchema = z.object({
   poolName: z.string().min(1, "Required"),
@@ -33,11 +33,14 @@ export function CreatePoolModal({
 }) {
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutateAsync: createPool } = $api.useMutation("post", "/api/pools");
-
-  const { mutateAsync: createPoolMembership } = $api.useMutation(
+  const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/memberships"
+    "/api/pools",
+  );
+
+  const { mutateAsync: createPoolMembership } = apiClient.useMutation(
+    "post",
+    "/api/pools/{pool_id}/memberships",
   );
 
   const form = useForm<PoolFormValues>({

@@ -11,14 +11,12 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "../hooks/auth";
 import { Spinner } from "./ui/spinner";
 import { Link } from "@tanstack/react-router";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { Separator } from "./ui/separator";
-import { $api } from "src/api";
-import { components } from "schema";
+import { apiClient } from "@/api/client";
 
 export function PoolSummary({ poolId }: { poolId: string }) {
   const { id } = useAuth();
@@ -26,26 +24,27 @@ export function PoolSummary({ poolId }: { poolId: string }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
-  const { data: poolDetails, isLoading: isPoolDetailsLoading } = $api.useQuery(
-    "get",
-    "/api/pools/{pool_id}",
-    {
-      params: {
-        query: {
-          member_id: id || "",
-        },
-        path: {
-          pool_id: poolId,
+  const { data: poolDetails, isLoading: isPoolDetailsLoading } =
+    apiClient.useQuery(
+      "get",
+      "/api/pools/{pool_id}",
+      {
+        params: {
+          query: {
+            member_id: id || "",
+          },
+          path: {
+            pool_id: poolId,
+          },
         },
       },
-    },
-    {
-      enabled: !!id,
-    }
-  );
+      {
+        enabled: !!id,
+      },
+    );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
-    $api.useQuery(
+    apiClient.useQuery(
       "get",
       "/api/pools/{pool_id}/members/{member_id}/expenses",
       {
@@ -61,7 +60,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!id,
-      }
+      },
     );
 
   if (

@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/auth";
 import { Navigate } from "@tanstack/react-router";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 const friendRequestSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -32,9 +32,9 @@ export function AddFriendModal({
 }) {
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutateAsync: createFriendRequest } = $api.useMutation(
+  const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests"
+    "/api/members/{member_id}/friend-requests",
   );
 
   const form = useForm<FriendRequestFormValues>({

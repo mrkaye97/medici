@@ -1,6 +1,5 @@
 import { Expense } from "@/components/expense";
 import { Spinner } from "@/components/ui/spinner";
-import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
@@ -8,32 +7,18 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: PostComponent,
 });
 
-type Pool = {
-  id: string;
-  name: string;
-  description?: string;
-  inserted_at: string;
-  updated_at: string;
-};
-
-type PoolDetails = {
-  pool: Pool;
-  total_debt?: number;
-};
-
 function PostComponent() {
   const { poolId } = Route.useParams();
   const { id } = useAuth();
-  const queryClient = useQueryClient();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
-  const { data: pool, isLoading: poolIsLoading } = $api.useQuery(
+  const { data: pool } = apiClient.useQuery(
     "get",
     "/api/pools/{pool_id}",
     {
@@ -51,7 +36,7 @@ function PostComponent() {
     }
   );
 
-  const { data, isLoading } = $api.useQuery(
+  const { data, isLoading } = apiClient.useQuery(
     "get",
     "/api/pools/{pool_id}/members/{member_id}/expenses",
     {
@@ -67,7 +52,7 @@ function PostComponent() {
     }
   );
 
-  const { data: friendsRaw, isLoading: isFriendsLoading } = $api.useQuery(
+  const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools/{pool_id}/members",
     {
@@ -80,13 +65,11 @@ function PostComponent() {
     }
   );
 
-  const { mutate: addFriendToPool, isPending: isAddPending } = $api.useMutation(
-    "post",
-    "/api/pools/{pool_id}/members"
-  );
+  const { mutate: addFriendToPool, isPending: isAddPending } =
+    apiClient.useMutation("post", "/api/pools/{pool_id}/members");
 
   const { mutate: removeFriendFromPool, isPending: isRemovePending } =
-    $api.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
+    apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
 
   const expenses = data || [];
   const friends = (friendsRaw || []).filter((f) => f.member.id !== id);

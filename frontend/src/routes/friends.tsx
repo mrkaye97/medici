@@ -1,11 +1,11 @@
 import { AddFriendModal } from "@/components/add-friend-modal";
 import { MemberProfile } from "@/components/member-profile";
 import { Button } from "@/components/ui/button";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { useState } from "react";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 export const Route = createFileRoute("/friends")({
   component: FriendsPage,
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/friends")({
 function FriendsPage() {
   const { id } = useAuth();
 
-  const { data: friends, isLoading: isFriendsLoading } = $api.useQuery(
+  const { data: friends, isLoading: isFriendsLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/friends",
     {
@@ -26,11 +26,11 @@ function FriendsPage() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const { data: friendRequests, isLoading: isFriendRequestsLoading } =
-    $api.useQuery(
+    apiClient.useQuery(
       "get",
       "/api/members/{member_id}/friend-requests",
       {
@@ -42,14 +42,14 @@ function FriendsPage() {
       },
       {
         enabled: !!id,
-      }
+      },
     );
 
   const queryClient = useQueryClient();
 
-  const { mutate: acceptFriendRequest } = $api.useMutation(
+  const { mutate: acceptFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept"
+    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);

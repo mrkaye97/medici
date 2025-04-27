@@ -20,10 +20,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { $api } from "src/api";
+import { apiClient } from "@/api/client";
 
 export const MemberProfile = ({ id }: { id: string }) => {
-  const { data: member, isLoading } = $api.useQuery(
+  const { data: member, isLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}",
     {
@@ -35,7 +35,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const [isOpen, setIsOpen] = useState(false);
