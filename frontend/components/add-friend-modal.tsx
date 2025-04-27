@@ -11,11 +11,11 @@ import { Input } from "./ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTRPC } from "../../trpc/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/auth";
 import { Navigate } from "@tanstack/react-router";
+import { $api } from "src/api";
 
 const friendRequestSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -30,11 +30,11 @@ export function AddFriendModal({
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
-  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutateAsync: createFriendRequest } = useMutation(
-    trpc.createFriendRequest.mutationOptions(),
+  const { mutateAsync: createFriendRequest } = $api.useMutation(
+    "post",
+    "/api/members/{member_id}/friend-requests"
   );
 
   const form = useForm<FriendRequestFormValues>({
@@ -67,12 +67,18 @@ export function AddFriendModal({
           <form
             onSubmit={form.handleSubmit(async (data) => {
               await createFriendRequest({
-                friendEmail: data.email,
-                memberId: id,
+                body: {
+                  friend_email: data.email,
+                },
+                params: {
+                  path: {
+                    member_id: id,
+                  },
+                },
               });
 
               await queryClient.invalidateQueries({
-                queryKey: trpc.listFriends.queryKey(),
+                queryKey: ["friend-requests"],
               });
 
               setIsOpen(false);

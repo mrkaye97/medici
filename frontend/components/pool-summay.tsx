@@ -11,43 +11,57 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
 import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "../../trpc/react";
 import { useAuth } from "../hooks/auth";
 import { Spinner } from "./ui/spinner";
 import { Link } from "@tanstack/react-router";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { Separator } from "./ui/separator";
+import { $api } from "src/api";
+import { components } from "schema";
 
-export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
-  const trpc = useTRPC();
+export function PoolSummary({ poolId }: { poolId: string }) {
   const { id } = useAuth();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-  const { data: poolDetails, isLoading: isPoolDetailsLoading } = useQuery(
-    trpc.getPoolDetails.queryOptions(
-      {
-        memberId: id || "",
-        poolId: pool.id,
+
+  const { data: poolDetails, isLoading: isPoolDetailsLoading } = $api.useQuery(
+    "get",
+    "/api/pools/{pool_id}",
+    {
+      params: {
+        query: {
+          member_id: id || "",
+        },
+        path: {
+          pool_id: poolId,
+        },
       },
-      {
-        enabled: !!id && !!pool.id,
-      },
-    ),
+    },
+    {
+      enabled: !!id,
+    }
   );
+
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
-    useQuery(
-      trpc.getPoolRecentExpenses.queryOptions(
-        {
-          memberId: id || "",
-          poolId: pool.id,
+    $api.useQuery(
+      "get",
+      "/api/pools/{pool_id}/members/{member_id}/expenses",
+      {
+        params: {
+          query: {
+            limit: 5,
+          },
+          path: {
+            pool_id: poolId,
+            member_id: id || "",
+          },
         },
-        {
-          enabled: !!id && !!pool.id,
-        },
-      ),
+      },
+      {
+        enabled: !!id,
+      }
     );
 
   if (
@@ -66,26 +80,26 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
   return (
     <>
       <AddExpenseModal
-        pool={pool}
+        pool={poolDetails}
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
       />
-      <Card key={pool.id} className="overflow-hidden border border-gray-200">
+      <Card key={poolId} className="overflow-hidden border border-gray-200">
         <CardHeader className="bg-gray-50 pb-2">
           <div className="flex justify-between items-start">
             <div>
-              <CardTitle className="text-lg">{pool.name}</CardTitle>
-              {pool.description && (
+              <CardTitle className="text-lg">{poolDetails.name}</CardTitle>
+              {poolDetails.description && (
                 <CardDescription className="mt-1">
-                  {pool.description}
+                  {poolDetails.description}
                 </CardDescription>
               )}
             </div>
             <Badge
-              className={`ml-2 py-2 ${poolDetails.totalDebt < 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
+              className={`ml-2 py-2 ${poolDetails.total_debt < 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
             >
               <p className="text-base font-light">
-                {formatCurrency(poolDetails.totalDebt)}
+                {formatCurrency(poolDetails.total_debt)}
               </p>
             </Badge>
           </div>
@@ -94,9 +108,9 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         <CardContent className="pt-4">
           <div className="flex items-center text-sm text-gray-500 mb-2">
             <Calendar className="w-4 h-4 mr-1" />
-            <span>Created {formatDate(pool.insertedAt)}</span>
+            <span>Created {formatDate(new Date(poolDetails.inserted_at))}</span>
             <span className="mx-2">•</span>
-            <span>Updated {formatDate(pool.updatedAt)}</span>
+            <span>Updated {formatDate(new Date(poolDetails.updated_at))}</span>
           </div>
 
           {poolRecentExpenses.length > 0 && (
@@ -133,7 +147,7 @@ export function PoolSummary({ pool }: { pool: ListPoolsForMemberRow }) {
         </CardContent>
 
         <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-          <Link to="/pools/$poolId" params={{ poolId: pool.id }}>
+          <Link to="/pools/$poolId" params={{ poolId }}>
             <Button variant="outline" size="sm">
               View Details
             </Button>

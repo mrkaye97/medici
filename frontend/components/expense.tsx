@@ -1,10 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/auth";
-import { ListPoolRecentExpensesRow } from "backend/src/db/query_sql";
-import { useTRPC } from "trpc/react";
 import { cn } from "./lib/utils";
 import { ExpenseCategory, ExpenseIcon } from "./add-expense-modal";
-import { Separator } from "./ui/separator";
+import { $api } from "src/api";
+import { components } from "schema";
 
 export const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -21,19 +19,24 @@ export const formatCurrency = (amount: number) => {
   }).format(Math.abs(amount));
 };
 
-export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
-  const trpc = useTRPC();
+type Expense = components["schemas"]["RecentExpenseDetails"];
+
+export function Expense({ expense }: { expense: Expense }) {
   const { id } = useAuth();
-  const { data, isLoading } = useQuery(
-    trpc.listMembersOfPool.queryOptions(
-      {
-        poolId: expense.poolId,
-        memberId: id || "",
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}/pools/{pool_id}/members",
+    {
+      params: {
+        path: {
+          member_id: id || "",
+          pool_id: expense.pool_id,
+        },
       },
-      {
-        enabled: !!id,
-      }
-    )
+    },
+    {
+      enabled: !!id,
+    }
   );
 
   if (!data || isLoading || !id) {
@@ -60,7 +63,7 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
                   {expense.name}
                 </span>
                 <span className="text-sm text-gray-500">
-                  {expense.insertedAt.toLocaleDateString("en-US", {
+                  {new Date(expense.inserted_at).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
@@ -72,7 +75,10 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
           <span className="text-sm text-gray-600">
             Paid by{" "}
             <span className="font-medium">
-              {data?.find((m) => m.id === expense.paidByMemberId)?.firstName}
+              {
+                data?.find((m) => m.member.id === expense.paid_by_member_id)
+                  ?.member.first_name
+              }
             </span>
           </span>
         </div>
@@ -85,15 +91,15 @@ export function Expense({ expense }: { expense: ListPoolRecentExpensesRow }) {
           </span>
           <div className="flex items-center">
             <span className="text-sm text-gray-600">
-              {expense.amountOwed < 0 ? "You get back" : "You owe"}{" "}
+              {expense.amount < 0 ? "You get back" : "You owe"}{" "}
             </span>
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.amountOwed < 0 ? "text-emerald-600" : "text-red-600"
+                expense.amount < 0 ? "text-emerald-600" : "text-red-600"
               )}
             >
-              {formatCurrency(expense.amountOwed)}
+              {formatCurrency(expense.amount)}
             </span>
           </div>
         </div>

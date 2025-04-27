@@ -27,9 +27,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["login_handler"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["login_handler"];
         delete?: never;
         options?: never;
         head?: never;
@@ -92,6 +92,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["list_friends_handler"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/members/{member_id}/pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_pools_for_member_handler"];
         put?: never;
         post?: never;
         delete?: never;
@@ -219,9 +235,9 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["get_pool_recent_expenses_handler"];
         put?: never;
-        post: operations["get_pool_recent_expenses_handler"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -264,11 +280,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AuthInput: {
-            /** Format: uuid */
-            id: string;
-            token: string;
-        };
         AuthResult: {
             /** Format: date-time */
             expires_at: string;
@@ -358,7 +369,7 @@ export interface components {
         };
         PoolDetails: components["schemas"]["Pool"] & {
             /** Format: double */
-            total_debt?: number | null;
+            total_debt: number;
         };
         PoolInput: {
             description?: string | null;
@@ -404,16 +415,17 @@ export type $defs = Record<string, never>;
 export interface operations {
     authenticate_handler: {
         parameters: {
-            query?: never;
+            query: {
+                /** @description ID of the member to authenticate */
+                id: string;
+                /** @description Token to authenticate the member */
+                token: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AuthInput"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Authenticate a member successfully */
             200: {
@@ -528,7 +540,10 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the member to create a friend request for */
+                member_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -606,6 +621,36 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Member"][];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_pools_for_member_handler: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description ID of the member to fetch pools for */
+                member_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List pools for member */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Pool"][];
                 };
             };
             /** @description Internal server error */
@@ -785,7 +830,10 @@ export interface operations {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                /** @description ID of the pool to add a member to */
+                pool_id: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -931,7 +979,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Member"];
+                    "application/json": components["schemas"]["AuthResult"];
                 };
             };
             /** @description Internal server error */

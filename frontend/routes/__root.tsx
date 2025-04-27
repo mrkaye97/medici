@@ -9,27 +9,29 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import appCss from "../app.css?url";
 import { DefaultCatchBoundary } from "../components/DefaultCatchBoundary";
 import { NotFound } from "../components/NotFound";
-import { TRPCRouter } from "../../trpc/router";
 import * as React from "react";
-import { AuthContext, AuthProvider, useAuth } from "../hooks/auth";
+import { useAuth } from "../hooks/auth";
 import { HandCoinsIcon, LogOut, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CreatePoolModal } from "@/components/create-pool-modal";
-import { useTRPC } from "trpc/react";
+import { $api } from "src/api";
 
 function InnerApp() {
   const { isAuthenticated, id, logout } = useAuth();
   const [isCreatePoolOpen, setIsCreatePoolOpen] = React.useState(false);
-  const trpc = useTRPC();
-  const { data: member } = useQuery(
-    trpc.getMember.queryOptions(id || "", {
+  const { data: member } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}",
+    {
+      params: { path: { member_id: id || "" } },
+    },
+    {
       enabled: !!id,
-    })
+    }
   );
 
   const email = member?.email;
@@ -97,8 +99,6 @@ function InnerApp() {
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
-  trpc: TRPCOptionsProxy<TRPCRouter>;
-  auth: AuthContext;
 }>()({
   head: () => ({
     meta: [
@@ -117,11 +117,9 @@ export const Route = createRootRouteWithContext<{
   notFoundComponent: () => <NotFound />,
   component: () => {
     return (
-      <AuthProvider>
-        <RootDocument>
-          <InnerApp />
-        </RootDocument>
-      </AuthProvider>
+      <RootDocument>
+        <InnerApp />
+      </RootDocument>
     );
   },
 });

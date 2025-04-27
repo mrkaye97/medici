@@ -1,6 +1,6 @@
 import { Expense } from "@/components/expense";
 import { Spinner } from "@/components/ui/spinner";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
+import { $api } from "src/api";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: PostComponent,
@@ -26,89 +27,69 @@ type PoolDetails = {
   total_debt?: number;
 };
 
-const usePoolDetails = (
-  poolId: string,
-  memberId?: string
-): {
-  data: PoolDetails | undefined;
-  isLoading: boolean;
-} => {
-  const { data, isLoading } = useQuery({
-    queryFn: async () => {
-      const response = await fetch("http://localhost:8000/api/pools/details", {
-        body: JSON.stringify({
-          memberId: memberId,
-          poolId,
-        }),
-      });
-
-      return (await response.json()) as PoolDetails;
-    },
-    enabled: !!memberId,
-    queryKey: ["pool", poolId, memberId],
-  });
-
-  return {
-    data,
-    isLoading,
-  };
-};
-
 function PostComponent() {
   const { poolId } = Route.useParams();
   const { id } = useAuth();
   const queryClient = useQueryClient();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
-  const { data: pool } = usePoolDetails;
-
-  const { data, isLoading } = useQuery(
-    trpc.getPoolRecentExpenses.queryOptions(
-      {
-        memberId: id || "",
-        poolId,
-        limit: 100,
-      },
-      {
-        enabled: !!id,
-      }
-    )
-  );
-
-  const { data: friendsRaw, isLoading: isFriendsLoading } = useQuery(
-    trpc.listMembersOfPool.queryOptions(
-      {
-        memberId: id || "",
-        poolId: poolId,
-      },
-      {
-        enabled: !!id,
-      }
-    )
-  );
-
-  const { mutate: addFriendToPool, isPending: isAddPending } = useMutation(
-    trpc.addFriendToPool.mutationOptions({
-      onSettled: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: trpc.listMembersOfPool.queryKey(),
-        });
-      },
-    })
-  );
-  const { mutate: removeFriendFromPool, isPending: isRemovePending } =
-    useMutation(
-      trpc.removeFriendFromPool.mutationOptions({
-        onSettled: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: trpc.listMembersOfPool.queryKey(),
-          });
+  const { data: pool, isLoading: poolIsLoading } = $api.useQuery(
+    "get",
+    "/api/pools/{pool_id}",
+    {
+      params: {
+        path: {
+          pool_id: poolId,
         },
-      })
-    );
+        query: {
+          member_id: id || "",
+        },
+      },
+    },
+    {
+      enabled: !!id,
+    }
+  );
+
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/api/pools/{pool_id}/members/{member_id}/expenses",
+    {
+      params: {
+        path: {
+          pool_id: poolId,
+          member_id: id || "",
+        },
+        query: {
+          limit: 100,
+        },
+      },
+    }
+  );
+
+  const { data: friendsRaw, isLoading: isFriendsLoading } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}/pools/{pool_id}/members",
+    {
+      params: {
+        path: {
+          member_id: id || "",
+          pool_id: poolId,
+        },
+      },
+    }
+  );
+
+  const { mutate: addFriendToPool, isPending: isAddPending } = $api.useMutation(
+    "post",
+    "/api/pools/{pool_id}/members"
+  );
+
+  const { mutate: removeFriendFromPool, isPending: isRemovePending } =
+    $api.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
 
   const expenses = data || [];
-  const friends = (friendsRaw || []).filter((f) => f.id !== id);
+  const friends = (friendsRaw || []).filter((f) => f.member.id !== id);
 
   if (!id) {
     return <Navigate to="/login" />;
@@ -159,31 +140,39 @@ function PostComponent() {
       <div className="flex flex-1 flex-col bg-gray-100 p-12 h-screen overflow-y-auto">
         <h2 className="text-2xl font-semibold mb-6">Manage pool members</h2>
         {friends.map((f) => (
-          <div className="flex items-center space-x-2 " key={f.id}>
-            {!f.isPoolMember && (
+          <div className="flex items-center space-x-2 " key={f.member.id}>
+            {!f.is_pool_member && (
               <Button
                 className="p-4 size-8 bg-green-300 hover:bg-green-400 border-none disabled:hover:cursor-not-allowed"
                 variant="outline"
-                disabled={isAddPending || isRemovePending || f.isPoolMember}
+                disabled={isAddPending || isRemovePending || f.is_pool_member}
                 onClick={() => {
                   addFriendToPool({
-                    poolId: poolId,
-                    memberId: f.id,
+                    body: {
+                      member_id: f.member.id,
+                    },
+                    params: {
+                      path: { pool_id: poolId },
+                    },
                   });
                 }}
               >
                 <UserRoundPlus className="size-8" />
               </Button>
             )}
-            {f.isPoolMember && (
+            {f.is_pool_member && (
               <Button
                 className="p-4 size-8 bg-red-300 hover:bg-red-400 border-none disabled:hover:cursor-not-allowed"
                 variant="outline"
-                disabled={isAddPending || isRemovePending || !f.isPoolMember}
+                disabled={isAddPending || isRemovePending || !f.is_pool_member}
                 onClick={() => {
                   removeFriendFromPool({
-                    poolId: poolId,
-                    memberId: f.id,
+                    params: {
+                      path: {
+                        pool_id: poolId,
+                        member_id: f.member.id,
+                      },
+                    },
                   });
                 }}
               >
@@ -196,10 +185,10 @@ function PostComponent() {
             >
               <div className="flex flex-col items-start gap-y-1">
                 <p>
-                  {f.firstName} {f.lastName}
+                  {f.member.first_name} {f.member.last_name}
                 </p>
 
-                <p>{f.email}</p>
+                <p>{f.member.email}</p>
               </div>
             </Label>
           </div>

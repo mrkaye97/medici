@@ -1,8 +1,6 @@
 use chrono::{DateTime, Utc};
+use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::sql_types::Double;
-use diesel::{pg::PgConnection, sql_types::Numeric};
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -421,7 +419,7 @@ impl Pool {
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
         member_id_query: uuid::Uuid,
-    ) -> QueryResult<(Self, Option<f64>)> {
+    ) -> QueryResult<(Self, f64)> {
         // First ensure the member belongs to the pool
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
@@ -458,14 +456,7 @@ impl Pool {
             }
         }
 
-        Ok((
-            pool,
-            if total_debt == f64::from(0) {
-                None
-            } else {
-                Some(total_debt)
-            },
-        ))
+        Ok((pool, total_debt))
     }
 }
 

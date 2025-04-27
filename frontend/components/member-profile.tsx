@@ -1,5 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
-import { useTRPC } from "trpc/react";
 import { formatDate } from "./expense";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,10 +20,24 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { $api } from "src/api";
 
 export const MemberProfile = ({ id }: { id: string }) => {
-  const trpc = useTRPC();
-  const { data: member, isLoading } = useQuery(trpc.getMember.queryOptions(id));
+  const { data: member, isLoading } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}",
+    {
+      params: {
+        path: {
+          member_id: id,
+        },
+      },
+    },
+    {
+      enabled: !!id,
+    }
+  );
+
   const [isOpen, setIsOpen] = useState(false);
 
   if (isLoading) {
@@ -55,7 +67,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
   }
 
   // Get membership duration
-  const membershipDate = new Date(member.insertedAt);
+  const membershipDate = new Date(member.inserted_at);
   const currentDate = new Date();
   const membershipMonths =
     (currentDate.getFullYear() - membershipDate.getFullYear()) * 12 +
@@ -77,7 +89,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">
-                {member.firstName} {member.lastName}
+                {member.first_name} {member.last_name}
               </h3>
             </div>
             <CollapsibleTrigger asChild>
@@ -109,7 +121,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
               <div className="flex items-center gap-2 text-gray-700">
                 <CalendarIcon className="h-4 w-4" />
                 <span className="text-sm">
-                  Member since {formatDate(member.insertedAt)}
+                  Member since {formatDate(new Date(member.inserted_at))}
                 </span>
               </div>
 
@@ -126,7 +138,9 @@ export const MemberProfile = ({ id }: { id: string }) => {
               <div>ID: {id.substring(0, 8)}...</div>
               <div>
                 Last updated:{" "}
-                {member.updatedAt ? formatDate(member.updatedAt) : "N/A"}
+                {member.updated_at
+                  ? formatDate(new Date(member.updated_at))
+                  : "N/A"}
               </div>
             </div>
           </CardFooter>

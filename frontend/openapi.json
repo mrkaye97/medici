@@ -17,16 +17,27 @@
     "/api/authenticate": {
       "get": {
         "operationId": "authenticate_handler",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/AuthInput"
-              }
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "description": "ID of the member to authenticate",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           },
-          "required": true
-        },
+          {
+            "name": "token",
+            "in": "query",
+            "description": "Token to authenticate the member",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Authenticate a member successfully",
@@ -45,7 +56,7 @@
       }
     },
     "/api/login": {
-      "get": {
+      "post": {
         "operationId": "login_handler",
         "requestBody": {
           "content": {
@@ -142,6 +153,18 @@
       },
       "post": {
         "operationId": "create_friend_request_handler",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "description": "ID of the member to create a friend request for",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -231,6 +254,41 @@
                   "type": "array",
                   "items": {
                     "$ref": "#/components/schemas/Member"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        }
+      }
+    },
+    "/api/members/{member_id}/pools": {
+      "get": {
+        "operationId": "list_pools_for_member_handler",
+        "parameters": [
+          {
+            "name": "member_id",
+            "in": "path",
+            "description": "ID of the member to fetch pools for",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List pools for member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pool"
                   }
                 }
               }
@@ -456,6 +514,18 @@
     "/api/pools/{pool_id}/members": {
       "post": {
         "operationId": "add_friend_to_pool_handler",
+        "parameters": [
+          {
+            "name": "pool_id",
+            "in": "path",
+            "description": "ID of the pool to add a member to",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -524,7 +594,7 @@
       }
     },
     "/api/pools/{pool_id}/members/{member_id}/expenses": {
-      "post": {
+      "get": {
         "operationId": "get_pool_recent_expenses_handler",
         "parameters": [
           {
@@ -639,7 +709,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Member"
+                  "$ref": "#/components/schemas/AuthResult"
                 }
               }
             }
@@ -653,22 +723,6 @@
   },
   "components": {
     "schemas": {
-      "AuthInput": {
-        "type": "object",
-        "required": [
-          "id",
-          "token"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "token": {
-            "type": "string"
-          }
-        }
-      },
       "AuthResult": {
         "oneOf": [
           {
@@ -995,12 +1049,12 @@
           },
           {
             "type": "object",
+            "required": [
+              "total_debt"
+            ],
             "properties": {
               "total_debt": {
-                "type": [
-                  "number",
-                  "null"
-                ],
+                "type": "number",
                 "format": "double"
               }
             }

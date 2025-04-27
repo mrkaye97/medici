@@ -9,54 +9,38 @@ import {
 } from "./ui/form";
 import {
   Utensils,
-  Coffee,
   ShoppingCart,
   ShoppingBag,
   Car,
-  Bus,
   Home,
-  Lightbulb,
   Plug,
   Stethoscope,
-  Heart,
   Tv,
-  Film,
-  Shirt,
-  BookOpen,
   GraduationCap,
   Plane,
-  Luggage,
-  Scissors,
   Bath,
   Dumbbell,
-  Activity,
   CreditCard,
-  Calendar,
   Receipt,
   FileText,
   Briefcase,
   TrendingUp,
-  BarChart,
   Shield,
-  Umbrella,
   Gift,
   HelpingHand,
   Ellipsis,
-  MoreHorizontal,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTRPC } from "../../trpc/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { CircleDollarSign, CirclePercent } from "lucide-react";
 import { useState } from "react";
 import { Separator } from "./ui/separator";
-import { ListPoolsForMemberRow } from "../../backend/src/db/query_sql";
 import { useAuth } from "../hooks/auth";
 import {
   Select,
@@ -67,6 +51,8 @@ import {
   SelectValue,
 } from "./ui/select";
 import { Textarea } from "./ui/textarea";
+import { $api } from "src/api";
+import { components } from "schema";
 
 enum SplitMethodType {
   Percentage = "percentage",
@@ -306,35 +292,45 @@ type SplitState = {
   splitAmounts: SplitAmount[];
 };
 
+type Pool = components["schemas"]["PoolDetails"];
+
 export function AddExpenseModal({
   pool,
   isOpen,
   setIsOpen,
 }: {
-  pool: ListPoolsForMemberRow;
+  pool: Pool;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
-  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutate: addExpense } = useMutation(trpc.addExpense.mutationOptions());
-  const { data, isLoading } = useQuery(
-    trpc.listMembersOfPool.queryOptions(
-      {
-        poolId: pool.id,
-        memberId: id || "",
-      },
-      {
-        enabled: !!id,
-      }
-    )
+  const { mutate: addExpense } = $api.useMutation(
+    "post",
+    "/api/pools/{pool_id}/expenses"
   );
+
+  const { data, isLoading } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}/pools/{pool_id}/members",
+    {
+      params: {
+        path: {
+          pool_id: pool.id,
+          member_id: id || "",
+        },
+      },
+    },
+    {
+      enabled: !!id,
+    }
+  );
+
   const members = data ?? [];
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
     splitMethod: SplitMethodType.Percentage,
     splitAmounts: members.map((member) => ({
-      memberId: member.id,
+      memberId: member.member.id,
       amount: 100 / members.length,
     })),
   });
@@ -400,25 +396,30 @@ export function AddExpenseModal({
 
               addExpense(
                 {
-                  paidByMemberId: id || "",
-                  poolId: pool.id,
-                  name: data.expenseName,
-                  amount: data.amount,
-                  lineItems: memberLineItemAmounts,
-                  description: data.description,
-                  category: data.category,
+                  body: {
+                    paid_by_member_id: id || "",
+                    pool_id: pool.id,
+                    name: data.expenseName,
+                    amount: data.amount,
+                    line_items: memberLineItemAmounts,
+                    description: data.description,
+                    category: data.category,
+                  },
+                  params: {
+                    path: {
+                      pool_id: pool.id,
+                    },
+                  },
                 },
                 {
                   onSuccess: async () => {
                     setIsOpen(false);
                     await queryClient.invalidateQueries({
-                      queryKey: trpc.getPoolRecentExpenses.queryKey(),
+                      queryKey: ["pool-expenses", pool.id],
                     });
 
                     form.reset();
                   },
-                  onError: (err) =>
-                    alert("Failed to add expense: " + err.message),
                 }
               );
             })}
@@ -520,11 +521,11 @@ export function AddExpenseModal({
                             const newAmounts =
                               value === SplitMethodType.Percentage
                                 ? members.map((member) => ({
-                                    memberId: member.id,
+                                    memberId: member.member.id,
                                     amount: 100 / members.length,
                                   }))
                                 : members.map((member) => ({
-                                    memberId: member.id,
+                                    memberId: member.member.id,
                                     amount:
                                       form.getValues("amount") / members.length,
                                   }));
@@ -538,26 +539,26 @@ export function AddExpenseModal({
                       />
                       <div className="flex flex-col gap-y-2 border border-[#00000025] p-4 rounded-lg mt-4">
                         {members.map((m, ix) => (
-                          <div className="flex flex-col" key={m.email}>
+                          <div className="flex flex-col" key={m.member.email}>
                             <div
-                              key={m.id}
+                              key={m.member.id}
                               className="flex flex-row gap-y-2 justify-between items-center"
                             >
                               <Label
-                                htmlFor={m.id}
+                                htmlFor={m.member.id}
                                 className="flex flex-row items-center gap-x-2"
                               >
-                                {m.firstName}
+                                {m.member.first_name}
                               </Label>
                               <Input
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.id
+                                    (a) => a.memberId == m.member.id
                                   )?.amount
                                 }
                                 onChange={(e) => {
-                                  const memberId = m.id;
+                                  const memberId = m.member.id;
 
                                   setSplitAmounts((prev) => {
                                     const newAmounts = prev.splitAmounts.map(

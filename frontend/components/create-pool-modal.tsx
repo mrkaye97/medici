@@ -11,11 +11,11 @@ import { Input } from "./ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useTRPC } from "../../trpc/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
 import { useAuth } from "../hooks/auth";
 import { Navigate } from "@tanstack/react-router";
+import { $api } from "src/api";
 
 const poolSchema = z.object({
   poolName: z.string().min(1, "Required"),
@@ -31,14 +31,13 @@ export function CreatePoolModal({
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
-  const trpc = useTRPC();
   const queryClient = useQueryClient();
   const { id } = useAuth();
-  const { mutateAsync: createPool } = useMutation(
-    trpc.createPool.mutationOptions(),
-  );
-  const { mutateAsync: createPoolMembership } = useMutation(
-    trpc.createPoolMembership.mutationOptions(),
+  const { mutateAsync: createPool } = $api.useMutation("post", "/api/pools");
+
+  const { mutateAsync: createPoolMembership } = $api.useMutation(
+    "post",
+    "/api/pools/{pool_id}/memberships"
   );
 
   const form = useForm<PoolFormValues>({
@@ -72,8 +71,10 @@ export function CreatePoolModal({
           <form
             onSubmit={form.handleSubmit(async (data) => {
               const pool = await createPool({
-                name: data.poolName,
-                description: data.poolDescription,
+                body: {
+                  name: data.poolName,
+                  description: data.poolDescription,
+                },
               });
 
               if (!pool) {
@@ -82,12 +83,18 @@ export function CreatePoolModal({
               }
 
               await createPoolMembership({
-                poolId: pool.id,
-                memberId: id,
+                params: {
+                  query: {
+                    member_id: id,
+                  },
+                  path: {
+                    pool_id: pool.id,
+                  },
+                },
               });
 
               await queryClient.invalidateQueries({
-                queryKey: trpc.listPoolsForMember.queryKey(),
+                queryKey: ["pools"],
               });
 
               setIsOpen(false);

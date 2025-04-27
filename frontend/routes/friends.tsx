@@ -5,41 +5,53 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useAuth } from "@/hooks/auth";
 import { useState } from "react";
-import { useTRPC } from "trpc/react";
+import { $api } from "src/api";
 
 export const Route = createFileRoute("/friends")({
   component: FriendsPage,
 });
 
 function FriendsPage() {
-  const trpc = useTRPC();
   const { id } = useAuth();
-  const { data: friends, isLoading: isFriendsLoading } = useQuery(
-    trpc.listFriends.queryOptions(
+
+  const { data: friends, isLoading: isFriendsLoading } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}/friends",
+    {
+      params: {
+        path: {
+          member_id: id || "",
+        },
+      },
+    },
+    {
+      enabled: !!id,
+    }
+  );
+
+  const { data: friendRequests, isLoading: isFriendRequestsLoading } =
+    $api.useQuery(
+      "get",
+      "/api/members/{member_id}/friend-requests",
       {
-        memberId: id || "",
+        params: {
+          path: {
+            member_id: id || "",
+          },
+        },
       },
       {
         enabled: !!id,
       }
-    )
-  );
-  const { data: friendRequests, isLoading: isFriendRequestsLoading } = useQuery(
-    trpc.listInboundFriendRequests.queryOptions(
-      {
-        memberId: id || "",
-      },
-      {
-        enabled: !!id,
-      }
-    )
-  );
+    );
 
   const queryClient = useQueryClient();
 
-  const { mutate: acceptFriendRequest } = useMutation(
-    trpc.acceptFriendRequest.mutationOptions()
+  const { mutate: acceptFriendRequest } = $api.useMutation(
+    "post",
+    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept"
   );
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
@@ -87,19 +99,26 @@ function FriendsPage() {
               className="flex flex-col justify-between p-2 gap-y-4 hover:bg-gray-50"
             >
               <div className="flex flex-col items-start justify-center gap-2">
-                <span>{request.firstName}</span>
+                <span>{request.first_name}</span>
                 <span>{request.email}</span>
               </div>
               <div className="space-x-2">
                 <Button
                   onClick={() => {
                     acceptFriendRequest({
-                      memberId: id || "",
-                      friendMemberId: request.id,
+                      params: {
+                        path: {
+                          member_id: id || "",
+                          friend_member_id: request.id,
+                        },
+                      },
                     });
 
                     queryClient.invalidateQueries({
-                      queryKey: trpc.listInboundFriendRequests.queryKey(),
+                      queryKey: [
+                        "get",
+                        "/api/members/{member_id}/friend-requests",
+                      ],
                     });
                   }}
                 >

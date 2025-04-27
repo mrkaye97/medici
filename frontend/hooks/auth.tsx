@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createContext, useContext } from "react";
-import { useTRPC } from "../../trpc/react";
 import { useNavigate } from "@tanstack/react-router";
+import { $api } from "src/api";
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -12,7 +12,7 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -77,22 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const { isAuthenticated, metadata } = isAlreadyAuthenticated();
 
-  const trpc = useTRPC();
-
-  const authenticateQuery = useQuery(
-    trpc.authenticate.queryOptions(
-      {
-        id: metadata?.id || "",
-        token: metadata?.token || "",
-        expiresAt: metadata?.expiresAt || "",
+  const authenticateQuery = $api.useQuery(
+    "get",
+    "/api/authenticate",
+    {
+      params: {
+        query: {
+          id: metadata?.id || "",
+          token: metadata?.token || "",
+        },
       },
-      {
-        enabled: !!metadata,
-      },
-    ),
+    },
+    {
+      enabled: !!metadata,
+    }
   );
-  const loginMutation = useMutation(trpc.login.mutationOptions());
-  const signupMutation = useMutation(trpc.signup.mutationOptions());
+
+  const loginMutation = $api.useMutation("post", "/api/login");
+  const signupMutation = $api.useMutation("post", "/api/signup");
+
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -122,7 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data } = authenticateQuery;
 
-      return data?.isAuthenticated || false;
+      return data?.is_authenticated || false;
     } catch (error) {
       console.error("Error retrieving local storage data:", error);
       return false;
@@ -131,15 +134,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     const result = await loginMutation.mutateAsync({
-      email,
-      password,
+      body: {
+        email,
+        password,
+      },
     });
 
-    if (result.isAuthenticated) {
+    if (result.is_authenticated) {
       setAuthMetadata({
-        token: result.token,
-        expiresAt: result.expiresAt,
-        id: result.id,
+        token: result.token || "",
+        expiresAt: (Date.now() + 7 * 24 * 60 * 60 * 1000).toString(),
+        id: result.id || "",
       });
 
       return true;
@@ -154,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("id");
 
     await queryClient.invalidateQueries({
-      queryKey: trpc.authenticate.queryKey(),
+      queryKey: ["get", "/api/authenticate"],
     });
 
     navigate({
@@ -166,20 +171,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => {
     const result = await signupMutation.mutateAsync({
-      email,
-      password,
-      firstName,
-      lastName,
+      body: {
+        email,
+        password,
+        first_name: firstName,
+        last_name: lastName,
+      },
     });
 
     if (result) {
       setAuthMetadata({
-        token: result.passwordHash,
+        token: result.token || "",
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-        id: result.id,
+        id: result.id || "",
       });
 
       return true;

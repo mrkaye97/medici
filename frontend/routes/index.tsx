@@ -1,26 +1,31 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { PoolSummary } from "../components/pool-summay";
 import { Spinner } from "../components/ui/spinner";
 import { useAuth } from "../hooks/auth";
-import { useTRPC } from "../../trpc/react";
+import { $api } from "src/api";
 
 export const Route = createFileRoute("/")({
   component: Home,
 });
 
 function Home() {
-  const trpc = useTRPC();
   const { isAuthenticated, id, token } = useAuth();
 
-  const { data, isLoading, isFetching } = useQuery(
-    trpc.listPoolsForMember.queryOptions(
-      { memberId: id || "" },
-      {
-        enabled: !!id,
+  const { data, isLoading, isFetching } = $api.useQuery(
+    "get",
+    "/api/members/{member_id}/pools",
+    {
+      params: {
+        path: {
+          member_id: id || "",
+        },
       },
-    ),
+    },
+    {
+      enabled: !!id,
+    }
   );
+
   const pools = data || [];
 
   if (!isAuthenticated || !id || !token) {
@@ -46,7 +51,7 @@ function Home() {
       <div className="w-1/2 my-8">
         <div className="flex flex-col gap-y-4">
           {pools.map((p) => (
-            <PoolSummary key={p.id} pool={p} />
+            <PoolSummary key={p.id} poolId={p.id} />
           ))}
         </div>
       </div>
