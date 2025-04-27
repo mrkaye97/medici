@@ -10,6 +10,7 @@ use handlers::handlers_routes;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
+    dotenvy::dotenv();
 
     let (router, openapi) = handlers_routes().split_for_parts();
 
@@ -19,6 +20,7 @@ async fn main() {
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
     let listener = TcpListener::bind(addr).await.unwrap();
+
     tracing::info!("Listening on {}", addr);
 
     axum::serve(
