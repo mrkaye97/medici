@@ -30,7 +30,7 @@ function InnerApp() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const email = member?.email;
@@ -124,17 +124,14 @@ export const Route = createRootRouteWithContext<{
 
 function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html>
-      <head>
-        <HeadContent />
-      </head>
-      <body>
+    <>
+      <>
         <hr />
         {props.children}
         <TanStackRouterDevtools position="bottom-right" />
         <ReactQueryDevtools buttonPosition="bottom-left" />
         <Scripts />
-      </body>
-    </html>
+      </>
+    </>
   );
 }

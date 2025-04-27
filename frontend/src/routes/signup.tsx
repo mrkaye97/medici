@@ -16,10 +16,6 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { isAuthenticated, signup } = useAuth();
 
-  console.log("Rendering signup page", fallback);
-
-  console.log(isAuthenticated);
-
   if (isAuthenticated) {
     return null;
   }
