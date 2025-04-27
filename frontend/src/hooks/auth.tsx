@@ -1,7 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useState } from "react";
-import { useRouter } from "next/router";
 
 export interface AuthContext {
   isAuthenticated: boolean;
@@ -12,7 +11,7 @@ export interface AuthContext {
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => Promise<boolean>;
   token: string | null;
   id: string | null;
@@ -94,13 +93,12 @@ export function useAuth() {
     },
     {
       enabled: !!metadata && !!metadata.token && !!metadata.id,
-    }
+    },
   );
 
   const loginMutation = apiClient.useMutation("post", "/api/login");
   const signupMutation = apiClient.useMutation("post", "/api/signup");
 
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const setAuthMetadata = ({
@@ -166,14 +164,14 @@ export function useAuth() {
       queryKey: ["get", "/api/authenticate"],
     });
 
-    router.push("/login");
+    console.log("REDIRECT HERE");
   };
 
   const signup = async (
     email: string,
     password: string,
     firstName: string,
-    lastName: string
+    lastName: string,
   ) => {
     const result = await signupMutation.mutateAsync({
       body: {

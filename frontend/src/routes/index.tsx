@@ -1,11 +1,14 @@
-"use client";
-
-import { PoolSummary } from "../src/components/pool-summay";
-import { Spinner } from "../src/components/ui/spinner";
-import { useAuth } from "../src/hooks/auth";
+import { PoolSummary } from "@/components/pool-summay";
+import { Spinner } from "@/components/ui/spinner";
+import { useAuth } from "@/hooks/auth";
 import { apiClient } from "@/api/client";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-export default function Home() {
+export const Route = createFileRoute("/")({
+  component: Home,
+});
+
+function Home() {
   const { isAuthenticated, id, token } = useAuth();
 
   const { data, isLoading, isFetching } = apiClient.useQuery(
@@ -20,7 +23,7 @@ export default function Home() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const pools = data || [];

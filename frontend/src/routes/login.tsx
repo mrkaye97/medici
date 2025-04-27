@@ -1,10 +1,18 @@
-"use client";
+import { LoginForm } from "@/components/login-form";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { z } from "zod";
+import { useAuth } from "@/hooks/auth";
 
-import { LoginForm } from "../src/components/login-form";
+const fallback = "/" as const;
 
-import { useAuth } from "../src/hooks/auth";
+export const Route = createFileRoute("/login")({
+  component: LoginPage,
+  validateSearch: z.object({
+    redirect: z.string().optional().catch(""),
+  }),
+});
 
-export default function LoginPage() {
+function LoginPage() {
   const { isAuthenticated, login } = useAuth();
 
   if (isAuthenticated) {

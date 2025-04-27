@@ -17,7 +17,7 @@ export default tseslint.config(
       ...hooksPlugin.configs.recommended.rules,
       "react/prop-types": "off",
       "@typescript-eslint/no-unused-expressions": "off",
-      "no-case-declarations": "off"
+      "no-case-declarations": "off",
     },
     settings: {
       react: { version: "detect" },

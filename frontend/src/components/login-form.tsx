@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 import { cn } from "./lib/utils";
 import { Button } from "./ui/button";
 import {
@@ -23,7 +21,7 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    }
+    },
   ) => void;
   formType: "login" | "signup";
 };
@@ -45,7 +43,7 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit]
+    [onSubmit],
   );
 
   return (
@@ -110,14 +108,14 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
             </div>
           </form>
           {formType === "login" ? (
-            <Link href="/signup">
+            <Link to="/signup">
               <div className="mt-4 text-center text-sm">
                 Don&apos;t have an account?{" "}
                 <p className="underline underline-offset-4">Sign up</p>
               </div>
             </Link>
           ) : (
-            <Link href="/login">
+            <Link to="/login">
               <div className="mt-4 text-center text-sm">
                 Already have an account?{" "}
                 <p className="underline underline-offset-4">Log in</p>

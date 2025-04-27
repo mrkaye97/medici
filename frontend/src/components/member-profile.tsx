@@ -35,7 +35,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const [isOpen, setIsOpen] = useState(false);

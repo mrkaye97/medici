@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { UserRoundPlus, X } from "lucide-react";
 import { apiClient } from "@/api/client";
-import { useRouter } from "next/router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 
-export default function PostComponent() {
-  const router = useRouter();
-  const poolId = router.query.poolId as string;
+export const Route = createFileRoute("/pools/$poolId")({
+  component: Pool,
+});
+
+function Pool() {
+  const { poolId } = Route.useParams();
   const { id } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
@@ -30,7 +33,7 @@ export default function PostComponent() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -46,7 +49,7 @@ export default function PostComponent() {
           limit: 100,
         },
       },
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -59,7 +62,7 @@ export default function PostComponent() {
           pool_id: poolId,
         },
       },
-    }
+    },
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =

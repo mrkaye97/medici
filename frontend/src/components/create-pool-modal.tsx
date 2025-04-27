@@ -13,7 +13,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
-import { useAuth } from "../hooks/auth";
+import { useAuth } from "@/hooks/auth";
 import { apiClient } from "@/api/client";
 
 const poolSchema = z.object({
@@ -34,12 +34,12 @@ export function CreatePoolModal({
   const { id } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/pools"
+    "/api/pools",
   );
 
   const { mutateAsync: createPoolMembership } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/memberships"
+    "/api/pools/{pool_id}/memberships",
   );
 
   const form = useForm<PoolFormValues>({

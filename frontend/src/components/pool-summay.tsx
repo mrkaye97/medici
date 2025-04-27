@@ -11,12 +11,12 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { useAuth } from "../hooks/auth";
+import { useAuth } from "@/hooks/auth";
 import { Spinner } from "./ui/spinner";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { Separator } from "./ui/separator";
 import { apiClient } from "@/api/client";
-import Link from "next/link";
+import { Link } from "@tanstack/react-router";
 
 export function PoolSummary({ poolId }: { poolId: string }) {
   const { id } = useAuth();
@@ -40,7 +40,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!id,
-      }
+      },
     );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
@@ -60,7 +60,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!id,
-      }
+      },
     );
 
   if (
@@ -146,7 +146,8 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </CardContent>
 
         <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-          <Link href={`/pools/${poolId}`}>
+          <Link to="/pools/$poolId" params={{ poolId }}>
+            {" "}
             <Button variant="outline" size="sm">
               View Details
             </Button>

@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/auth";
 import { cn } from "./lib/utils";
-import { ExpenseCategory, ExpenseIcon } from "./add-expense-modal";
+import { ExpenseCategory, ExpenseIcon } from "@/components/add-expense-modal";
 import { apiClient } from "@/api/client";
 import { components } from "schema";
 
