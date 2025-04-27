@@ -254,6 +254,7 @@ const expenseSchema = z.object({
   splitMethod: z.enum([SplitMethodType.Amount, SplitMethodType.Percentage], {
     errorMap: () => ({ message: "Required" }),
   }),
+  paidByMemberId: z.string().min(1, "Required"),
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -283,7 +284,7 @@ export function AddExpenseModal({
   const { id } = useAuth();
   const { mutate: addExpense } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/expenses",
+    "/api/pools/{pool_id}/expenses"
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -299,7 +300,7 @@ export function AddExpenseModal({
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const members = data ?? [];
@@ -319,6 +320,7 @@ export function AddExpenseModal({
       category: "miscellaneous",
       description: undefined,
       splitMethod: SplitMethodType.Percentage,
+      paidByMemberId: "",
     },
   });
 
@@ -344,6 +346,7 @@ export function AddExpenseModal({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((data) => {
+              console.log(data);
               const memberLineItemAmounts = splitAmounts.splitAmounts.map(
                 (a) => {
                   const amount =
@@ -355,17 +358,17 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                },
+                }
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0,
+                0
               );
 
               if (total !== data.amount) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`,
+                  `Total amount (${data.amount}) does not match split amounts (${total})`
                 );
                 return;
               }
@@ -373,7 +376,7 @@ export function AddExpenseModal({
               addExpense(
                 {
                   body: {
-                    paid_by_member_id: id || "",
+                    paid_by_member_id: data.paidByMemberId,
                     pool_id: pool.id,
                     name: data.expenseName,
                     amount: data.amount,
@@ -399,7 +402,7 @@ export function AddExpenseModal({
 
                     form.reset();
                   },
-                },
+                }
               );
             })}
             className="space-y-4"
@@ -421,16 +424,20 @@ export function AddExpenseModal({
             <FormField
               control={form.control}
               name="description"
-              render={() => (
+              render={({ field }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Our hotel room in Yosemite" />
+                    <Textarea
+                      placeholder="Our hotel room in Yosemite"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="amount"
@@ -472,6 +479,45 @@ export function AddExpenseModal({
                                     {categoryToDisplayName({ category: c })}
                                   </span>
                                 </div>
+                              </SelectItem>
+                            ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="paidByMemberId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Who Paid?</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select who paid" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {members
+                            .sort((a, b) => {
+                              if (a.member.id === id) return -1;
+
+                              return a.member.first_name.localeCompare(
+                                b.member.first_name
+                              );
+                            })
+                            .map((c) => (
+                              <SelectItem
+                                key={c.member.id}
+                                value={c.member.id}
+                                className="flex items-center gap-x-2"
+                              >
+                                <p>{`${c.member.first_name} ${c.member.last_name} ${c.member.id === id ? "(Me)" : ""}`}</p>
                               </SelectItem>
                             ))}
                         </SelectGroup>
@@ -533,7 +579,7 @@ export function AddExpenseModal({
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.member.id,
+                                    (a) => a.memberId == m.member.id
                                   )?.amount
                                 }
                                 onChange={(e) => {
@@ -549,7 +595,7 @@ export function AddExpenseModal({
                                           };
                                         }
                                         return a;
-                                      },
+                                      }
                                     );
 
                                     return {

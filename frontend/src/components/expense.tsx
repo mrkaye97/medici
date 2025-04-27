@@ -36,7 +36,7 @@ export function Expense({ expense }: { expense: Expense }) {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   if (!data || isLoading || !id) {
@@ -91,15 +91,15 @@ export function Expense({ expense }: { expense: Expense }) {
           </span>
           <div className="flex items-center">
             <span className="text-sm text-gray-600">
-              {expense.amount < 0 ? "You get back" : "You owe"}{" "}
+              {expense.line_amount < 0 ? "You get back" : "You owe"}{" "}
             </span>
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.amount < 0 ? "text-emerald-600" : "text-red-600",
+                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600"
               )}
             >
-              {formatCurrency(expense.amount)}
+              {formatCurrency(expense.line_amount)}
             </span>
           </div>
         </div>

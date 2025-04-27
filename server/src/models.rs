@@ -566,8 +566,8 @@ impl Expense {
             .inner_join(
                 expense_line_item::table.on(expense::id
                     .eq(expense_line_item::expense_id)
-                    .and(expense_line_item::debtor_member_id.eq(member_id_query))
-                    .and(expense_line_item::is_settled.eq(false))),
+                    .and(expense::is_settled.eq(false)) // <-- fix here
+                    .and(expense_line_item::debtor_member_id.eq(member_id_query))),
             )
             .filter(expense::pool_id.eq(pool_id_query))
             .filter(expense::is_settled.eq(false))
