@@ -9,11 +9,7 @@ import { UserRoundPlus, X } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { useRouter } from "next/router";
 
-export default function PostComponent({
-  params,
-}: {
-  params: Promise<{ poolId: string }>;
-}) {
+export default function PostComponent() {
   const router = useRouter();
   const poolId = router.query.poolId as string;
   const { id } = useAuth();

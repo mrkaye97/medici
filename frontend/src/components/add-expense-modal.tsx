@@ -214,7 +214,6 @@ function typeToLabelAndIcon(type: SplitMethodType) {
         icon: <CirclePercent className="size-4" />,
       };
     default:
-      // eslint-disable-next-line no-case-declarations
       const exhaustiveCheck: never = type;
       throw new Error(`Unhandled type: ${exhaustiveCheck}`);
   }

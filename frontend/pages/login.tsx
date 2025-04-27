@@ -3,7 +3,6 @@
 import { LoginForm } from "../src/components/login-form";
 
 import { useAuth } from "../src/hooks/auth";
-import { Suspense } from "react";
 
 export default function LoginPage() {
   const { isAuthenticated, login } = useAuth();
