@@ -50,7 +50,7 @@ export function Expense({ expense }: { expense: Expense }) {
   }
 
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors rounded-lg">
+    <div className="p-4 hover:bg-gray-50 rounded-lg border">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">

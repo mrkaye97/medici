@@ -33,7 +33,7 @@ function Pool() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -49,7 +49,7 @@ function Pool() {
           limit: 100,
         },
       },
-    },
+    }
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -62,7 +62,7 @@ function Pool() {
           pool_id: poolId,
         },
       },
-    },
+    }
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =
@@ -110,12 +110,7 @@ function Pool() {
         ) : (
           <div className="space-y-4 w-full overflow-y-auto flex-1">
             {expenses.map((e) => (
-              <div
-                key={e.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow"
-              >
-                <Expense expense={e} />
-              </div>
+              <Expense key={e.id} expense={e} />
             ))}
           </div>
         )}
