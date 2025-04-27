@@ -1,5 +1,11 @@
 FROM node:23-slim AS base
 
+ARG VITE_API_URL
+ARG __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+
+ENV VITE_API_URL=$VITE_API_URL
+ENV __VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS=$__VITE_ADDITIONAL_SERVER_ALLOWED_HOSTS
+
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 
@@ -22,6 +28,6 @@ RUN pnpm run build
 FROM base
 COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=build /app/dist /app/dist
-EXPOSE 8000
+EXPOSE 3000
 
 CMD [ "pnpm", "start" ]

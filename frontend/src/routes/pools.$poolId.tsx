@@ -33,7 +33,7 @@ function Pool() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -49,7 +49,7 @@ function Pool() {
           limit: 100,
         },
       },
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -62,7 +62,7 @@ function Pool() {
           pool_id: poolId,
         },
       },
-    }
+    },
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =

@@ -18,7 +18,7 @@ async fn main() {
         .route("/api/openapi.json", get(|| async { Json(openapi) }))
         .layer(CorsLayer::permissive());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let listener = TcpListener::bind(addr).await.unwrap();
 
     tracing::info!("Listening on {}", addr);
