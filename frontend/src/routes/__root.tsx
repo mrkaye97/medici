@@ -30,7 +30,7 @@ function InnerApp() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const email = member?.email;
@@ -128,7 +128,6 @@ function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
       <>
         <hr />
         {props.children}
-        <TanStackRouterDevtools position="bottom-right" />
         <ReactQueryDevtools buttonPosition="bottom-left" />
         <Scripts />
       </>
