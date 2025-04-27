@@ -27,16 +27,14 @@ pub async fn get_db_connection() -> Result<PgPooledConnection, anyhow::Error> {
     Ok(DB_POOL.get()?)
 }
 
-const PASSWORD_SALT: [u8; 16] = *b"MediciSalt123456"; // 16-byte salt
+const PASSWORD_SALT: [u8; 16] = *b"MediciSalt123456";
 
-// Helper function to hash passwords
 fn hash_password(password: &str) -> String {
     hash_with_salt(password, DEFAULT_COST, PASSWORD_SALT)
         .expect("Failed to hash password")
         .to_string()
 }
 
-// Auth result types
 #[derive(Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum AuthResult {
@@ -54,7 +52,6 @@ pub enum AuthResult {
     },
 }
 
-// Input types
 #[derive(Deserialize, ToSchema)]
 pub struct PoolInput {
     name: String,
@@ -95,12 +92,6 @@ pub struct SignupInput {
 pub struct LoginInput {
     email: String,
     password: String,
-}
-
-#[derive(Deserialize, ToSchema)]
-pub struct AuthInput {
-    id: uuid::Uuid,
-    token: String,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -502,7 +493,6 @@ pub async fn get_expense_handler(
         .expect("Failed to get database connection");
 
     let expense = tokio::task::spawn_blocking(move || {
-        // Try both settled and unsettled possibilities
         models::Expense::find(&mut conn, expense_id, false)
             .or_else(|_| models::Expense::find(&mut conn, expense_id, true))
     })
@@ -547,7 +537,6 @@ pub async fn signup_handler(
     let member = tokio::task::spawn_blocking(move || -> Result<Member, diesel::result::Error> {
         let member = Member::create(&mut conn, &new_member)?;
 
-        // Create password
         let new_password = models::NewMemberPassword {
             member_id: member.id,
             password_hash,

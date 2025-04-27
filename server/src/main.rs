@@ -1,5 +1,4 @@
 use axum::{Json, routing::get};
-mod api_doc;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;

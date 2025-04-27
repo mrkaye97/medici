@@ -35,7 +35,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const [isOpen, setIsOpen] = useState(false);
@@ -66,7 +66,6 @@ export const MemberProfile = ({ id }: { id: string }) => {
     );
   }
 
-  // Get membership duration
   const membershipDate = new Date(member.inserted_at);
   const currentDate = new Date();
   const membershipMonths =

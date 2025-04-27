@@ -8,8 +8,6 @@ use crate::schema::{
     expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
 };
 
-// Enums
-
 #[derive(
     diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
 )]
@@ -64,8 +62,6 @@ pub enum ExpenseCategory {
     Miscellaneous,
 }
 
-// Member models
-
 #[derive(Debug, Queryable, Identifiable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = member)]
 pub struct Member {
@@ -96,8 +92,6 @@ pub struct MemberChangeset {
     pub bio: Option<String>,
 }
 
-// Member password models
-
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = member_password)]
 #[diesel(belongs_to(Member))]
@@ -115,8 +109,6 @@ pub struct NewMemberPassword {
     pub member_id: uuid::Uuid,
     pub password_hash: String,
 }
-
-// Pool models
 
 #[derive(Debug, Queryable, Identifiable, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = pool)]
@@ -142,8 +134,6 @@ pub struct PoolChangeset {
     pub description: Option<String>,
 }
 
-// Pool membership models
-
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = pool_membership)]
 #[diesel(belongs_to(Pool))]
@@ -164,8 +154,6 @@ pub struct NewPoolMembership {
     pub member_id: uuid::Uuid,
     pub role: PoolRole,
 }
-
-// Expense models
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = expense)]
@@ -210,8 +198,6 @@ pub struct ExpenseChangeset {
     pub category: Option<ExpenseCategory>,
 }
 
-// Expense line item models
-
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
 #[diesel(table_name = expense_line_item)]
 #[diesel(belongs_to(Expense, foreign_key = expense_id))]
@@ -242,8 +228,6 @@ pub struct ExpenseLineItemChangeset {
     pub amount: Option<f64>,
 }
 
-// Friendship models
-
 pub struct DummyMember(Member);
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
@@ -272,8 +256,6 @@ pub struct NewFriendship {
 pub struct FriendshipChangeset {
     pub status: Option<FriendshipStatus>,
 }
-
-// Implementations
 
 impl Member {
     pub fn create(conn: &mut PgConnection, new_member: &NewMember) -> QueryResult<Self> {
@@ -429,7 +411,6 @@ impl Pool {
         pool_id_query: uuid::Uuid,
         member_id_query: uuid::Uuid,
     ) -> QueryResult<(Self, f64)> {
-        // First ensure the member belongs to the pool
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
             .filter(pool::id.eq(pool_id_query))
@@ -437,7 +418,6 @@ impl Pool {
             .select(pool::all_columns)
             .first::<Pool>(conn)?;
 
-        // Calculate debts owed
         let debts = expense_line_item::table
             .inner_join(
                 expense::table.on(expense_line_item::expense_id
@@ -452,15 +432,11 @@ impl Pool {
             ))
             .load::<(uuid::Uuid, f64, f64)>(conn)?;
 
-        // Calculate total debt
         let mut total_debt = f64::from(0);
         for (paid_by_id, line_amount, expense_amount) in debts {
             if paid_by_id == member_id_query {
-                // If I paid, I owe (line_amount - expense_amount)
-                // This typically would be negative as I'm owed money
                 total_debt += &line_amount - &expense_amount;
             } else {
-                // If someone else paid, I owe the line amount
                 total_debt += line_amount;
             }
         }
@@ -517,13 +493,12 @@ impl PoolMembership {
         let new_membership = NewPoolMembership {
             pool_id: pool_id_query,
             member_id: member_id_query,
-            role: PoolRole::PARTICIPANT, // Default role
+            role: PoolRole::PARTICIPANT,
         };
 
         Self::create(conn, &new_membership)
     }
 
-    // remove_friend_from_pool
     pub fn remove_member(
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
@@ -587,7 +562,6 @@ impl Expense {
         member_id_query: uuid::Uuid,
         limit: i64,
     ) -> QueryResult<Vec<(Self, f64)>> {
-        // Join expenses with line items to get amounts owed by this member
         let results = expense::table
             .inner_join(
                 expense_line_item::table.on(expense::id
@@ -606,14 +580,11 @@ impl Expense {
             ))
             .load::<(Expense, uuid::Uuid, f64)>(conn)?;
 
-        // Calculate the amount owed for each expense
         let mut formatted_results = Vec::new();
         for (expense, paid_by_id, line_amount) in results {
             let amount_owed = if paid_by_id == member_id_query {
-                // I paid for it, so I'm owed (line_amount - total_amount)
                 &line_amount - &expense.amount
             } else {
-                // Someone else paid, I owe the line item amount
                 line_amount
             };
 
@@ -623,17 +594,14 @@ impl Expense {
         Ok(formatted_results)
     }
 
-    // create_expense with line items
     pub fn create_with_line_items(
         conn: &mut PgConnection,
         new_expense: &NewExpense,
         debtor_member_ids: &[uuid::Uuid],
         amounts: &[f64],
     ) -> QueryResult<(Self, Vec<ExpenseLineItem>)> {
-        // Create the expense
         let expense = Self::create(conn, new_expense)?;
 
-        // Create line items
         let mut line_items = Vec::new();
         for (i, &debtor_id) in debtor_member_ids.iter().enumerate() {
             if i < amounts.len() {
@@ -731,7 +699,6 @@ impl Friendship {
         conn: &mut PgConnection,
         member_id_query: uuid::Uuid,
     ) -> QueryResult<Vec<Member>> {
-        // Find all friendships where this member is involved and status is accepted
         let inviter_friends = friendship::table
             .filter(friendship::inviting_member_id.eq(member_id_query))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
@@ -742,7 +709,6 @@ impl Friendship {
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::inviting_member_id);
 
-        // Get all members who are friends with this member
         member::table
             .filter(
                 member::id
@@ -756,7 +722,6 @@ impl Friendship {
         conn: &mut PgConnection,
         member_id_query: uuid::Uuid,
     ) -> QueryResult<Vec<Member>> {
-        // Get pending friendship requests for this member
         let pending_inviters = friendship::table
             .filter(friendship::friend_member_id.eq(member_id_query))
             .filter(friendship::status.eq(FriendshipStatus::Pending))
@@ -772,7 +737,6 @@ impl Friendship {
         member_id_query: uuid::Uuid,
         pool_id_query: uuid::Uuid,
     ) -> QueryResult<Vec<(Member, bool)>> {
-        // First get all friend IDs
         let inviter_friends = friendship::table
             .filter(friendship::inviting_member_id.eq(member_id_query))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
@@ -783,17 +747,14 @@ impl Friendship {
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::inviting_member_id);
 
-        // Also include the requesting member
         let mut friend_ids: Vec<uuid::Uuid> = inviter_friends.union(invitee_friends).load(conn)?;
         friend_ids.push(member_id_query);
 
-        // Get pool membership info
         let pool_member_ids = pool_membership::table
             .filter(pool_membership::pool_id.eq(pool_id_query))
             .select(pool_membership::member_id)
             .load::<uuid::Uuid>(conn)?;
 
-        // Get all friends with membership status
         let friends = member::table
             .filter(member::id.eq_any(friend_ids))
             .load::<Member>(conn)?;
@@ -809,13 +770,11 @@ impl Friendship {
         Ok(result)
     }
 
-    // create_friend_request
     pub fn send_request_by_email(
         conn: &mut PgConnection,
         inviting_id: uuid::Uuid,
         friend_email: &str,
     ) -> QueryResult<Option<Self>> {
-        // Find potential friend by email
         let potential_friend = member::table
             .filter(member::email.eq(friend_email))
             .filter(member::id.ne(inviting_id))
@@ -830,9 +789,8 @@ impl Friendship {
                     status: FriendshipStatus::Pending,
                 };
 
-                // Handle conflict (do nothing if already exists)
                 match Self::find(conn, inviting_id, friend_id) {
-                    Ok(_) => Ok(None), // Friendship already exists
+                    Ok(_) => Ok(None),
                     Err(_) => Self::create(conn, &new_friendship).map(Some),
                 }
             }
