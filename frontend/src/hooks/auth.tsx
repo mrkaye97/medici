@@ -178,6 +178,10 @@ export function useAuth() {
         id: result.id || "",
       });
 
+      navigate({
+        to: "/",
+      });
+
       return true;
     }
 
