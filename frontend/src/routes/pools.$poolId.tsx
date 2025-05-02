@@ -20,20 +20,18 @@ function Pool() {
 
   const { data: pool } = apiClient.useQuery(
     "get",
-    "/api/pools/{pool_id}",
+    "/api/members/{member_id}/pools/{pool_id}",
     {
       params: {
         path: {
           pool_id: poolId,
-        },
-        query: {
           member_id: id || "",
         },
       },
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -49,7 +47,7 @@ function Pool() {
           limit: 100,
         },
       },
-    },
+    }
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -62,7 +60,7 @@ function Pool() {
           pool_id: poolId,
         },
       },
-    },
+    }
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =
@@ -115,63 +113,67 @@ function Pool() {
           </div>
         )}
       </div>
-      <div className="flex flex-1 flex-col bg-gray-100 p-12 h-screen overflow-y-auto">
-        <h2 className="text-2xl font-semibold mb-6">Manage pool members</h2>
-        {friends.map((f) => (
-          <div className="flex items-center space-x-2 " key={f.member.id}>
-            {!f.is_pool_member && (
-              <Button
-                className="p-4 size-8 bg-green-300 hover:bg-green-400 border-none disabled:hover:cursor-not-allowed"
-                variant="outline"
-                disabled={isAddPending || isRemovePending || f.is_pool_member}
-                onClick={() => {
-                  addFriendToPool({
-                    body: {
-                      member_id: f.member.id,
-                    },
-                    params: {
-                      path: { pool_id: poolId },
-                    },
-                  });
-                }}
-              >
-                <UserRoundPlus className="size-8" />
-              </Button>
-            )}
-            {f.is_pool_member && (
-              <Button
-                className="p-4 size-8 bg-red-300 hover:bg-red-400 border-none disabled:hover:cursor-not-allowed"
-                variant="outline"
-                disabled={isAddPending || isRemovePending || !f.is_pool_member}
-                onClick={() => {
-                  removeFriendFromPool({
-                    params: {
-                      path: {
-                        pool_id: poolId,
+      {pool.role === "ADMIN" && (
+        <div className="flex flex-1 flex-col bg-gray-100 p-12 h-screen overflow-y-auto">
+          <h2 className="text-2xl font-semibold mb-6">Manage pool members</h2>
+          {friends.map((f) => (
+            <div className="flex items-center space-x-2 " key={f.member.id}>
+              {!f.is_pool_member && (
+                <Button
+                  className="p-4 size-8 bg-green-300 hover:bg-green-400 border-none disabled:hover:cursor-not-allowed"
+                  variant="outline"
+                  disabled={isAddPending || isRemovePending || f.is_pool_member}
+                  onClick={() => {
+                    addFriendToPool({
+                      body: {
                         member_id: f.member.id,
                       },
-                    },
-                  });
-                }}
+                      params: {
+                        path: { pool_id: poolId },
+                      },
+                    });
+                  }}
+                >
+                  <UserRoundPlus className="size-8" />
+                </Button>
+              )}
+              {f.is_pool_member && (
+                <Button
+                  className="p-4 size-8 bg-red-300 hover:bg-red-400 border-none disabled:hover:cursor-not-allowed"
+                  variant="outline"
+                  disabled={
+                    isAddPending || isRemovePending || !f.is_pool_member
+                  }
+                  onClick={() => {
+                    removeFriendFromPool({
+                      params: {
+                        path: {
+                          pool_id: poolId,
+                          member_id: f.member.id,
+                        },
+                      },
+                    });
+                  }}
+                >
+                  <X className="size-8" />
+                </Button>
+              )}
+              <Label
+                htmlFor="terms"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                <X className="size-8" />
-              </Button>
-            )}
-            <Label
-              htmlFor="terms"
-              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-            >
-              <div className="flex flex-col items-start gap-y-1">
-                <p>
-                  {f.member.first_name} {f.member.last_name}
-                </p>
+                <div className="flex flex-col items-start gap-y-1">
+                  <p>
+                    {f.member.first_name} {f.member.last_name}
+                  </p>
 
-                <p>{f.member.email}</p>
-              </div>
-            </Label>
-          </div>
-        ))}
-      </div>
+                  <p>{f.member.email}</p>
+                </div>
+              </Label>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

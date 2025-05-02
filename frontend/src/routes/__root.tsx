@@ -30,7 +30,7 @@ function InnerApp() {
     },
     {
       enabled: !!id,
-    }
+    },
   );
 
   const email = member?.email;

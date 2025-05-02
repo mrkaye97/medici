@@ -638,31 +638,32 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
 pub struct PoolDetails {
     #[serde(flatten)]
     pool: models::Pool,
+    role: models::PoolRole,
     total_debt: f64,
 }
 
 #[derive(Deserialize, ToSchema)]
-pub struct PoolDetailsQuery {
+pub struct PoolDetailsPath {
     member_id: uuid::Uuid,
+    pool_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/pools/{pool_id}",
+    path = "/api/members/{member_id}/pools/{pool_id}",
     params(
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch details for"),
-        ("member_id" = uuid::Uuid, Query, description = "ID of the member to fetch details for")
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch details for")
     ),
     responses(
         (status = 200, description = "Create expense", body = PoolDetails),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn get_pool_details_handler(
-    Path(pool_id): Path<uuid::Uuid>,
-    Query(query): Query<PoolDetailsQuery>,
-) -> Json<PoolDetails> {
-    let member_id = query.member_id;
+pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+    let member_id = path.member_id;
+    let pool_id = path.pool_id;
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -676,7 +677,8 @@ pub async fn get_pool_details_handler(
 
     let details = PoolDetails {
         pool: pool_details.0,
-        total_debt: pool_details.1,
+        role: pool_details.1,
+        total_debt: pool_details.2,
     };
 
     Json(details)

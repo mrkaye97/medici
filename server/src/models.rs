@@ -410,13 +410,13 @@ impl Pool {
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
         member_id_query: uuid::Uuid,
-    ) -> QueryResult<(Self, f64)> {
+    ) -> QueryResult<(Self, PoolRole, f64)> {
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
             .filter(pool::id.eq(pool_id_query))
             .filter(pool_membership::member_id.eq(member_id_query))
-            .select(pool::all_columns)
-            .first::<Pool>(conn)?;
+            .select((pool::all_columns, pool_membership::role))
+            .load::<(Pool, PoolRole)>(conn)?;
 
         let debts = expense_line_item::table
             .inner_join(
@@ -442,7 +442,9 @@ impl Pool {
             }
         }
 
-        Ok((pool, total_debt))
+        let (p, role) = pool.into_iter().next().unwrap();
+
+        Ok((p, role, total_debt))
     }
 }
 

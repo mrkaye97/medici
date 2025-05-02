@@ -27,14 +27,12 @@ export function PoolSummary({ poolId }: { poolId: string }) {
   const { data: poolDetails, isLoading: isPoolDetailsLoading } =
     apiClient.useQuery(
       "get",
-      "/api/pools/{pool_id}",
+      "/api/members/{member_id}/pools/{pool_id}",
       {
         params: {
-          query: {
-            member_id: id || "",
-          },
           path: {
             pool_id: poolId,
+            member_id: id || "",
           },
         },
       },
