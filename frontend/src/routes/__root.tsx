@@ -18,6 +18,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { CreatePoolModal } from "@/components/create-pool-modal";
 import { apiClient } from "@/api/client";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 function InnerApp() {
   const { isAuthenticated, id, logout } = useAuth();
@@ -30,7 +36,7 @@ function InnerApp() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const email = member?.email;
@@ -50,19 +56,38 @@ function InnerApp() {
           Medici
         </h2>
         <div className="text-sm text-gray-700 flex flex-col w-full">
-          <Link to="/">
-            <Button variant="ghost" className="w-full justify-start py-1">
-              Dashboard
-            </Button>
-          </Link>
-          <Link to="/friends">
-            <Button variant="ghost" className="w-full justify-start py-1">
-              Friends
-            </Button>
-          </Link>
-          {isAuthenticated && (
+          {isAuthenticated ? (
             <>
-              <Separator className="my-2" />
+              <Link to="/">
+                <Button variant="ghost" className="w-full justify-start py-1">
+                  Dashboard
+                </Button>
+              </Link>
+              <Link to="/friends">
+                <Button variant="ghost" className="w-full justify-start py-1">
+                  Friends
+                </Button>
+              </Link>
+              <Accordion type="single" collapsible className="pl-4">
+                <AccordionItem value="item-1">
+                  <AccordionTrigger className="py-2 hover:cursor-pointer">
+                    Account Details
+                  </AccordionTrigger>
+                  <AccordionContent className="flex flex-col gap-y-0">
+                    <p className="pl-2 py-1">{email}</p>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        logout();
+                      }}
+                      className="w-full justify-start py-0 pl-2"
+                    >
+                      Log Out
+                      <LogOut className="size-4" />
+                    </Button>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>{" "}
               <Button
                 variant="ghost"
                 onClick={async () => {
@@ -73,19 +98,17 @@ function InnerApp() {
                 <PlusCircle className="size-4" /> Create a pool
               </Button>
             </>
+          ) : (
+            <Link to="/login">
+              <Button
+                variant="ghost"
+                className="w-full justify-start py-0 pl-2"
+              >
+                Log In
+                <LogOut className="size-4" />
+              </Button>
+            </Link>
           )}
-          {isAuthenticated && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                logout();
-              }}
-              className="w-full justify-start py-1"
-            >
-              <LogOut className="size-4" /> Log Out
-            </Button>
-          )}
-          <p className="pl-4 pt-4">{email}</p>
         </div>
       </aside>
 

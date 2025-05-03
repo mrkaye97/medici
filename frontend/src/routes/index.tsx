@@ -23,14 +23,10 @@ function Home() {
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const pools = data || [];
-
-  if (!isAuthenticated || !id || !token) {
-    return <Navigate to="/login" />;
-  }
 
   if (isLoading || isFetching) {
     return (
