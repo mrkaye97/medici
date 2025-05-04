@@ -2,7 +2,7 @@ import { PoolSummary } from "@/components/pool-summay";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/auth";
 import { apiClient } from "@/api/client";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FriendsView } from "@/components/friends-view";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { memberId, createAuthHeader } = useAuth();
+  const { memberId, createAuthHeader, isAuthenticated } = useAuth();
   const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false);
   const queryClient = useQueryClient();
 
@@ -57,6 +57,10 @@ function Home() {
         <Spinner className="mt-8" />
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
   }
 
   return (
