@@ -1,6 +1,6 @@
 # Medici
 
-Medici is a minimalistic Splitwise-like app for managing group expense. It only has the most important features:
+Medici is a minimalistic Splitwise-like app for managing group expenses. It's namesake is the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici). It only has the most important features:
 
 1. You can make groups ("pools")
 2. You can add friends and add them to pools
