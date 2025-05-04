@@ -98,14 +98,14 @@ function Pool() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="flex overflow-hidden">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
         pool={pool}
       />
 
-      <div className="flex-1 p-6 overflow-hidden flex flex-col">
+      <div className="flex-1 overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-5">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">{pool.name}</h1>

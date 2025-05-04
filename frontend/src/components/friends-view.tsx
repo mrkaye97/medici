@@ -252,11 +252,11 @@ export const FriendsView = () => {
           <CardContent className="space-y-1 pb-2 flex flex-col">
             <p className="pl-2 py-1">Email: {email}</p>
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={() => {
                 logout();
               }}
-              className="w-full justify-start py-0 pl-2"
+              className="max-w-32 justify-center py-0 ml-2"
             >
               Log Out
               <LogOut className="size-4" />
