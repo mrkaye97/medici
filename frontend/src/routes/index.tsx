@@ -6,6 +6,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { FriendsView } from "@/components/friends-view";
+import { PlusCircle, Wallet } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const Route = createFileRoute("/")({
   component: Home,
@@ -13,48 +24,8 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const { memberId, createAuthHeader } = useAuth();
-
-  const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/friends",
-    {
-      params: {
-        path: {
-          member_id: memberId || "",
-        },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    },
-  );
-
-  const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
-    apiClient.useQuery(
-      "get",
-      "/api/members/{member_id}/friend-requests",
-      {
-        params: {
-          path: {
-            member_id: memberId || "",
-          },
-        },
-        headers: createAuthHeader(),
-      },
-      {
-        enabled: !!memberId,
-      },
-    );
-
+  const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false);
   const queryClient = useQueryClient();
-
-  const { mutate: acceptFriendRequest } = apiClient.useMutation(
-    "post",
-    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
-  );
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const {
     data,
@@ -73,14 +44,11 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const pools = data || [];
-  const friends = friendsRaw || [];
-  const friendRequests = friendRequestsRaw || [];
-  const isLoading =
-    isFriendsLoading || isFriendRequestsLoading || isPoolsLoading;
+  const isLoading = isPoolsLoading;
 
   if (isLoading || isFetching) {
     return (
@@ -89,17 +57,78 @@ function Home() {
       </div>
     );
   }
+
   return (
-    <div className="flex flex-row gap-x-4 px-4">
-      <div className="flex flex-1 flex-col my-8">
-        <div className="flex flex-col gap-y-4">
-          {pools.map((p) => (
-            <PoolSummary key={p.id} poolId={p.id} />
-          ))}
-        </div>
+    <div className="p-6 h-[calc(100vh-4rem)] flex flex-col">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
       </div>
-      <div className="flex flex-1 flex-col my-8">
-        <FriendsView />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 max-h-[calc(100vh-10rem)]">
+        <Card className="shadow-sm bg-white border rounded-lg flex flex-col">
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl font-semibold">
+                Payment Pools
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCreatePoolOpen(true)}
+                className="flex items-center gap-1"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>New Pool</span>
+              </Button>
+            </div>
+            <CardDescription className="text-muted-foreground">
+              Manage your shared expenses with friends
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="flex-1 overflow-hidden">
+            <ScrollArea className="h-[calc(100vh-18rem)]">
+              {pools.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="bg-muted rounded-full p-3 mb-3">
+                    <Wallet className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground mb-3">
+                    No pools created yet
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsCreatePoolOpen(true)}
+                  >
+                    Create your first pool
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {pools.map((pool) => (
+                    <div
+                      key={pool.id}
+                      className="transition-all hover:bg-muted/50 rounded-lg overflow-hidden"
+                    >
+                      <PoolSummary poolId={pool.id} />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </CardContent>
+
+          <CardFooter className="pt-1 pb-3 px-6">
+            <div className="text-xs text-muted-foreground">
+              {pools.length}{" "}
+              {pools.length === 1 ? "active pool" : "active pools"}
+            </div>
+          </CardFooter>
+        </Card>
+
+        <div className="flex flex-col h-full">
+          <FriendsView />
+        </div>
       </div>
     </div>
   );
