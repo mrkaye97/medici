@@ -28,3 +28,7 @@ set-env-backend:
   echo "\n" >> .env
   echo "DATABASE_URL=postgres://postgres:postgres@localhost:5442/medici" >> .env
   echo "AUTH_SECRET_KEY=medici-key" >> .env
+
+[working-directory: 'server']
+db-migrate:
+  diesel migration run --database-url="$(grep DATABASE_URL .env | cut -d '=' -f2)"
