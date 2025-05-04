@@ -75,9 +75,7 @@ function Home() {
         <Card className="shadow-sm bg-white border rounded-lg flex flex-col">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-xl font-semibold">
-                Payment Pools
-              </CardTitle>
+              <CardTitle className="text-xl font-semibold">Pools</CardTitle>
               <Button
                 variant="outline"
                 size="sm"
