@@ -16,11 +16,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, X, UserPlus, Clock } from "lucide-react";
+import { CheckCircle, X, UserPlus, Clock, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const FriendsView = () => {
-  const { memberId, createAuthHeader } = useAuth();
+  const { memberId, createAuthHeader, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("friends");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -51,7 +51,7 @@ export const FriendsView = () => {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   const { mutate: acceptFriendRequest, isPending: isAccepting } =
@@ -67,8 +67,22 @@ export const FriendsView = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      },
+      }
     );
+
+  const { data: member } = apiClient.useQuery(
+    "get",
+    "/api/members/{member_id}",
+    {
+      params: { path: { member_id: memberId || "" } },
+      headers: createAuthHeader(),
+    },
+    {
+      enabled: !!memberId,
+    }
+  );
+
+  const email = member?.email;
 
   const friends = friendsRaw || [];
   const friendRequests = friendRequestsRaw || [];
@@ -110,7 +124,7 @@ export const FriendsView = () => {
         onValueChange={setActiveTab}
       >
         <div className="px-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="friends">
               Friends ({friends.length})
             </TabsTrigger>
@@ -125,6 +139,7 @@ export const FriendsView = () => {
                 </Badge>
               )}
             </TabsTrigger>
+            <TabsTrigger value="me">Me</TabsTrigger>{" "}
           </TabsList>
         </div>
 
@@ -230,6 +245,22 @@ export const FriendsView = () => {
                 ))}
               </div>
             )}
+          </CardContent>
+        </TabsContent>
+
+        <TabsContent value="me" className="mt-0 pt-2">
+          <CardContent className="space-y-1 pb-2 flex flex-col">
+            <p className="pl-2 py-1">Email: {email}</p>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                logout();
+              }}
+              className="w-full justify-start py-0 pl-2"
+            >
+              Log Out
+              <LogOut className="size-4" />
+            </Button>{" "}
           </CardContent>
         </TabsContent>
       </Tabs>
