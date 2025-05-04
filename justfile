@@ -10,3 +10,7 @@ setup:
   cd frontend && \
   pnpm install
 
+[working-directory: 'frontend']
+gen-openapi:
+  curl http://localhost:8000/api/openapi.json | jq > openapi.json
+  npx openapi-typescript openapi.json -o schema.ts
