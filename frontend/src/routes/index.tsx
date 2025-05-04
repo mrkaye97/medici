@@ -60,17 +60,11 @@ function Home() {
   }
 
   return (
-    <div className="p-6 h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-[calc(100vh-4rem)] flex flex-col">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
       />{" "}
-      <div className="flex items-center justify-between mb-6">
-        <Link to="/" className="flex flex-row items-center gap-2">
-          <HandCoinsIcon className="size-6 text-emerald-800" />
-          <h1 className="text-2xl font-bold tracking-tight">Medici</h1>
-        </Link>
-      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 max-h-[calc(100vh-10rem)]">
         <Card className="shadow-sm bg-white border rounded-lg flex flex-col">
           <CardHeader className="pb-2">

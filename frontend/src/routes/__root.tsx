@@ -3,12 +3,14 @@ import { type QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   createRootRouteWithContext,
+  Link,
   Outlet,
   Scripts,
 } from "@tanstack/react-router";
 import { DefaultCatchBoundary } from "@/components/error-boundary";
 import { NotFound } from "@/components/not-found";
 import * as React from "react";
+import { HandCoinsIcon } from "lucide-react";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -30,7 +32,13 @@ export const Route = createRootRouteWithContext<{
   component: () => {
     return (
       <RootDocument>
-        <main className="flex-1 relative">
+        <main className="flex-1 relative p-6">
+          <div className="mb-4">
+            <Link to="/" className="flex flex-row items-center gap-2">
+              <HandCoinsIcon className="size-6 text-emerald-800" />
+              <h1 className="text-2xl font-bold tracking-tight">Medici</h1>
+            </Link>
+          </div>
           <Outlet />
         </main>
       </RootDocument>
