@@ -1,4 +1,4 @@
-# Medici
+# Medici (WIP)
 
 Medici is a minimalistic Splitwise-like app for managing group expenses. It's namesake is the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici). It only has the most important features:
 
