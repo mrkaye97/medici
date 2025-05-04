@@ -105,7 +105,6 @@ function Pool() {
         pool={pool}
       />
 
-      {/* Main content area */}
       <div className="flex-1 p-6 overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-5">
           <div>
@@ -202,7 +201,6 @@ function Pool() {
         </Card>
       </div>
 
-      {/* Members sidebar */}
       {pool.role === "ADMIN" && (
         <div className="w-[320px] border-l bg-muted/10 flex flex-col h-full overflow-hidden">
           <div className="p-5 border-b">
