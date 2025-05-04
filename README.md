@@ -1,21 +1,19 @@
 # Medici
 
-### Commands
+Medici is a minimalistic Splitwise-like app for managing group expense. It only has the most important features:
 
-Generate a TS schema from OpenAPI spec
+1. You can make groups ("pools")
+2. You can add friends and add them to pools
+3. You can add expenses to pools.
+   - Expenses can be categorized
+   - Expenses can be split evenly or unevenly
 
-```bash copy
-npx openapi-typescript openapi.json -o schema.ts
-```
+Similarly to Splitwise, Medici will automatically simplify the debts between friends in the pool, so that you can pay each other back in the least number of transactions possible.
 
-Write an OpenAPI spec:
+## Tools
 
-```bash copy
-curl http://localhost:8000/api/openapi.json | jq > openapi.json
-```
+Medici is a Rust (Axum) + React app, with a Postgres database. You can run it locally in a few steps:
 
-Run the migrations
-
-```bash copy
-diesel migration run --database-url=...
-```
+1. `just setup`
+2. In one terminal: `cd frontend && pnpm dev`
+3. In another terminal: `cd backend && cargo watch -x run`
