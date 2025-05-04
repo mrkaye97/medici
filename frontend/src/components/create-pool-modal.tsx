@@ -34,12 +34,12 @@ export function CreatePoolModal({
   const { memberId } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/pools"
+    "/api/pools",
   );
 
   const { mutateAsync: createPoolMembership } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/memberships"
+    "/api/pools/{pool_id}/memberships",
   );
 
   const form = useForm<PoolFormValues>({

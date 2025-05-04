@@ -37,7 +37,7 @@ export function Expense({ expense }: { expense: Expense }) {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   if (!data || isLoading || !memberId) {
@@ -97,7 +97,7 @@ export function Expense({ expense }: { expense: Expense }) {
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600"
+                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600",
               )}
             >
               {formatCurrency(expense.line_amount)}

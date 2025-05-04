@@ -32,7 +32,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -49,7 +49,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -63,7 +63,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =

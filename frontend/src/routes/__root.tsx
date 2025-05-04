@@ -38,7 +38,7 @@ function InnerApp() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const email = member?.email;
@@ -63,11 +63,6 @@ function InnerApp() {
               <Link to="/">
                 <Button variant="ghost" className="w-full justify-start py-1">
                   Dashboard
-                </Button>
-              </Link>
-              <Link to="/friends">
-                <Button variant="ghost" className="w-full justify-start py-1">
-                  Friends
                 </Button>
               </Link>
               <Accordion type="single" collapsible className="pl-4">
