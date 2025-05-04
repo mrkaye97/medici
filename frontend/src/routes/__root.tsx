@@ -26,7 +26,15 @@ import {
 } from "@/components/ui/accordion";
 
 function InnerApp() {
-  const { isAuthenticated, id, logout } = useAuth();
+  const { isAuthenticated, id, logout, refetchAuth } = useAuth();
+
+  React.useEffect(() => {
+    console.log("DEBUG useEffect isAuthenticated", isAuthenticated);
+    if (isAuthenticated === undefined) {
+      refetchAuth();
+    }
+  }, []);
+
   const [isCreatePoolOpen, setIsCreatePoolOpen] = React.useState(false);
   const { data: member } = apiClient.useQuery(
     "get",

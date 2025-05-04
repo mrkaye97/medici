@@ -1,3 +1,5 @@
+use std::time::{SystemTime, UNIX_EPOCH};
+
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::{Json, extract::Path};
@@ -5,6 +7,7 @@ use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool, PoolMembership};
@@ -33,6 +36,52 @@ fn hash_password(password: &str) -> String {
     hash_with_salt(password, DEFAULT_COST, PASSWORD_SALT)
         .expect("Failed to hash password")
         .to_string()
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: usize,
+    pub iat: usize,
+}
+
+fn generate_jwt(member_id: uuid::Uuid) -> Result<String, jsonwebtoken::errors::Error> {
+    let now = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs() as usize;
+
+    let expiration = now + 7 * 24 * 60 * 60;
+
+    let claims = Claims {
+        sub: member_id.to_string(),
+        exp: expiration,
+        iat: now,
+    };
+
+    let secret = std::env::var("AUTH_SECRET_KEY").expect("AUTH_SECRET_KEY must be set");
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_bytes()),
+    )
+}
+
+fn verify_jwt(token: &str) -> Result<uuid::Uuid, jsonwebtoken::errors::Error> {
+    let secret = std::env::var("AUTH_SECRET_KEY").expect("AUTH_SECRET_KEY must be set");
+
+    let token_data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(secret.as_bytes()),
+        &Validation::new(Algorithm::HS256),
+    )?;
+
+    let user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
+        jsonwebtoken::errors::Error::from(jsonwebtoken::errors::ErrorKind::InvalidToken)
+    })?;
+
+    Ok(user_id)
 }
 
 #[derive(Serialize, ToSchema)]
@@ -247,11 +296,19 @@ pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
         match Member::authenticate(&mut conn, &email, &password_hash) {
             Ok((id, is_authenticated)) => {
                 if is_authenticated {
-                    AuthResult::Authenticated {
-                        id,
-                        token: password_hash,
-                        is_authenticated: true,
-                        expires_at: Utc::now() + Duration::days(7),
+                    match generate_jwt(id) {
+                        Ok(token) => AuthResult::Authenticated {
+                            id,
+                            token,
+                            is_authenticated: true,
+                            expires_at: Utc::now() + Duration::days(7),
+                        },
+                        Err(_) => AuthResult::Unauthenticated {
+                            id: None,
+                            token: None,
+                            is_authenticated: false,
+                            expires_at: None,
+                        },
                     }
                 } else {
                     AuthResult::Unauthenticated {
@@ -299,41 +356,39 @@ pub async fn authenticate_handler(
 ) -> Json<AuthResult> {
     let token = query.token;
 
-    let mut conn = get_db_connection()
-        .await
-        .expect("Failed to get database connection");
-
-    let result: AuthResult = tokio::task::spawn_blocking(move || {
-        match MemberPassword::verify_password(&mut conn, member_id, &token) {
-            Ok(is_authenticated) => {
-                if is_authenticated {
-                    AuthResult::Authenticated {
+    match verify_jwt(&token) {
+        Ok(token_member_id) => {
+            if token_member_id == member_id {
+                match generate_jwt(member_id) {
+                    Ok(new_token) => Json(AuthResult::Authenticated {
                         id: member_id,
-                        token,
+                        token: new_token,
                         is_authenticated: true,
                         expires_at: Utc::now() + Duration::days(7),
-                    }
-                } else {
-                    AuthResult::Unauthenticated {
+                    }),
+                    Err(_) => Json(AuthResult::Unauthenticated {
                         id: None,
                         token: None,
                         is_authenticated: false,
                         expires_at: None,
-                    }
+                    }),
                 }
+            } else {
+                Json(AuthResult::Unauthenticated {
+                    id: None,
+                    token: None,
+                    is_authenticated: false,
+                    expires_at: None,
+                })
             }
-            Err(_) => AuthResult::Unauthenticated {
-                id: None,
-                token: None,
-                is_authenticated: false,
-                expires_at: None,
-            },
         }
-    })
-    .await
-    .expect("Task panicked");
-
-    Json(result)
+        Err(_) => Json(AuthResult::Unauthenticated {
+            id: None,
+            token: None,
+            is_authenticated: false,
+            expires_at: None,
+        }),
+    }
 }
 
 #[utoipa::path(
@@ -532,8 +587,6 @@ pub async fn signup_handler(
         bio: None,
     };
 
-    let password_hash_clone = password_hash.clone();
-
     let member = tokio::task::spawn_blocking(move || -> Result<Member, diesel::result::Error> {
         let member = Member::create(&mut conn, &new_member)?;
 
@@ -549,12 +602,18 @@ pub async fn signup_handler(
     .expect("Task panicked");
 
     match member {
-        Ok(m) => Ok(Json(AuthResult::Authenticated {
-            id: m.id,
-            token: password_hash_clone,
-            is_authenticated: true,
-            expires_at: Utc::now() + Duration::days(7),
-        })),
+        Ok(m) => match generate_jwt(m.id) {
+            Ok(token) => Ok(Json(AuthResult::Authenticated {
+                id: m.id,
+                token,
+                is_authenticated: true,
+                expires_at: Utc::now() + Duration::days(7),
+            })),
+            Err(_) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to generate token"})),
+            )),
+        },
         Err(_) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({"error": "Failed to create member"})),
