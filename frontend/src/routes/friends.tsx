@@ -12,7 +12,7 @@ export const Route = createFileRoute("/friends")({
 });
 
 function FriendsPage() {
-  const { id } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
 
   const { data: friends, isLoading: isFriendsLoading } = apiClient.useQuery(
     "get",
@@ -20,13 +20,14 @@ function FriendsPage() {
     {
       params: {
         path: {
-          member_id: id || "",
+          member_id: memberId || "",
         },
       },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
-    },
+      enabled: !!memberId,
+    }
   );
 
   const { data: friendRequests, isLoading: isFriendRequestsLoading } =
@@ -36,20 +37,21 @@ function FriendsPage() {
       {
         params: {
           path: {
-            member_id: id || "",
+            member_id: memberId || "",
           },
         },
+        headers: createAuthHeader(),
       },
       {
-        enabled: !!id,
-      },
+        enabled: !!memberId,
+      }
     );
 
   const queryClient = useQueryClient();
 
   const { mutate: acceptFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
+    "/api/members/{member_id}/friend-requests/{friend_member_id}/accept"
   );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,7 +61,7 @@ function FriendsPage() {
     return <div>Loading...</div>;
   }
 
-  if (!id) {
+  if (!memberId) {
     return null;
   }
 
@@ -108,7 +110,7 @@ function FriendsPage() {
                     acceptFriendRequest({
                       params: {
                         path: {
-                          member_id: id || "",
+                          member_id: memberId || "",
                           friend_member_id: request.id,
                         },
                       },

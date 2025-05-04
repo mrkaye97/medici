@@ -30,7 +30,7 @@ export function AddFriendModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const { id } = useAuth();
+  const { memberId } = useAuth();
   const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
     "/api/members/{member_id}/friend-requests",
@@ -43,7 +43,7 @@ export function AddFriendModal({
     },
   });
 
-  if (!id) {
+  if (!memberId) {
     return null;
   }
 
@@ -71,7 +71,7 @@ export function AddFriendModal({
                 },
                 params: {
                   path: {
-                    member_id: id,
+                    member_id: memberId,
                   },
                 },
               });

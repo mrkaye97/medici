@@ -26,10 +26,11 @@ import {
 } from "@/components/ui/accordion";
 
 function InnerApp() {
-  const { isAuthenticated, id, logout, refetchAuth } = useAuth();
+  const { isAuthenticated, memberId, logout, refetchAuth, createAuthHeader } =
+    useAuth();
 
   React.useEffect(() => {
-    console.log("DEBUG useEffect isAuthenticated", isAuthenticated);
+    console.log("DEBUG useEffect isAuthenticated", isAuthenticated, memberId);
     if (isAuthenticated === undefined) {
       refetchAuth();
     }
@@ -40,10 +41,11 @@ function InnerApp() {
     "get",
     "/api/members/{member_id}",
     {
-      params: { path: { member_id: id || "" } },
+      params: { path: { member_id: memberId || "" } },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
+      enabled: !!memberId,
     }
   );
 

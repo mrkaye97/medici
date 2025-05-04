@@ -31,15 +31,15 @@ export function CreatePoolModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const { id } = useAuth();
+  const { memberId } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/pools",
+    "/api/pools"
   );
 
   const { mutateAsync: createPoolMembership } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/memberships",
+    "/api/pools/{pool_id}/memberships"
   );
 
   const form = useForm<PoolFormValues>({
@@ -50,7 +50,7 @@ export function CreatePoolModal({
     },
   });
 
-  if (!id) {
+  if (!memberId) {
     return null;
   }
 
@@ -87,7 +87,7 @@ export function CreatePoolModal({
               await createPoolMembership({
                 params: {
                   query: {
-                    member_id: id,
+                    member_id: memberId,
                   },
                   path: {
                     pool_id: pool.id,

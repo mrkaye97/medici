@@ -15,7 +15,7 @@ export const Route = createFileRoute("/pools/$poolId")({
 
 function Pool() {
   const { poolId } = Route.useParams();
-  const { id } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
 
   const { data: pool } = apiClient.useQuery(
@@ -25,12 +25,13 @@ function Pool() {
       params: {
         path: {
           pool_id: poolId,
-          member_id: id || "",
+          member_id: memberId || "",
         },
       },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
+      enabled: !!memberId,
     }
   );
 
@@ -41,12 +42,13 @@ function Pool() {
       params: {
         path: {
           pool_id: poolId,
-          member_id: id || "",
+          member_id: memberId || "",
         },
         query: {
           limit: 100,
         },
       },
+      headers: createAuthHeader(),
     }
   );
 
@@ -56,10 +58,11 @@ function Pool() {
     {
       params: {
         path: {
-          member_id: id || "",
+          member_id: memberId || "",
           pool_id: poolId,
         },
       },
+      headers: createAuthHeader(),
     }
   );
 
@@ -70,9 +73,9 @@ function Pool() {
     apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
 
   const expenses = data || [];
-  const friends = (friendsRaw || []).filter((f) => f.member.id !== id);
+  const friends = (friendsRaw || []).filter((f) => f.member.id !== memberId);
 
-  if (!id) {
+  if (!memberId) {
     return null;
   }
 

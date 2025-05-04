@@ -19,7 +19,7 @@ import { apiClient } from "@/api/client";
 import { Link } from "@tanstack/react-router";
 
 export function PoolSummary({ poolId }: { poolId: string }) {
-  const { id } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
@@ -32,12 +32,13 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         params: {
           path: {
             pool_id: poolId,
-            member_id: id || "",
+            member_id: memberId || "",
           },
         },
+        headers: createAuthHeader(),
       },
       {
-        enabled: !!id,
+        enabled: !!memberId,
       }
     );
 
@@ -52,12 +53,13 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           },
           path: {
             pool_id: poolId,
-            member_id: id || "",
+            member_id: memberId || "",
           },
         },
+        headers: createAuthHeader(),
       },
       {
-        enabled: !!id,
+        enabled: !!memberId,
       }
     );
 

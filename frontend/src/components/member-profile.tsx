@@ -21,8 +21,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { apiClient } from "@/api/client";
+import { useAuth } from "@/hooks/auth";
 
 export const MemberProfile = ({ id }: { id: string }) => {
+  const { createAuthHeader } = useAuth();
+
   const { data: member, isLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}",
@@ -32,10 +35,11 @@ export const MemberProfile = ({ id }: { id: string }) => {
           member_id: id,
         },
       },
+      headers: createAuthHeader(),
     },
     {
       enabled: !!id,
-    },
+    }
   );
 
   const [isOpen, setIsOpen] = useState(false);

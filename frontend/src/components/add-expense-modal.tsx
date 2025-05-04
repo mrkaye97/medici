@@ -281,7 +281,7 @@ export function AddExpenseModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const { id } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
   const { mutate: addExpense } = apiClient.useMutation(
     "post",
     "/api/pools/{pool_id}/expenses"
@@ -294,12 +294,13 @@ export function AddExpenseModal({
       params: {
         path: {
           pool_id: pool.id,
-          member_id: id || "",
+          member_id: memberId || "",
         },
       },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
+      enabled: !!memberId,
     }
   );
 
@@ -320,7 +321,7 @@ export function AddExpenseModal({
       category: "Miscellaneous",
       description: undefined,
       splitMethod: SplitMethodType.Percentage,
-      paidByMemberId: id || "",
+      paidByMemberId: memberId || "",
     },
   });
 
@@ -504,7 +505,7 @@ export function AddExpenseModal({
                         <SelectGroup>
                           {members
                             .sort((a, b) => {
-                              if (a.member.id === id) return -1;
+                              if (a.member.id === memberId) return -1;
 
                               return a.member.first_name.localeCompare(
                                 b.member.first_name
@@ -516,7 +517,7 @@ export function AddExpenseModal({
                                 value={c.member.id}
                                 className="flex items-center gap-x-2"
                               >
-                                <p>{`${c.member.first_name} ${c.member.last_name} ${c.member.id === id ? "(Me)" : ""}`}</p>
+                                <p>{`${c.member.first_name} ${c.member.last_name} ${c.member.id === memberId ? "(Me)" : ""}`}</p>
                               </SelectItem>
                             ))}
                         </SelectGroup>

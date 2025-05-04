@@ -1,8 +1,20 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use axum::extract::Query;
+use async_trait::async_trait;
+use axum::extract::{FromRequestParts, Query};
 use axum::http::StatusCode;
+use axum::http::header::HeaderMap;
+use axum::http::request::Parts;
+use axum::middleware;
 use axum::{Json, extract::Path};
+use axum::{
+    extract::Request,
+    middleware::Next,
+    response::{IntoResponse, Response},
+};
+use axum_extra::headers::Authorization;
+use axum_extra::headers::authorization::Bearer;
+use axum_extra::{TypedHeader, headers::UserAgent};
 use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
@@ -14,6 +26,7 @@ use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool,
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
+use uuid::Uuid;
 
 type PgPool = Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -99,6 +112,27 @@ pub enum AuthResult {
         is_authenticated: bool,
         expires_at: Option<DateTime<Utc>>,
     },
+}
+
+pub struct AuthUser {
+    pub member_id: Uuid,
+}
+
+pub async fn auth_middleware(
+    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    match verify_jwt(auth.token()) {
+        Ok(_) => next.run(request).await,
+        Err(_) => (
+            StatusCode::UNAUTHORIZED,
+            axum::Json(serde_json::json!({
+                "error": "Invalid token"
+            })),
+        )
+            .into_response(),
+    }
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -927,11 +961,13 @@ pub async fn create_pool_membership_handler(
 }
 
 pub fn handlers_routes() -> OpenApiRouter {
-    OpenApiRouter::new()
-        .routes(routes!(get_member_handler))
+    let public_routes = OpenApiRouter::new()
         .routes(routes!(signup_handler))
         .routes(routes!(login_handler))
-        .routes(routes!(authenticate_handler))
+        .routes(routes!(authenticate_handler));
+
+    let protected_routes = OpenApiRouter::new()
+        .routes(routes!(get_member_handler))
         .routes(routes!(create_pool_handler))
         .routes(routes!(create_pool_membership_handler))
         .routes(routes!(add_friend_to_pool_handler))
@@ -946,4 +982,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(get_pool_recent_expenses_handler))
         .routes(routes!(list_members_of_pool_handler))
         .routes(routes!(list_pools_for_member_handler))
+        .route_layer(middleware::from_fn(auth_middleware));
+
+    public_routes.merge(protected_routes)
 }

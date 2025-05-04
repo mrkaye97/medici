@@ -9,7 +9,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  const { isAuthenticated, id, token } = useAuth();
+  const { isAuthenticated, memberId, token, createAuthHeader } = useAuth();
 
   const { data, isLoading, isFetching } = apiClient.useQuery(
     "get",
@@ -17,12 +17,13 @@ function Home() {
     {
       params: {
         path: {
-          member_id: id || "",
+          member_id: memberId || "",
         },
       },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
+      enabled: !!memberId,
     }
   );
 

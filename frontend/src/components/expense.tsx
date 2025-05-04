@@ -22,24 +22,25 @@ export const formatCurrency = (amount: number) => {
 type Expense = components["schemas"]["RecentExpenseDetails"];
 
 export function Expense({ expense }: { expense: Expense }) {
-  const { id } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
   const { data, isLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools/{pool_id}/members",
     {
       params: {
         path: {
-          member_id: id || "",
+          member_id: memberId || "",
           pool_id: expense.pool_id,
         },
       },
+      headers: createAuthHeader(),
     },
     {
-      enabled: !!id,
-    },
+      enabled: !!memberId,
+    }
   );
 
-  if (!data || isLoading || !id) {
+  if (!data || isLoading || !memberId) {
     return (
       <div className="flex flex-1 w-full mt-4 px-4 gap-x-4">
         <div className="flex flex-1 flex-col w-full">
@@ -96,7 +97,7 @@ export function Expense({ expense }: { expense: Expense }) {
             <span
               className={cn(
                 "ml-1 font-medium",
-                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600",
+                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600"
               )}
             >
               {formatCurrency(expense.line_amount)}
