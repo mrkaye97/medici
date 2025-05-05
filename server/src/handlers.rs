@@ -1,10 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use async_trait::async_trait;
-use axum::extract::{FromRequestParts, Query};
+use axum::extract::Query;
 use axum::http::StatusCode;
-use axum::http::header::HeaderMap;
-use axum::http::request::Parts;
 use axum::middleware;
 use axum::{Json, extract::Path};
 use axum::{
@@ -12,9 +9,9 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use axum_extra::TypedHeader;
 use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
-use axum_extra::{TypedHeader, headers::UserAgent};
 use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
@@ -26,7 +23,6 @@ use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool,
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
-use uuid::Uuid;
 
 type PgPool = Pool<ConnectionManager<PgConnection>>;
 type PgPooledConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -625,15 +621,27 @@ pub struct ExpensePath {
 pub async fn get_expense_handler(
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
-    let expense_id = path.expense_id;
-
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let expense = tokio::task::spawn_blocking(move || {
-        models::Expense::find(&mut conn, expense_id, false)
-            .or_else(|_| models::Expense::find(&mut conn, expense_id, true))
+        models::Expense::find(
+            &mut conn,
+            path.expense_id,
+            path.member_id,
+            path.pool_id,
+            false,
+        )
+        .or_else(|_| {
+            models::Expense::find(
+                &mut conn,
+                path.expense_id,
+                path.member_id,
+                path.pool_id,
+                true,
+            )
+        })
     })
     .await
     .expect("Task panicked");

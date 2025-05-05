@@ -10,7 +10,7 @@ use handlers::handlers_routes;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
-    dotenvy::dotenv();
+    let _ = dotenvy::dotenv();
 
     let (router, openapi) = handlers_routes().split_for_parts();
 

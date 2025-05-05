@@ -525,10 +525,20 @@ impl Expense {
 
     pub fn find(
         conn: &mut PgConnection,
-        id: uuid::Uuid,
+        expense_id: uuid::Uuid,
+        member_id: uuid::Uuid,
+        pool_id: uuid::Uuid,
         is_settled_query: bool,
     ) -> QueryResult<Self> {
-        expense::table.find((id, is_settled_query)).get_result(conn)
+        expense::table
+            .filter(
+                expense::id
+                    .eq(expense_id)
+                    .and(expense::pool_id.eq(pool_id))
+                    .and(expense::paid_by_member_id.eq(member_id))
+                    .and(expense::is_settled.eq(is_settled_query)),
+            )
+            .get_result(conn)
     }
 
     pub fn find_for_pool(
