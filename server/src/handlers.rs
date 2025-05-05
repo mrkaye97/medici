@@ -538,16 +538,16 @@ pub async fn create_friend_request_handler(
 
 #[derive(Deserialize, ToSchema)]
 pub struct AcceptFriendRequestPath {
-    member_id: uuid::Uuid,
-    friend_member_id: uuid::Uuid,
+    inviting_member_id: uuid::Uuid,
+    invitee_member_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     post,
-    path = "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
+    path = "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept",
     params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member accepting the request"),
-        ("friend_member_id" = uuid::Uuid, Path, description = "ID of the friend request to accept")
+        ("inviting_member_id" = uuid::Uuid, Path, description = "ID of the member accepting the request"),
+        ("invitee_member_id" = uuid::Uuid, Path, description = "ID of the friend request to accept")
     ),
     responses(
         (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
@@ -557,8 +557,8 @@ pub struct AcceptFriendRequestPath {
 pub async fn accept_friend_request_handler(
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
-    let member_id = path.member_id;
-    let friend_member_id = path.friend_member_id;
+    let member_id = path.inviting_member_id;
+    let friend_member_id = path.invitee_member_id;
 
     let mut conn = get_db_connection()
         .await
@@ -571,6 +571,37 @@ pub async fn accept_friend_request_handler(
             models::FriendshipStatus::Accepted,
         )
         .expect("Failed to accept friend request")
+    })
+    .await
+    .expect("Task panicked");
+
+    Json(serde_json::json!({"success": true, "friendship": result}))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}",
+    params(
+        ("inviting_member_id" = uuid::Uuid, Path, description = "ID of the member delete the request"),
+        ("invitee_member_id" = uuid::Uuid, Path, description = "ID of the friend request to delete")
+    ),
+    responses(
+        (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn delete_friend_request(
+    Path(path): Path<AcceptFriendRequestPath>,
+) -> Json<serde_json::Value> {
+    let inviting_member_id = path.inviting_member_id;
+    let invitee_member_id = path.invitee_member_id;
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+    let result = tokio::task::spawn_blocking(move || {
+        Friendship::delete(&mut conn, inviting_member_id, invitee_member_id)
+            .expect("Failed to accept friend request")
     })
     .await
     .expect("Task panicked");
@@ -1008,6 +1039,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(get_pool_recent_expenses_handler))
         .routes(routes!(list_members_of_pool_handler))
         .routes(routes!(list_pools_for_member_handler))
+        .routes(routes!(delete_friend_request))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)

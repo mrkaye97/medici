@@ -36,6 +36,38 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations["delete_friend_request"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["accept_friend_request_handler"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/members/{member_id}": {
     parameters: {
       query?: never;
@@ -62,22 +94,6 @@ export interface paths {
     get: operations["list_inbound_friend_requests_handler"];
     put?: never;
     post: operations["create_friend_request_handler"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/members/{member_id}/friend-requests/{friend_member_id}/accept": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: operations["accept_friend_request_handler"];
     delete?: never;
     options?: never;
     head?: never;
@@ -506,6 +522,70 @@ export interface operations {
       };
     };
   };
+  delete_friend_request: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the member delete the request */
+        inviting_member_id: string;
+        /** @description ID of the friend request to delete */
+        invitee_member_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Accept a friend request successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  accept_friend_request_handler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the member accepting the request */
+        inviting_member_id: string;
+        /** @description ID of the friend request to accept */
+        invitee_member_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Accept a friend request successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": unknown;
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_member_handler: {
     parameters: {
       query?: never;
@@ -583,38 +663,6 @@ export interface operations {
     };
     responses: {
       /** @description Create a friend request successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": unknown;
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  accept_friend_request_handler: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of the member accepting the request */
-        member_id: string;
-        /** @description ID of the friend request to accept */
-        friend_member_id: string;
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Accept a friend request successfully */
       200: {
         headers: {
           [name: string]: unknown;

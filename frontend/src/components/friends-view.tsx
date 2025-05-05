@@ -36,7 +36,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -51,13 +51,13 @@ export const FriendsView = () => {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   const { mutate: acceptFriendRequest, isPending: isAccepting } =
     apiClient.useMutation(
       "post",
-      "/api/members/{member_id}/friend-requests/{friend_member_id}/accept",
+      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept",
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
@@ -67,7 +67,18 @@ export const FriendsView = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      },
+      }
+    );
+
+  const { mutate: deleteFriendRequest, isPending: isDeleting } =
+    apiClient.useMutation(
+      "delete",
+      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}",
+      {
+        onSuccess: async () => {
+          // await queryClient.invalidateQueries();
+        },
+      }
     );
 
   const { data: member } = apiClient.useQuery(
@@ -79,7 +90,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const email = member?.email;
@@ -89,12 +100,13 @@ export const FriendsView = () => {
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound",
+    (r) => r.direction === "inbound"
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound",
+    (r) => r.direction === "outbound"
   );
   const pendingCount = inboundRequests.length;
+  const waitingOutboundCount = outboundRequests.length;
 
   if (isLoading) {
     return (
@@ -139,8 +151,8 @@ export const FriendsView = () => {
               Requests
               {pendingCount > 0 && (
                 <Badge
-                  variant="destructive"
-                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1"
+                  variant="default"
+                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1 bg-red-400"
                 >
                   {pendingCount}
                 </Badge>
@@ -204,123 +216,121 @@ export const FriendsView = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <span>Received Requests</span>
-                    <Badge variant="outline" className="ml-2">
-                      {inboundRequests.length}
-                    </Badge>
-                  </h3>
-                  <div className="divide-y divide-gray-100 rounded-md border">
-                    {inboundRequests.map((request) => (
-                      <motion.div
-                        key={request.member.id}
-                        className="flex items-center justify-between py-3 px-3"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {request.member.first_name}{" "}
-                              {request.member.last_name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {request.member.email}
-                            </span>
+                {inboundRequests.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                      <span>Received Requests</span>
+                      <Badge variant="outline" className="ml-2">
+                        {inboundRequests.length}
+                      </Badge>
+                    </h3>
+                    <div className="divide-y divide-gray-100 rounded-md border">
+                      {inboundRequests.map((request) => (
+                        <motion.div
+                          key={request.member.id}
+                          className="flex items-center justify-between py-3 px-3"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {request.member.first_name}{" "}
+                                {request.member.last_name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {request.member.email}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
-                            onClick={() => {
-                              acceptFriendRequest({
-                                params: {
-                                  path: {
-                                    member_id: memberId || "",
-                                    friend_member_id: request.member.id,
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
+                              onClick={() => {
+                                acceptFriendRequest({
+                                  params: {
+                                    path: {
+                                      invitee_member_id: memberId || "",
+                                      inviting_member_id: request.member.id,
+                                    },
                                   },
-                                },
-                                headers: createAuthHeader(),
-                              });
-                            }}
-                            disabled={isAccepting}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
+                                  headers: createAuthHeader(),
+                                });
+                              }}
+                              disabled={isAccepting}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <span>Sent Requests</span>
-                    <Badge variant="outline" className="ml-2">
-                      {outboundRequests.length}
-                    </Badge>
-                  </h3>
-                  <div className="divide-y divide-gray-100 rounded-md border">
-                    {outboundRequests.map((request) => (
-                      <motion.div
-                        key={request.member.id}
-                        className="flex items-center justify-between py-3 px-3"
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="flex flex-col">
-                            <span className="font-medium">
-                              {request.member.first_name}{" "}
-                              {request.member.last_name}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {request.member.email}
-                            </span>
+                {outboundRequests.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                      <span>Sent Requests</span>
+                      <Badge variant="outline" className="ml-2">
+                        {outboundRequests.length}
+                      </Badge>
+                    </h3>
+                    <div className="divide-y divide-gray-100 rounded-md border">
+                      {outboundRequests.map((request) => (
+                        <motion.div
+                          key={request.member.id}
+                          className="flex items-center justify-between py-3 px-3"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {request.member.first_name}{" "}
+                                {request.member.last_name}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {request.member.email}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
-                            onClick={() => {
-                              acceptFriendRequest({
-                                params: {
-                                  path: {
-                                    member_id: memberId || "",
-                                    friend_member_id: request.member.id,
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                deleteFriendRequest({
+                                  params: {
+                                    path: {
+                                      inviting_member_id: memberId || "",
+                                      invitee_member_id:
+                                        request.member.id || "",
+                                    },
                                   },
-                                },
-                                headers: createAuthHeader(),
-                              });
-                            }}
-                            disabled={isAccepting}
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </motion.div>
-                    ))}
+                                  headers: createAuthHeader(),
+                                });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -345,14 +355,26 @@ export const FriendsView = () => {
 
       <CardFooter className="pt-1 pb-3 px-6 flex justify-between">
         <div className="text-xs text-muted-foreground">
-          {friends.length} {friends.length === 1 ? "friend" : "friends"} •
+          {friends.length} {friends.length === 1 ? "friend" : "friends"}
           {pendingCount > 0 ? (
-            <span className="text-amber-600 font-medium">
-              {" "}
-              {pendingCount} pending
-            </span>
+            <>
+              {" • "}
+              <span className="text-amber-600 font-medium">
+                {pendingCount} pending
+              </span>
+            </>
           ) : (
             " 0 pending"
+          )}
+          {waitingOutboundCount > 0 ? (
+            <>
+              {" • "}
+              <span className="text-cyan-600 font-medium">
+                {waitingOutboundCount} waiting for reply
+              </span>
+            </>
+          ) : (
+            " 0 waiting"
           )}
         </div>
       </CardFooter>
