@@ -249,6 +249,18 @@ export const FriendsView = () => {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => {
+                                deleteFriendRequest({
+                                  params: {
+                                    path: {
+                                      inviting_member_id:
+                                        request.member.id || "",
+                                      invitee_member_id: memberId || "",
+                                    },
+                                  },
+                                  headers: createAuthHeader(),
+                                });
+                              }}
                             >
                               <X className="h-4 w-4" />
                             </Button>

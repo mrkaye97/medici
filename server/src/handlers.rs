@@ -484,22 +484,15 @@ pub async fn list_inbound_friend_requests_handler(
     .await
     .expect("Task panicked")
     .into_iter()
-    .map(|(member, is_inbound)| {
-        // Add some debug printing to verify values
-        println!("Member: {:?}, is_inbound: {}", member.id, is_inbound);
-
-        FriendRequestsList {
-            member,
-            direction: if is_inbound {
-                FriendshipDirection::Inbound
-            } else {
-                FriendshipDirection::Outbound
-            },
-        }
+    .map(|(member, is_inbound)| FriendRequestsList {
+        member,
+        direction: if is_inbound {
+            FriendshipDirection::Inbound
+        } else {
+            FriendshipDirection::Outbound
+        },
     })
     .collect();
-
-    println!("Final requests: {:?}", requests);
 
     Json(requests)
 }
@@ -557,8 +550,8 @@ pub struct AcceptFriendRequestPath {
 pub async fn accept_friend_request_handler(
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
-    let member_id = path.inviting_member_id;
-    let friend_member_id = path.invitee_member_id;
+    let inviting_member_id = path.inviting_member_id;
+    let invitee_member_id = path.invitee_member_id;
 
     let mut conn = get_db_connection()
         .await
@@ -566,8 +559,8 @@ pub async fn accept_friend_request_handler(
     let result = tokio::task::spawn_blocking(move || {
         Friendship::update_status(
             &mut conn,
-            friend_member_id,
-            member_id,
+            inviting_member_id,
+            invitee_member_id,
             models::FriendshipStatus::Accepted,
         )
         .expect("Failed to accept friend request")
@@ -601,7 +594,7 @@ pub async fn delete_friend_request(
         .expect("Failed to get database connection");
     let result = tokio::task::spawn_blocking(move || {
         Friendship::delete(&mut conn, inviting_member_id, invitee_member_id)
-            .expect("Failed to accept friend request")
+            .expect("Failed to delete friend request")
     })
     .await
     .expect("Task panicked");
