@@ -12,7 +12,7 @@ defaults:
     working-directory: ./frontend
 
 jobs:
-  cache-and-install:
+  lint:
     runs-on: ubuntu-latest
 
     steps:
@@ -29,7 +29,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 23
-          cache: 'pnpm'
 
       - name: Install dependencies
         run: pnpm install
