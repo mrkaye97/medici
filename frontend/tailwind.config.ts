@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 
 export default {
   content: ["./pages/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
-  plugins: [require("tailwindcss-animate")],
   theme: {
     extend: {
       borderRadius: {

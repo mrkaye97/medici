@@ -4,7 +4,6 @@ import { apiClient } from "@/api/client";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { AddFriendModal } from "@/components/add-friend-modal";
-import MemberProfile from "@/components/member-profile";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -249,6 +248,7 @@ export const FriendsView = () => {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                              disabled={isDeleting}
                               onClick={() => {
                                 deleteFriendRequest({
                                   params: {

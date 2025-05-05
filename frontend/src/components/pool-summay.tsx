@@ -14,7 +14,6 @@ import { AddExpenseModal } from "./add-expense-modal";
 import { useAuth } from "@/hooks/auth";
 import { Spinner } from "./ui/spinner";
 import { Expense, formatCurrency, formatDate } from "./expense";
-import { Separator } from "./ui/separator";
 import { apiClient } from "@/api/client";
 import { Link } from "@tanstack/react-router";
 

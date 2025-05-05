@@ -61,7 +61,7 @@ export function useAuth() {
       }
 
       return false;
-    } catch (error) {
+    } catch {
       await clearAuthMetadata();
       return false;
     }
@@ -101,7 +101,7 @@ export function useAuth() {
       }
 
       return false;
-    } catch (error) {
+    } catch {
       await clearAuthMetadata();
 
       return false;

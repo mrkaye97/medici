@@ -2,11 +2,10 @@ import { PoolSummary } from "@/components/pool-summay";
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/auth";
 import { apiClient } from "@/api/client";
-import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { FriendsView } from "@/components/friends-view";
-import { HandCoinsIcon, PlusCircle, Wallet } from "lucide-react";
+import { PlusCircle, Wallet } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -26,7 +25,6 @@ export const Route = createFileRoute("/")({
 function Home() {
   const { memberId, createAuthHeader, isAuthenticated } = useAuth();
   const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false);
-  const queryClient = useQueryClient();
 
   const {
     data,

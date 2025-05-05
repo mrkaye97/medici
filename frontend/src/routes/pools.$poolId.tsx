@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   BanknoteIcon,
-  CalendarIcon,
   PlusCircleIcon,
   UserRoundPlus,
   UsersRound,
@@ -16,7 +15,6 @@ import {
 import { apiClient } from "@/api/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
 import { AddMemberModal } from "@/components/add-member-modal";

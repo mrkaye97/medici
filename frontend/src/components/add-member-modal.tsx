@@ -113,7 +113,7 @@ export function AddMemberModal({
         ) : availableFriends.length === 0 ? (
           <div className="py-6 text-center">
             <p className="text-muted-foreground">
-              You don't have any friends to add to this pool.
+              You don&apos;t have any friends to add to this pool.
             </p>
           </div>
         ) : (
