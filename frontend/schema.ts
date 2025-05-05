@@ -359,6 +359,12 @@ export interface components {
     FriendRequestInput: {
       friend_email: string;
     };
+    FriendRequestsList: {
+      direction: components["schemas"]["FriendshipDirection"];
+      member: components["schemas"]["Member"];
+    };
+    /** @enum {string} */
+    FriendshipDirection: "inbound" | "outbound";
     LoginInput: {
       email: string;
       password: string;
@@ -548,7 +554,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Member"][];
+          "application/json": components["schemas"]["FriendRequestsList"][];
         };
       };
       /** @description Internal server error */

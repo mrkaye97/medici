@@ -114,10 +114,6 @@ pub enum AuthResult {
     },
 }
 
-pub struct AuthUser {
-    pub member_id: Uuid,
-}
-
 pub async fn auth_middleware(
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
     request: Request,
@@ -450,6 +446,19 @@ pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec
     Json(friends)
 }
 
+#[derive(Serialize, ToSchema, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum FriendshipDirection {
+    Inbound,
+    Outbound,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+pub struct FriendRequestsList {
+    pub member: models::Member,
+    pub direction: FriendshipDirection,
+}
+
 #[utoipa::path(
     get,
     path = "/api/members/{member_id}/friend-requests",
@@ -457,13 +466,13 @@ pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch friend requests for")
     ),
     responses(
-        (status = 200, description = "List inbound friend requests of a member successfully", body = Vec<Member>),
+        (status = 200, description = "List inbound friend requests of a member successfully", body = Vec<FriendRequestsList>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_inbound_friend_requests_handler(
     Path(member_id): Path<uuid::Uuid>,
-) -> Json<Vec<Member>> {
+) -> Json<Vec<FriendRequestsList>> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -473,7 +482,24 @@ pub async fn list_inbound_friend_requests_handler(
             .expect("Failed to list friend requests")
     })
     .await
-    .expect("Task panicked");
+    .expect("Task panicked")
+    .into_iter()
+    .map(|(member, is_inbound)| {
+        // Add some debug printing to verify values
+        println!("Member: {:?}, is_inbound: {}", member.id, is_inbound);
+
+        FriendRequestsList {
+            member,
+            direction: if is_inbound {
+                FriendshipDirection::Inbound
+            } else {
+                FriendshipDirection::Outbound
+            },
+        }
+    })
+    .collect();
+
+    println!("Final requests: {:?}", requests);
 
     Json(requests)
 }

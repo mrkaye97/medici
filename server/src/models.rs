@@ -724,14 +724,27 @@ impl Friendship {
     pub fn get_pending_requests(
         conn: &mut PgConnection,
         member_id_query: uuid::Uuid,
-    ) -> QueryResult<Vec<Member>> {
-        let pending_inviters = friendship::table
+    ) -> QueryResult<Vec<(Member, bool)>> {
+        let inbound_requests = friendship::table
+            .inner_join(member::table.on(friendship::inviting_member_id.eq(member::id)))
             .filter(friendship::friend_member_id.eq(member_id_query))
             .filter(friendship::status.eq(FriendshipStatus::Pending))
-            .select(friendship::inviting_member_id);
+            .select((
+                member::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::Bool>("true"),
+            ));
 
-        member::table
-            .filter(member::id.eq_any(pending_inviters))
+        let outbound_requests = friendship::table
+            .inner_join(member::table.on(friendship::friend_member_id.eq(member::id)))
+            .filter(friendship::inviting_member_id.eq(member_id_query))
+            .filter(friendship::status.eq(FriendshipStatus::Pending))
+            .select((
+                member::all_columns,
+                diesel::dsl::sql::<diesel::sql_types::Bool>("false"),
+            ));
+
+        inbound_requests
+            .union_all(outbound_requests)
             .get_results(conn)
     }
 
