@@ -36,7 +36,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -51,7 +51,7 @@ export const FriendsView = () => {
       },
       {
         enabled: !!memberId,
-      }
+      },
     );
 
   const { mutate: acceptFriendRequest, isPending: isAccepting } =
@@ -67,7 +67,7 @@ export const FriendsView = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      }
+      },
     );
 
   const { mutate: deleteFriendRequest, isPending: isDeleting } =
@@ -78,7 +78,7 @@ export const FriendsView = () => {
         onSuccess: async () => {
           // await queryClient.invalidateQueries();
         },
-      }
+      },
     );
 
   const { data: member } = apiClient.useQuery(
@@ -90,7 +90,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const email = member?.email;
@@ -100,10 +100,10 @@ export const FriendsView = () => {
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound"
+    (r) => r.direction === "inbound",
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound"
+    (r) => r.direction === "outbound",
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;

@@ -19,6 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
+import { AddMemberModal } from "@/components/add-member-modal";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -28,6 +29,7 @@ function Pool() {
   const { poolId } = Route.useParams();
   const { memberId, createAuthHeader } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
 
   const { data: pool } = apiClient.useQuery(
     "get",
@@ -105,7 +107,11 @@ function Pool() {
         setIsOpen={setIsAddExpenseModalOpen}
         pool={pool}
       />
-
+      <AddMemberModal
+        isOpen={isAddMemberModalOpen}
+        setIsOpen={setIsAddMemberModalOpen}
+        poolId={poolId}
+      />
       <div className="flex-1 overflow-hidden flex flex-col">
         <div className="flex justify-between items-center mb-5">
           <div>
@@ -123,13 +129,22 @@ function Pool() {
               )}
             </p>
           </div>
-          <Button
-            onClick={() => setIsAddExpenseModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <PlusCircleIcon className="h-4 w-4" />
-            Add Expense
-          </Button>
+          <div className="flex flex-row gap-x-2">
+            <Button
+              onClick={() => setIsAddExpenseModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Add Expense
+            </Button>
+            <Button
+              onClick={() => setIsAddMemberModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircleIcon className="h-4 w-4" />
+              Add member
+            </Button>
+          </div>
         </div>
 
         <Card className="flex-1 overflow-hidden">
