@@ -42,7 +42,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -59,7 +59,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -73,7 +73,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { mutate: addFriendToPool, isPending: isAddPending } =
@@ -175,12 +175,12 @@ function Pool() {
                             Paid by{" "}
                             {
                               friends.find(
-                                (f) => f.member.id == expense.paid_by_member_id
+                                (f) => f.member.id == expense.paid_by_member_id,
                               )?.member.first_name
                             }{" "}
                             {
                               friends.find(
-                                (f) => f.member.id == expense.paid_by_member_id
+                                (f) => f.member.id == expense.paid_by_member_id,
                               )?.member.last_name
                             }
                           </span>
@@ -255,6 +255,7 @@ function Pool() {
                                   member_id: friend.member.id,
                                 },
                               },
+                              headers: createAuthHeader(),
                             });
                           }}
                         >
@@ -303,6 +304,7 @@ function Pool() {
                                 params: {
                                   path: { pool_id: poolId },
                                 },
+                                headers: createAuthHeader(),
                               });
                             }}
                           >

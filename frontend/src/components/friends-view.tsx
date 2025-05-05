@@ -36,7 +36,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -51,7 +51,7 @@ export const FriendsView = () => {
       },
       {
         enabled: !!memberId,
-      }
+      },
     );
 
   const { mutate: acceptFriendRequest, isPending: isAccepting } =
@@ -67,7 +67,7 @@ export const FriendsView = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      }
+      },
     );
 
   const { data: member } = apiClient.useQuery(
@@ -79,7 +79,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const email = member?.email;
@@ -234,6 +234,7 @@ export const FriendsView = () => {
                                 friend_member_id: request.id,
                               },
                             },
+                            headers: createAuthHeader(),
                           });
                         }}
                         disabled={isAccepting}

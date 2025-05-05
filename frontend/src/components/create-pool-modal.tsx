@@ -31,7 +31,7 @@ export function CreatePoolModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const { memberId } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
     "/api/pools",
@@ -77,6 +77,7 @@ export function CreatePoolModal({
                   name: data.poolName,
                   description: data.poolDescription,
                 },
+                headers: createAuthHeader(),
               });
 
               if (!pool) {
@@ -93,6 +94,7 @@ export function CreatePoolModal({
                     pool_id: pool.id,
                   },
                 },
+                headers: createAuthHeader(),
               });
 
               await queryClient.invalidateQueries({

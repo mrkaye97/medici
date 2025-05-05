@@ -2,7 +2,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/api/client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { components } from "schema";
 
 export function useAuth() {
   const [token, setToken] = useState(localStorage.getItem("token"));

@@ -389,6 +389,7 @@ export function AddExpenseModal({
                       pool_id: pool.id,
                     },
                   },
+                  headers: createAuthHeader(),
                 },
                 {
                   onSuccess: async () => {

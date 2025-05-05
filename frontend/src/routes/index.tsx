@@ -45,7 +45,7 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const pools = data || [];

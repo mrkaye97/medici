@@ -30,7 +30,7 @@ export function AddFriendModal({
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
-  const { memberId } = useAuth();
+  const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
     "/api/members/{member_id}/friend-requests",
@@ -74,6 +74,7 @@ export function AddFriendModal({
                     member_id: memberId,
                   },
                 },
+                headers: createAuthHeader(),
               });
 
               await queryClient.invalidateQueries({
