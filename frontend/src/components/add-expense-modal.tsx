@@ -284,7 +284,7 @@ export function AddExpenseModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutate: addExpense } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/expenses"
+    "/api/pools/{pool_id}/expenses",
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -301,7 +301,7 @@ export function AddExpenseModal({
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const members = data ?? [];
@@ -358,17 +358,17 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                }
+                },
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0
+                0,
               );
 
               if (total !== data.amount) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`
+                  `Total amount (${data.amount}) does not match split amounts (${total})`,
                 );
                 return;
               }
@@ -398,7 +398,7 @@ export function AddExpenseModal({
 
                     form.reset();
                   },
-                }
+                },
               );
             })}
             className="space-y-4"
@@ -504,7 +504,7 @@ export function AddExpenseModal({
                               if (a.member.id === memberId) return -1;
 
                               return a.member.first_name.localeCompare(
-                                b.member.first_name
+                                b.member.first_name,
                               );
                             })
                             .map((c) => (
@@ -575,7 +575,7 @@ export function AddExpenseModal({
                                 type="number"
                                 value={
                                   splitAmounts.splitAmounts.find(
-                                    (a) => a.memberId == m.member.id
+                                    (a) => a.memberId == m.member.id,
                                   )?.amount
                                 }
                                 onChange={(e) => {
@@ -591,7 +591,7 @@ export function AddExpenseModal({
                                           };
                                         }
                                         return a;
-                                      }
+                                      },
                                     );
 
                                     return {

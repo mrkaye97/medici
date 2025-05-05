@@ -18,6 +18,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Expense } from "@/components/expense";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -163,35 +164,7 @@ function Pool() {
                       key={expense.id}
                       className="p-4 hover:bg-muted/30 transition-colors"
                     >
-                      <div className="flex justify-between mb-1">
-                        <h3 className="font-medium">{expense.description}</h3>
-                        <span className="font-semibold">
-                          ${expense.amount.toFixed(2)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <span>
-                            Paid by{" "}
-                            {
-                              friends.find(
-                                (f) => f.member.id == expense.paid_by_member_id,
-                              )?.member.first_name
-                            }{" "}
-                            {
-                              friends.find(
-                                (f) => f.member.id == expense.paid_by_member_id,
-                              )?.member.last_name
-                            }
-                          </span>
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <CalendarIcon className="h-3 w-3" />
-                          {formatDistanceToNow(new Date(expense.inserted_at), {
-                            addSuffix: true,
-                          })}
-                        </span>
-                      </div>
+                      <Expense expense={expense} />
                     </div>
                   ))}
                 </div>
