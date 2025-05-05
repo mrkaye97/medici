@@ -1,4 +1,4 @@
-name: Rust
+name: CI - Server
 
 on:
   push:
@@ -6,14 +6,17 @@ on:
   pull_request:
     branches: [ "main" ]
 
+defaults:
+  run:
+    shell: bash
+    working-directory: ./server
+
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
     - name: Build
