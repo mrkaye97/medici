@@ -20,16 +20,16 @@ diesel::table! {
 
     expense (id, is_settled) {
         id -> Uuid,
-        name -> Text,
-        amount -> Float8,
-        is_settled -> Bool,
-        inserted_at -> Timestamptz,
-        updated_at -> Timestamptz,
         pool_id -> Uuid,
         paid_by_member_id -> Uuid,
+        name -> Text,
+        amount -> Float8,
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        is_settled -> Bool,
+        inserted_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -37,11 +37,11 @@ diesel::table! {
     expense_line_item (id) {
         id -> Uuid,
         expense_id -> Uuid,
+        debtor_member_id -> Uuid,
         is_settled -> Bool,
         amount -> Float8,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
-        debtor_member_id -> Uuid,
     }
 }
 
@@ -51,16 +51,16 @@ diesel::table! {
 
     expense_p_is_settled_false (id, is_settled) {
         id -> Uuid,
-        name -> Text,
-        amount -> Float8,
-        is_settled -> Bool,
-        inserted_at -> Timestamptz,
-        updated_at -> Timestamptz,
         pool_id -> Uuid,
         paid_by_member_id -> Uuid,
+        name -> Text,
+        amount -> Float8,
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        is_settled -> Bool,
+        inserted_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -70,16 +70,16 @@ diesel::table! {
 
     expense_p_is_settled_true (id, is_settled) {
         id -> Uuid,
-        name -> Text,
-        amount -> Float8,
-        is_settled -> Bool,
-        inserted_at -> Timestamptz,
-        updated_at -> Timestamptz,
         pool_id -> Uuid,
         paid_by_member_id -> Uuid,
+        name -> Text,
+        amount -> Float8,
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        is_settled -> Bool,
+        inserted_at -> Timestamptz,
+        updated_at -> Timestamptz,
     }
 }
 
@@ -103,11 +103,11 @@ diesel::table! {
         first_name -> Varchar,
         #[max_length = 255]
         last_name -> Varchar,
+        bio -> Nullable<Text>,
         #[max_length = 255]
         email -> Varchar,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
-        bio -> Nullable<Text>,
     }
 }
 

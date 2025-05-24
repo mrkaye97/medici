@@ -1,4 +1,3 @@
--- This file should undo anything in `up.sql`
 DO $$
 DECLARE
   t_name text;
@@ -14,39 +13,19 @@ BEGIN
 END
 $$;
 
-DROP FUNCTION IF EXISTS add_updated_at_trigger;
-DROP FUNCTION IF EXISTS trigger_set_updated_at;
+DROP FUNCTION add_updated_at_trigger;
+DROP FUNCTION trigger_set_updated_at;
 
-ALTER TABLE member
-DROP COLUMN bio;
+DROP TABLE expense_line_item;
+DROP TABLE expense_p_is_settled_false;
+DROP TABLE expense_p_is_settled_true;
+DROP TABLE expense;
+DROP TABLE pool_membership;
+DROP TABLE friendship;
+DROP TABLE member_password;
+DROP TABLE pool;
+DROP TABLE member;
 
-DROP INDEX IF EXISTS ix_friendship_no_symmetric_pairs;
-
-DROP TABLE IF EXISTS friendship;
-DROP TYPE IF EXISTS friendship_status;
-
-ALTER TABLE expense
-    DROP COLUMN IF EXISTS description,
-    DROP COLUMN IF EXISTS notes,
-    DROP COLUMN IF EXISTS category;
-DROP TYPE IF EXISTS expense_category;
-
-DROP INDEX IF EXISTS index_member_password_on_member_id;
-DROP TABLE IF EXISTS member_password;
-ALTER TABLE member ADD COLUMN password_hash TEXT NOT NULL DEFAULT '';
-
-ALTER TABLE "public"."expense_line_item" DROP CONSTRAINT IF EXISTS "expense_line_item_debtor_member_id_fkey", DROP COLUMN IF EXISTS "debtor_member_id";
-ALTER TABLE "public"."expense" DROP CONSTRAINT IF EXISTS "expense_pool_id_fkey", DROP CONSTRAINT IF EXISTS "expense_paid_by_member_id_fkey", DROP COLUMN IF EXISTS "pool_id", DROP COLUMN IF EXISTS "paid_by_member_id";
-ALTER TABLE "public"."pool" ALTER COLUMN "name" DROP NOT NULL;
-
-DROP TABLE IF EXISTS "public"."expense_line_item";
-DROP TABLE IF EXISTS "public"."expense_p_is_settled_false";
-DROP TABLE IF EXISTS "public"."expense_p_is_settled_true";
-DROP TABLE IF EXISTS "public"."expense";
-DROP INDEX IF EXISTS "ix_pool_membership_pool_id";
-DROP INDEX IF EXISTS "ix_pool_membership_member_id";
-DROP TABLE IF EXISTS "public"."pool_membership";
-DROP INDEX IF EXISTS "index_member_on_email";
-DROP TABLE IF EXISTS "public"."member";
-DROP TABLE IF EXISTS "public"."pool";
-DROP TYPE IF EXISTS "public"."pool_role";
+DROP TYPE pool_role;
+DROP TYPE expense_category;
+DROP TYPE friendship_status;
