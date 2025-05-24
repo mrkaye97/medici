@@ -903,13 +903,6 @@ pub async fn get_pool_recent_expenses_handler(
     )
 }
 
-#[derive(Serialize, ToSchema)]
-pub struct PoolBalanceForMember {
-    #[serde(flatten)]
-    member_id: uuid::Uuid,
-    balance: f64,
-}
-
 #[derive(Deserialize, ToSchema)]
 pub struct PoolBalancesForMemberPath {
     pool_id: uuid::Uuid,
@@ -924,13 +917,13 @@ pub struct PoolBalancesForMemberPath {
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch balances for"),
     ),
     responses(
-        (status = 200, description = "Got balances", body = Vec<PoolBalanceForMember>),
+        (status = 200, description = "Got balances", body = Vec<models::Balance>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn get_pool_balances_for_member(
     Path(path): Path<PoolBalancesForMemberPath>,
-) -> Json<Vec<PoolBalanceForMember>> {
+) -> Json<Vec<models::Balance>> {
     let pool_id = path.pool_id;
     let member_id = path.member_id;
 
@@ -945,17 +938,7 @@ pub async fn get_pool_balances_for_member(
     .await
     .expect("Task panicked");
 
-    let balances = compute_balances_for_member(expenses);
-
-    Json(
-        balances
-            .into_iter()
-            .map(|(balance)| PoolBalanceForMember {
-                member_id,
-                balance: balance.amount,
-            })
-            .collect(),
-    )
+    return Json(compute_balances_for_member(member_id, expenses));
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

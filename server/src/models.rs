@@ -869,3 +869,17 @@ impl Friendship {
         }
     }
 }
+
+#[derive(Serialize, ToSchema, Debug)]
+#[serde(rename_all = "lowercase")]
+pub enum PaymentDirection {
+    Inbound,
+    Outbound,
+}
+
+#[derive(Serialize, ToSchema, Debug)]
+pub struct Balance {
+    pub member_id: uuid::Uuid,
+    pub amount: f64,
+    pub direction: PaymentDirection,
+}

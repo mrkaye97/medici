@@ -15,12 +15,10 @@ pub fn establish_connection() -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
-pub struct Balance {
-    pub member_id: uuid::Uuid,
-    pub amount: f64,
-}
-
-pub fn compute_balances_for_member(expenses: Vec<models::DebtPair>) -> Vec<Balance> {
+pub fn compute_balances_for_member(
+    member_id: uuid::Uuid,
+    expenses: Vec<models::DebtPair>,
+) -> Vec<models::Balance> {
     let mut pairwise_expenses: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
     let mut necessary_payments: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
 
@@ -54,9 +52,26 @@ pub fn compute_balances_for_member(expenses: Vec<models::DebtPair>) -> Vec<Balan
         }
     }
 
-    println!("Amounts per member: {:?}", necessary_payments);
+    let mut payments = Vec::new();
 
-    let result: Vec<Balance> = Vec::new();
+    for (key, value) in &necessary_payments {
+        let (from_member_id, to_member_id) = key;
+        let amount = *value;
 
-    return result;
+        if *from_member_id == member_id {
+            payments.push(models::Balance {
+                member_id: *to_member_id,
+                amount,
+                direction: models::PaymentDirection::Outbound,
+            })
+        } else if *to_member_id == member_id {
+            payments.push(models::Balance {
+                member_id: *from_member_id,
+                amount,
+                direction: models::PaymentDirection::Inbound,
+            })
+        }
+    }
+
+    return payments;
 }
