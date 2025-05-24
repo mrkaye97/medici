@@ -329,6 +329,13 @@ export interface components {
           is_authenticated: boolean;
           token?: string | null;
         };
+    Balance: {
+      /** Format: double */
+      amount: number;
+      direction: components["schemas"]["PaymentDirection"];
+      /** Format: uuid */
+      member_id: string;
+    };
     Expense: {
       /** Format: double */
       amount: number;
@@ -417,6 +424,8 @@ export interface components {
       is_pool_member: boolean;
       member: components["schemas"]["Member"];
     };
+    /** @enum {string} */
+    PaymentDirection: "inbound" | "outbound";
     Pool: {
       description?: string | null;
       /** Format: uuid */
@@ -426,10 +435,6 @@ export interface components {
       name: string;
       /** Format: date-time */
       updated_at: string;
-    };
-    PoolBalanceForMember: string & {
-      /** Format: double */
-      balance: number;
     };
     PoolDetails: components["schemas"]["Pool"] & {
       role: components["schemas"]["PoolRole"];
@@ -1018,7 +1023,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["PoolBalanceForMember"][];
+          "application/json": components["schemas"]["Balance"][];
         };
       };
       /** @description Internal server error */

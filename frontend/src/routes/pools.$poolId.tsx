@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -47,7 +47,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -64,10 +64,8 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
-
-  console.log(data);
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
     "get",
@@ -80,7 +78,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -96,16 +94,7 @@ function Pool() {
         },
         headers: createAuthHeader(),
       },
-      {
-        refetchInterval: 100000,
-        refetchOnWindowFocus: false,
-        refetchOnMount: false,
-        refetchIntervalInBackground: false,
-        refetchOnReconnect: false,
-      }
     );
-
-  console.log(balancesRaw);
 
   const { mutate: addFriendToPool, isPending: isAddPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/members");
@@ -117,28 +106,37 @@ function Pool() {
   const friends = (friendsRaw || []).filter((f) => f.member.id !== memberId);
   const poolMembers = (friendsRaw || []).filter((f) => f.is_pool_member);
 
-  // Calculate balances (this would ideally come from your API)
-  const calculateBalances = () => {
-    // This is a simplified calculation - you'd want to get this from your backend
-    // For now, creating mock data to demonstrate the UI
-    return [
-      { name: "John Doe", amount: 45.5, type: "owes" },
-      { name: "Jane Smith", amount: 23.75, type: "owed" },
-      { name: "Bob Johnson", amount: 12.25, type: "owes" },
-    ];
-  };
-
-  const balances = calculateBalances();
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0
+    0,
   );
+
+  const balances = useMemo(() => {
+    return (balancesRaw || [])
+      .map((b) => {
+        const otherMember = friends.find((m) => m.member.id === b.member_id);
+
+        if (!otherMember) {
+          return null;
+        }
+
+        const name =
+          otherMember.member.first_name + " " + otherMember.member.last_name;
+
+        return {
+          name,
+          amount: b.amount,
+          type: b.direction,
+        };
+      })
+      .filter((b) => b !== null);
+  }, [balancesRaw, friends]);
 
   if (!memberId) {
     return null;
   }
 
-  if (isLoading || isFriendsLoading || !pool) {
+  if (isLoading || isFriendsLoading || !pool || isBalanacesLoading) {
     return (
       <div className="flex flex-col items-center">
         <Spinner className="mt-8" />
@@ -274,13 +272,13 @@ function Pool() {
                       <div>
                         <p className="font-medium text-sm">{balance.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {balance.type === "owes" ? "Owes you" : "You owe"}
+                          {balance.type === "inbound" ? "Owes you" : "You owe"}
                         </p>
                       </div>
                       <div className="text-right">
                         <p
                           className={`font-semibold text-sm ${
-                            balance.type === "owes"
+                            balance.type === "inbound"
                               ? "text-green-600"
                               : "text-red-600"
                           }`}
