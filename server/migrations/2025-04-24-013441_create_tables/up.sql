@@ -1,21 +1,21 @@
 -- Pools
 CREATE TABLE pool (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name character varying(255) NOT NULL,
-  description text NULL,
-  inserted_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
+  name TEXT NOT NULL,
+  description TEXT NULL,
+  inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (id)
 );
 
 -- Members
 CREATE TABLE member (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  first_name character varying(255) NOT NULL,
-  last_name character varying(255) NOT NULL,
-  email character varying(255) NOT NULL,
-  inserted_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   bio TEXT,
   PRIMARY KEY (id),
   CONSTRAINT member_email_key UNIQUE (email)
@@ -26,12 +26,12 @@ CREATE UNIQUE INDEX index_member_on_email ON member (email);
 -- Pool Memberships
 CREATE TYPE pool_role AS ENUM ('PARTICIPANT', 'ADMIN');
 CREATE TABLE pool_membership (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  pool_id uuid NOT NULL,
-  member_id uuid NOT NULL,
+  id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
+  pool_id UUID NOT NULL,
+  member_id UUID NOT NULL,
   role pool_role NOT NULL DEFAULT 'PARTICIPANT',
-  inserted_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   PRIMARY KEY (id),
   CONSTRAINT pool_membership_member_id_fkey FOREIGN KEY (member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT pool_membership_pool_id_fkey FOREIGN KEY (pool_id) REFERENCES pool (id) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -53,14 +53,14 @@ CREATE TYPE expense_category AS ENUM (
 );
 
 CREATE TABLE expense (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  name text NOT NULL,
+  id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
+  name TEXT NOT NULL,
   amount DOUBLE PRECISION NOT NULL,
-  is_settled boolean NOT NULL DEFAULT false,
-  inserted_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  is_settled BOOLEAN NOT NULL DEFAULT FALSE,
+  inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   pool_id UUID NOT NULL,
-  paid_by_member_id uuid NOT NULL,
+  paid_by_member_id UUID NOT NULL,
   description TEXT,
   notes TEXT,
   category expense_category NOT NULL DEFAULT 'miscellaneous',
@@ -73,17 +73,17 @@ CREATE TABLE expense (
 CREATE TABLE expense_p_is_settled_true PARTITION OF expense FOR
 VALUES IN (TRUE);
 
-CREATE TABLE expense_p_is_settled_false PARTITION OF expense FOR
+CREATE TABLE expense_p_is_settled_FALSE PARTITION OF expense FOR
 VALUES IN (FALSE);
 
 -- Expense line items
 CREATE TABLE expense_line_item (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  expense_id uuid NOT NULL,
-  is_settled boolean NOT NULL DEFAULT false,
+  id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
+  expense_id UUID NOT NULL,
+  is_settled BOOLEAN NOT NULL DEFAULT FALSE,
   amount DOUBLE PRECISION NOT NULL,
-  inserted_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now(),
+  inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   debtor_member_id UUID NOT NULL,
   PRIMARY KEY (id),
   CONSTRAINT expense_line_item_expense_id_is_settled_fkey FOREIGN KEY (expense_id, is_settled) REFERENCES expense (id, is_settled),
@@ -92,7 +92,7 @@ CREATE TABLE expense_line_item (
 
 -- Passwords
 CREATE TABLE member_password (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
   member_id UUID NOT NULL REFERENCES member(id) ON DELETE CASCADE,
   password_hash TEXT NOT NULL,
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -130,7 +130,7 @@ RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 CREATE
-OR REPLACE FUNCTION add_updated_at_trigger(table_name text) RETURNS void AS $$ BEGIN EXECUTE format(
+OR REPLACE FUNCTION add_updated_at_trigger(table_name TEXT) RETURNS void AS $$ BEGIN EXECUTE format(
   '
     CREATE OR REPLACE TRIGGER set_updated_at
     BEFORE UPDATE ON %I
@@ -141,7 +141,7 @@ OR REPLACE FUNCTION add_updated_at_trigger(table_name text) RETURNS void AS $$ B
 );
 END;
 $$ LANGUAGE plpgsql;
-DO $$ DECLARE t_name text;
+DO $$ DECLARE t_name TEXT;
 BEGIN FOR t_name IN
 SELECT
   table_name
