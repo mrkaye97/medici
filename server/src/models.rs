@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::sql_types::Uuid;
+use diesel::sql_types::{Double, Uuid as SqlUuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -516,6 +518,24 @@ impl PoolMembership {
     }
 }
 
+pub struct ExpenseForBalanceCalculation {
+    pub payer_member_id: uuid::Uuid,
+    pub debtor_member_id: uuid::Uuid,
+    pub amount: f64,
+}
+
+#[derive(QueryableByName, Debug)]
+pub struct DebtPair {
+    #[sql_type = "SqlUuid"]
+    pub from_member_id: uuid::Uuid,
+
+    #[sql_type = "SqlUuid"]
+    pub to_member_id: uuid::Uuid,
+
+    #[sql_type = "Double"]
+    pub amount: f64,
+}
+
 impl Expense {
     pub fn create(conn: &mut PgConnection, new_expense: &NewExpense) -> QueryResult<Self> {
         diesel::insert_into(expense::table)
@@ -631,6 +651,31 @@ impl Expense {
         }
 
         Ok((expense, line_items))
+    }
+
+    pub fn list_unpaid_for_balance_computation(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+    ) -> QueryResult<Vec<DebtPair>> {
+        diesel::sql_query(
+            "SELECT
+            eli.debtor_member_id AS from_member_id,
+            e.paid_by_member_id AS to_member_id,
+            SUM(
+                CASE
+                    WHEN e.paid_by_member_id = eli.debtor_member_id THEN eli.amount - e.amount
+                    ELSE eli.amount
+                END
+            ) AS amount
+        FROM expense e
+        JOIN expense_line_item eli ON e.id = eli.expense_id AND NOT e.is_settled
+        WHERE
+            e.pool_id = $1
+            AND eli.debtor_member_id <> e.paid_by_member_id
+        GROUP BY eli.debtor_member_id, e.paid_by_member_id",
+        )
+        .bind::<Uuid, _>(pool_id)
+        .load::<DebtPair>(conn)
     }
 }
 

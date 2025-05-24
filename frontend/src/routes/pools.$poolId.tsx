@@ -47,7 +47,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -64,7 +64,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   console.log(data);
@@ -80,8 +80,32 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
+
+  const { data: balancesRaw, isLoading: isBalanacesLoading } =
+    apiClient.useQuery(
+      "get",
+      "/api/pools/{pool_id}/members/{member_id}/balances",
+      {
+        params: {
+          path: {
+            member_id: memberId || "",
+            pool_id: poolId,
+          },
+        },
+        headers: createAuthHeader(),
+      },
+      {
+        refetchInterval: 100000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchIntervalInBackground: false,
+        refetchOnReconnect: false,
+      }
+    );
+
+  console.log(balancesRaw);
 
   const { mutate: addFriendToPool, isPending: isAddPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/members");
@@ -107,7 +131,7 @@ function Pool() {
   const balances = calculateBalances();
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0,
+    0
   );
 
   if (!memberId) {
@@ -139,7 +163,7 @@ function Pool() {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{pool.name}</h1>
-            <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+            <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
               <UsersRound className="h-4 w-4" />
               <span>{poolMembers.length} members</span>
               {pool.role === "ADMIN" && (
@@ -147,7 +171,7 @@ function Pool() {
                   Admin
                 </Badge>
               )}
-            </p>
+            </div>
           </div>
           <Button
             onClick={() => setIsAddExpenseModalOpen(true)}
@@ -325,7 +349,7 @@ function Pool() {
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-sm">
+                          <div className="font-medium text-sm">
                             {member.member.first_name} {member.member.last_name}
                             {member.member.id === memberId && (
                               <Badge
@@ -335,7 +359,7 @@ function Pool() {
                                 You
                               </Badge>
                             )}
-                          </p>
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             {member.member.email}
                           </p>

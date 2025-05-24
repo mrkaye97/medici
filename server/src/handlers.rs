@@ -19,6 +19,7 @@ use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use server::compute_balances_for_member;
 use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool, PoolMembership};
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
@@ -938,17 +939,20 @@ pub async fn get_pool_balances_for_member(
         .expect("Failed to get database connection");
 
     let expenses = tokio::task::spawn_blocking(move || {
-        models::Expense::get_recent_for_member_in_pool(&mut conn, pool_id, member_id, 10_000)
-            .expect("Failed to get recent expenses")
+        models::Expense::list_unpaid_for_balance_computation(&mut conn, pool_id)
+            .expect("Failed to get balances")
     })
     .await
     .expect("Task panicked");
+
+    let balances = compute_balances_for_member(expenses);
+
     Json(
-        expenses
+        balances
             .into_iter()
-            .map(|(expense, _)| PoolBalanceForMember {
-                member_id: expense.paid_by_member_id,
-                balance: expense.amount,
+            .map(|(balance)| PoolBalanceForMember {
+                member_id,
+                balance: balance.amount,
             })
             .collect(),
     )
