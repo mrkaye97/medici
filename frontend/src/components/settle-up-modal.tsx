@@ -5,17 +5,19 @@ import { useAuth } from "@/hooks/auth";
 import { apiClient } from "@/api/client";
 
 export function SettleUpModal({
+  poolId,
   isOpen,
   setIsOpen,
 }: {
+  poolId: string;
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutateAsync: createFriendRequest } = apiClient.useMutation(
-    "post",
-    "/api/members/{member_id}/friend-requests"
+  const { mutate: settleUpPool } = apiClient.useMutation(
+    "patch",
+    "/api/members/{member_id}/pools/{pool_id}/settle-up",
   );
 
   if (!memberId) {
@@ -31,13 +33,23 @@ export function SettleUpModal({
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Confirm you've settled up</DialogTitle>
+          <DialogTitle>Confirm you&apos;ve settled up</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           Clicking here will confirm your pool is all settled up.
           <Button
-            onClick={() => {
+            onClick={async () => {
+              settleUpPool({
+                params: {
+                  path: {
+                    member_id: memberId,
+                    pool_id: poolId,
+                  },
+                },
+                headers: createAuthHeader(),
+              });
+              await queryClient.invalidateQueries({});
               setIsOpen(false);
             }}
           >

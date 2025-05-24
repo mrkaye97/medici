@@ -448,6 +448,39 @@ impl Pool {
 
         Ok((p, role, total_debt))
     }
+
+    pub fn settle_up(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        confirming_member_id: uuid::Uuid,
+    ) -> () {
+        let _ = diesel::sql_query(
+            "
+            WITH expense_ids AS (
+                SELECT e.id
+                FROM expense e
+                JOIN pool_membership pm ON e.pool_id = pm.pool_id
+                JOIN member m ON pm.member_id = m.id
+                WHERE
+                    pm.pool_id = $1
+                    AND pm.member_id = $2
+                    AND e.is_settled = false
+            ), line_items AS (
+                UPDATE expense_line_item
+                SET is_settled = true
+                WHERE expense_id IN (SELECT id FROM expense_ids)
+            )
+
+            UPDATE expense
+            SET is_settled = true
+            WHERE id IN (SELECT id FROM expense_ids)
+            ;
+            ",
+        )
+        .bind::<Uuid, _>(pool_id)
+        .bind::<Uuid, _>(confirming_member_id)
+        .execute(conn);
+    }
 }
 
 impl PoolMembership {

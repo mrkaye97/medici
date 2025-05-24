@@ -842,6 +842,48 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
     Json(details)
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/members/{member_id}/pools/{pool_id}/settle-up",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to settle up"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member who confirmed the settle up")
+    ),
+    responses(
+        (status = 200, description = "Pool settled up", body = PoolDetails),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+    let member_id = path.member_id;
+    let pool_id = path.pool_id;
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    tokio::task::spawn_blocking(move || models::Pool::settle_up(&mut conn, pool_id, member_id));
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let pool_details = tokio::task::spawn_blocking(move || {
+        models::Pool::get_with_debt_for_member(&mut conn, pool_id, member_id)
+            .expect("Failed to get pool details")
+    })
+    .await
+    .expect("Task panicked");
+
+    let details = PoolDetails {
+        pool: pool_details.0,
+        role: pool_details.1,
+        total_debt: pool_details.2,
+    };
+
+    Json(details)
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct RecentExpenseDetails {
     #[serde(flatten)]
@@ -1087,6 +1129,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(list_pools_for_member_handler))
         .routes(routes!(delete_friend_request))
         .routes(routes!(get_pool_balances_for_member))
+        .routes(routes!(settle_up_pool_handler))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)
