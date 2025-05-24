@@ -2,7 +2,6 @@ import { LoginForm } from "@/components/login-form";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useAuth } from "@/hooks/auth";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState } from "react";
 
 const fallback = "/" as const;

@@ -22,7 +22,7 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    }
+    },
   ) => void;
   formType: "login" | "signup";
   hasError?: boolean;
@@ -48,7 +48,7 @@ export function LoginForm({
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit]
+    [onSubmit],
   );
 
   return (

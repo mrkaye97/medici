@@ -11,6 +11,10 @@ import {
   UserRoundPlus,
   UsersRound,
   UserMinus,
+  DollarSign,
+  ArrowUpDown,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { createFileRoute } from "@tanstack/react-router";
@@ -63,6 +67,8 @@ function Pool() {
     },
   );
 
+  console.log(data);
+
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
     "get",
     "/api/members/{member_id}/pools/{pool_id}/members",
@@ -85,6 +91,24 @@ function Pool() {
 
   const expenses = data || [];
   const friends = (friendsRaw || []).filter((f) => f.member.id !== memberId);
+  const poolMembers = (friendsRaw || []).filter((f) => f.is_pool_member);
+
+  // Calculate balances (this would ideally come from your API)
+  const calculateBalances = () => {
+    // This is a simplified calculation - you'd want to get this from your backend
+    // For now, creating mock data to demonstrate the UI
+    return [
+      { name: "John Doe", amount: 45.5, type: "owes" },
+      { name: "Jane Smith", amount: 23.75, type: "owed" },
+      { name: "Bob Johnson", amount: 12.25, type: "owes" },
+    ];
+  };
+
+  const balances = calculateBalances();
+  const totalExpenses = expenses.reduce(
+    (sum, expense) => sum + (expense.amount || 0),
+    0,
+  );
 
   if (!memberId) {
     return null;
@@ -99,7 +123,7 @@ function Pool() {
   }
 
   return (
-    <div className="flex overflow-hidden">
+    <div className="flex overflow-hidden h-[calc(100vh-4rem)]">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
@@ -110,16 +134,14 @@ function Pool() {
         setIsOpen={setIsAddMemberModalOpen}
         poolId={poolId}
       />
-      <div className="flex-1 overflow-hidden flex flex-col">
-        <div className="flex justify-between items-center mb-5">
+
+      <div className="flex-1 overflow-hidden flex flex-col p-6">
+        <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">{pool.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{pool.name}</h1>
             <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
               <UsersRound className="h-4 w-4" />
-              <span>
-                {(friendsRaw || []).filter((f) => f.is_pool_member).length}{" "}
-                members
-              </span>
+              <span>{poolMembers.length} members</span>
               {pool.role === "ADMIN" && (
                 <Badge variant="outline" className="ml-2">
                   Admin
@@ -127,47 +149,46 @@ function Pool() {
               )}
             </p>
           </div>
-          <div className="flex flex-row gap-x-2">
-            <Button
-              onClick={() => setIsAddExpenseModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <PlusCircleIcon className="h-4 w-4" />
-              Add Expense
-            </Button>
-            <Button
-              onClick={() => setIsAddMemberModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <PlusCircleIcon className="h-4 w-4" />
-              Add member
-            </Button>
-          </div>
+          <Button
+            onClick={() => setIsAddExpenseModalOpen(true)}
+            className="flex items-center gap-2"
+            size="lg"
+          >
+            <PlusCircleIcon className="h-5 w-5" />
+            Add Expense
+          </Button>
         </div>
 
         <Card className="flex-1 overflow-hidden">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-medium flex items-center gap-2">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-semibold flex items-center gap-2">
               <BanknoteIcon className="h-5 w-5 text-muted-foreground" />
               Recent Expenses
+              <Badge variant="secondary" className="ml-2">
+                ${totalExpenses.toFixed(2)} total
+              </Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <ScrollArea className="h-[calc(100vh-16rem)]">
+            <ScrollArea className="h-[calc(100vh-12rem)]">
               {expenses.length === 0 ? (
-                <div className="text-center py-12 px-4">
-                  <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <BanknoteIcon className="h-6 w-6 text-muted-foreground" />
+                <div className="text-center py-16 px-4">
+                  <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <BanknoteIcon className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="font-medium text-lg mb-1">No expenses yet</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Add your first expense to get started
+                  <h3 className="font-semibold text-xl mb-2">
+                    No expenses yet
+                  </h3>
+                  <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                    Start tracking shared expenses by adding your first expense
+                    to this pool
                   </p>
                   <Button
-                    variant="outline"
                     onClick={() => setIsAddExpenseModalOpen(true)}
+                    size="lg"
                   >
-                    Add expense
+                    <PlusCircleIcon className="h-5 w-5 mr-2" />
+                    Add your first expense
                   </Button>
                 </div>
               ) : (
@@ -187,124 +208,234 @@ function Pool() {
         </Card>
       </div>
 
-      {pool.role === "ADMIN" && (
-        <div className="w-[320px] border-l bg-muted/10 flex flex-col h-full overflow-hidden">
-          <div className="p-5 border-b">
-            <h2 className="font-semibold flex items-center gap-2">
-              <UsersRound className="h-4 w-4" />
-              Pool Members
-            </h2>
-            <p className="text-sm text-muted-foreground mt-1">
-              Manage who can access this pool
-            </p>
-          </div>
+      <div className="w-[400px] border-l bg-muted/5 flex flex-col h-full overflow-hidden">
+        <div className="p-6 border-b bg-background">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Pool Details
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Balances and member management
+          </p>
+        </div>
 
-          <ScrollArea className="flex-1">
-            <div className="p-4 space-y-4">
-              <div className="space-y-1">
-                <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                  Current Members
+        <ScrollArea className="flex-1">
+          <div className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium flex items-center gap-2">
+                  <ArrowUpDown className="h-4 w-4" />
+                  Balances
                 </h3>
-                {friends.filter((f) => f.is_pool_member).length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-2">
-                    No other members yet
+                <Button size="sm" variant="outline">
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Settle Up
+                </Button>
+              </div>
+
+              {balances.length === 0 ? (
+                <div className="text-center py-6">
+                  <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    All settled up!
                   </p>
-                ) : (
-                  friends
-                    .filter((f) => f.is_pool_member)
-                    .map((friend) => (
-                      <div
-                        key={friend.member.id}
-                        className="flex items-center justify-between py-2"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <p className="text-sm font-medium">
-                              {friend.member.first_name}{" "}
-                              {friend.member.last_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {friend.member.email}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-destructive"
-                          disabled={isAddPending || isRemovePending}
-                          onClick={() => {
-                            removeFriendFromPool({
-                              params: {
-                                path: {
-                                  pool_id: poolId,
-                                  member_id: friend.member.id,
-                                },
-                              },
-                              headers: createAuthHeader(),
-                            });
-                          }}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {balances.map((balance, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background border"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{balance.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {balance.type === "owes" ? "Owes you" : "You owe"}
+                        </p>
                       </div>
-                    ))
+                      <div className="text-right">
+                        <p
+                          className={`font-semibold text-sm ${
+                            balance.type === "owes"
+                              ? "text-green-600"
+                              : "text-red-600"
+                          }`}
+                        >
+                          ${balance.amount.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <h3 className="font-medium">Pool Statistics</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-background p-3 rounded-lg border text-center">
+                  <p className="text-2xl font-bold">{expenses.length}</p>
+                  <p className="text-xs text-muted-foreground">Expenses</p>
+                </div>
+                <div className="bg-background p-3 rounded-lg border text-center">
+                  <p className="text-2xl font-bold">{poolMembers.length}</p>
+                  <p className="text-xs text-muted-foreground">Members</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium flex items-center gap-2">
+                  <UsersRound className="h-4 w-4" />
+                  Members
+                </h3>
+                {pool.role === "ADMIN" && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setIsAddMemberModalOpen(true)}
+                  >
+                    <UserRoundPlus className="h-4 w-4 mr-1" />
+                    Add
+                  </Button>
                 )}
               </div>
 
-              {friends.filter((f) => !f.is_pool_member).length > 0 && (
-                <>
-                  <Separator />
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2">
-                      Add Friends to Pool
-                    </h3>
-                    {friends
-                      .filter((f) => !f.is_pool_member)
-                      .map((friend) => (
-                        <div
-                          key={friend.member.id}
-                          className="flex items-center justify-between py-2"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {friend.member.first_name}{" "}
-                                {friend.member.last_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {friend.member.email}
-                              </p>
-                            </div>
-                          </div>
+              <div className="space-y-2">
+                {poolMembers.length === 0 ? (
+                  <p className="text-sm text-muted-foreground py-4 text-center">
+                    No members yet
+                  </p>
+                ) : (
+                  poolMembers.map((member) => (
+                    <div
+                      key={member.member.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-background border"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-medium">
+                            {member.member.first_name[0]}
+                            {member.member.last_name[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {member.member.first_name} {member.member.last_name}
+                            {member.member.id === memberId && (
+                              <Badge
+                                variant="secondary"
+                                className="ml-2 text-xs"
+                              >
+                                You
+                              </Badge>
+                            )}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {member.member.email}
+                          </p>
+                        </div>
+                      </div>
+                      {pool.role === "ADMIN" &&
+                        member.member.id !== memberId && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="h-8 w-8 p-0 text-emerald-700"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             disabled={isAddPending || isRemovePending}
                             onClick={() => {
-                              addFriendToPool({
-                                body: {
-                                  member_id: friend.member.id,
-                                },
+                              removeFriendFromPool({
                                 params: {
-                                  path: { pool_id: poolId },
+                                  path: {
+                                    pool_id: poolId,
+                                    member_id: member.member.id,
+                                  },
                                 },
                                 headers: createAuthHeader(),
                               });
                             }}
                           >
-                            <UserRoundPlus className="h-4 w-4" />
+                            <UserMinus className="h-4 w-4" />
                           </Button>
-                        </div>
-                      ))}
-                  </div>
-                </>
-              )}
+                        )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {pool.role === "ADMIN" &&
+                friends.filter((f) => !f.is_pool_member).length > 0 && (
+                  <>
+                    <div className="pt-4">
+                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                        Add Friends to Pool
+                      </h4>
+                      <div className="space-y-2">
+                        {friends
+                          .filter((f) => !f.is_pool_member)
+                          .slice(0, 3)
+                          .map((friend) => (
+                            <div
+                              key={friend.member.id}
+                              className="flex items-center justify-between p-2 rounded bg-muted/50"
+                            >
+                              <div>
+                                <p className="text-sm font-medium">
+                                  {friend.member.first_name}{" "}
+                                  {friend.member.last_name}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {friend.member.email}
+                                </p>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                disabled={isAddPending || isRemovePending}
+                                onClick={() => {
+                                  addFriendToPool({
+                                    body: {
+                                      member_id: friend.member.id,
+                                    },
+                                    params: {
+                                      path: { pool_id: poolId },
+                                    },
+                                    headers: createAuthHeader(),
+                                  });
+                                }}
+                              >
+                                <UserRoundPlus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        {friends.filter((f) => !f.is_pool_member).length >
+                          3 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => setIsAddMemberModalOpen(true)}
+                          >
+                            View all (
+                            {friends.filter((f) => !f.is_pool_member).length -
+                              3}{" "}
+                            more)
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
             </div>
-          </ScrollArea>
-        </div>
-      )}
+          </div>
+        </ScrollArea>
+      </div>
     </div>
   );
 }

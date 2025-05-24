@@ -902,6 +902,58 @@ pub async fn get_pool_recent_expenses_handler(
     )
 }
 
+#[derive(Serialize, ToSchema)]
+pub struct PoolBalanceForMember {
+    #[serde(flatten)]
+    member_id: uuid::Uuid,
+    balance: f64,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct PoolBalancesForMemberPath {
+    pool_id: uuid::Uuid,
+    member_id: uuid::Uuid,
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/pools/{pool_id}/members/{member_id}/balances",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch balances for"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch balances for"),
+    ),
+    responses(
+        (status = 200, description = "Got balances", body = Vec<PoolBalanceForMember>),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn get_pool_balances_for_member(
+    Path(path): Path<PoolBalancesForMemberPath>,
+) -> Json<Vec<PoolBalanceForMember>> {
+    let pool_id = path.pool_id;
+    let member_id = path.member_id;
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let expenses = tokio::task::spawn_blocking(move || {
+        models::Expense::get_recent_for_member_in_pool(&mut conn, pool_id, member_id, 10_000)
+            .expect("Failed to get recent expenses")
+    })
+    .await
+    .expect("Task panicked");
+    Json(
+        expenses
+            .into_iter()
+            .map(|(expense, _)| PoolBalanceForMember {
+                member_id: expense.paid_by_member_id,
+                balance: expense.amount,
+            })
+            .collect(),
+    )
+}
+
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct MembersWithPoolStatus {
     member: models::Member,
@@ -1047,6 +1099,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(list_members_of_pool_handler))
         .routes(routes!(list_pools_for_member_handler))
         .routes(routes!(delete_friend_request))
+        .routes(routes!(get_pool_balances_for_member))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)
