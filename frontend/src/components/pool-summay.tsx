@@ -38,7 +38,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
@@ -59,7 +59,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   if (
@@ -83,31 +83,35 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         setIsOpen={setIsAddExpenseModalOpen}
       />
       <Card key={poolId} className="overflow-hidden border border-gray-200">
-        <CardHeader className="bg-gray-50 pb-2">
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle className="text-lg">{poolDetails.name}</CardTitle>
-              {poolDetails.description && (
-                <CardDescription className="mt-1">
-                  {poolDetails.description}
-                </CardDescription>
+        <Link to="/pools/$poolId" params={{ poolId }}>
+          <CardHeader className="bg-gray-50 pb-2 hover:bg-gray-100">
+            <div className="flex justify-between items-start">
+              <div>
+                <CardTitle className="text-lg">{poolDetails.name}</CardTitle>
+                {poolDetails.description && (
+                  <CardDescription className="mt-1">
+                    {poolDetails.description}
+                  </CardDescription>
+                )}
+              </div>
+              {poolDetails.total_debt === 0 ? (
+                <Badge
+                  className={`ml-2 py-2 bg-white text-black hover:bg-white`}
+                >
+                  <p className="text-base font-light">All settled up!</p>
+                </Badge>
+              ) : (
+                <Badge
+                  className={`ml-2 py-2 ${poolDetails.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
+                >
+                  <p className="text-base font-light">
+                    {formatCurrency(poolDetails.total_debt)}
+                  </p>
+                </Badge>
               )}
             </div>
-            {poolDetails.total_debt === 0 ? (
-              <Badge className={`ml-2 py-2 bg-white text-black hover:bg-white`}>
-                <p className="text-base font-light">All settled up!</p>
-              </Badge>
-            ) : (
-              <Badge
-                className={`ml-2 py-2 ${poolDetails.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
-              >
-                <p className="text-base font-light">
-                  {formatCurrency(poolDetails.total_debt)}
-                </p>
-              </Badge>
-            )}
-          </div>
-        </CardHeader>
+          </CardHeader>
+        </Link>
 
         <CardContent className="pt-4">
           <div className="flex items-center text-sm text-gray-500 mb-2">
@@ -150,12 +154,9 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </CardContent>
 
         <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-          <Link to="/pools/$poolId" params={{ poolId }}>
-            {" "}
-            <Button variant="outline" size="sm">
-              View Details
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm">
+            Settle Up
+          </Button>
           <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
             Add Expense
           </Button>
