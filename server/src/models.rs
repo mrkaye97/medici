@@ -274,41 +274,6 @@ impl Member {
         member::table.find(id).get_result(conn)
     }
 
-    pub fn find_by_email(conn: &mut PgConnection, email_query: &str) -> QueryResult<Self> {
-        member::table
-            .filter(member::email.eq(email_query))
-            .first(conn)
-    }
-
-    pub fn update(
-        conn: &mut PgConnection,
-        id: uuid::Uuid,
-        changeset: &MemberChangeset,
-    ) -> QueryResult<Self> {
-        diesel::update(member::table.find(id))
-            .set(changeset)
-            .get_result(conn)
-    }
-
-    pub fn delete(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<usize> {
-        diesel::delete(member::table.find(id)).execute(conn)
-    }
-
-    pub fn get_with_password(
-        conn: &mut PgConnection,
-        member_id: uuid::Uuid,
-    ) -> QueryResult<(Self, String)> {
-        member::table
-            .inner_join(member_password::table.on(member::id.eq(member_password::member_id)))
-            .filter(member::id.eq(member_id))
-            .select((member::all_columns, member_password::password_hash))
-            .first(conn)
-    }
-
-    pub fn list_all(conn: &mut PgConnection) -> QueryResult<Vec<Self>> {
-        member::table.load(conn)
-    }
-
     pub fn authenticate(
         conn: &mut PgConnection,
         email_query: &str,
@@ -333,43 +298,6 @@ impl MemberPassword {
             .values(new_password)
             .get_result(conn)
     }
-
-    pub fn find_by_member_id(
-        conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
-    ) -> QueryResult<Self> {
-        member_password::table
-            .filter(member_password::member_id.eq(member_id_query))
-            .first(conn)
-    }
-
-    pub fn update_password(
-        conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
-        new_hash: &str,
-    ) -> QueryResult<Self> {
-        diesel::update(
-            member_password::table.filter(member_password::member_id.eq(member_id_query)),
-        )
-        .set(member_password::password_hash.eq(new_hash))
-        .get_result(conn)
-    }
-
-    pub fn verify_password(
-        conn: &mut PgConnection,
-        member_id: uuid::Uuid,
-        password_hash: &str,
-    ) -> QueryResult<bool> {
-        let result: QueryResult<String> = member_password::table
-            .filter(member_password::member_id.eq(member_id))
-            .select(member_password::password_hash)
-            .first(conn);
-
-        match result {
-            Ok(stored_hash) => Ok(stored_hash == password_hash),
-            Err(e) => Err(e),
-        }
-    }
 }
 
 impl Pool {
@@ -377,24 +305,6 @@ impl Pool {
         diesel::insert_into(pool::table)
             .values(new_pool)
             .get_result(conn)
-    }
-
-    pub fn find(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<Self> {
-        pool::table.find(id).get_result(conn)
-    }
-
-    pub fn update(
-        conn: &mut PgConnection,
-        id: uuid::Uuid,
-        changeset: &PoolChangeset,
-    ) -> QueryResult<Self> {
-        diesel::update(pool::table.find(id))
-            .set(changeset)
-            .get_result(conn)
-    }
-
-    pub fn delete(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<usize> {
-        diesel::delete(pool::table.find(id)).execute(conn)
     }
 
     pub fn find_by_member_id(
@@ -493,36 +403,6 @@ impl PoolMembership {
             .get_result(conn)
     }
 
-    pub fn find(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<Self> {
-        pool_membership::table.find(id).get_result(conn)
-    }
-
-    pub fn find_by_pool_and_member(
-        conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-        member_id_query: uuid::Uuid,
-    ) -> QueryResult<Self> {
-        pool_membership::table
-            .filter(pool_membership::pool_id.eq(pool_id_query))
-            .filter(pool_membership::member_id.eq(member_id_query))
-            .first(conn)
-    }
-
-    pub fn get_members_in_pool(
-        conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-    ) -> QueryResult<Vec<Member>> {
-        member::table
-            .inner_join(pool_membership::table.on(member::id.eq(pool_membership::member_id)))
-            .filter(pool_membership::pool_id.eq(pool_id_query))
-            .select(member::all_columns)
-            .get_results(conn)
-    }
-
-    pub fn delete(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<usize> {
-        diesel::delete(pool_membership::table.find(id)).execute(conn)
-    }
-
     pub fn add_member(
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
@@ -594,34 +474,6 @@ impl Expense {
             .get_result(conn)
     }
 
-    pub fn find_for_pool(
-        conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-    ) -> QueryResult<Vec<Self>> {
-        expense::table
-            .filter(expense::pool_id.eq(pool_id_query))
-            .get_results(conn)
-    }
-
-    pub fn update(
-        conn: &mut PgConnection,
-        id: uuid::Uuid,
-        is_settled_query: bool,
-        changeset: &ExpenseChangeset,
-    ) -> QueryResult<Self> {
-        diesel::update(expense::table.find((id, is_settled_query)))
-            .set(changeset)
-            .get_result(conn)
-    }
-
-    pub fn delete(
-        conn: &mut PgConnection,
-        id: uuid::Uuid,
-        is_settled_query: bool,
-    ) -> QueryResult<usize> {
-        diesel::delete(expense::table.find((id, is_settled_query))).execute(conn)
-    }
-
     pub fn get_recent_for_member_in_pool(
         conn: &mut PgConnection,
         pool_id_query: uuid::Uuid,
@@ -691,21 +543,23 @@ impl Expense {
         pool_id: uuid::Uuid,
     ) -> QueryResult<Vec<DebtPair>> {
         diesel::sql_query(
-            "SELECT
-            eli.debtor_member_id AS from_member_id,
-            e.paid_by_member_id AS to_member_id,
-            SUM(
-                CASE
-                    WHEN e.paid_by_member_id = eli.debtor_member_id THEN eli.amount - e.amount
-                    ELSE eli.amount
-                END
-            ) AS amount
-        FROM expense e
-        JOIN expense_line_item eli ON e.id = eli.expense_id AND NOT e.is_settled
-        WHERE
-            e.pool_id = $1
-            AND eli.debtor_member_id <> e.paid_by_member_id
-        GROUP BY eli.debtor_member_id, e.paid_by_member_id",
+            "
+            SELECT
+                eli.debtor_member_id AS from_member_id,
+                e.paid_by_member_id AS to_member_id,
+                SUM(
+                    CASE
+                        WHEN e.paid_by_member_id = eli.debtor_member_id THEN eli.amount - e.amount
+                        ELSE eli.amount
+                    END
+                ) AS amount
+            FROM expense e
+            JOIN expense_line_item eli ON e.id = eli.expense_id AND NOT e.is_settled
+            WHERE
+                e.pool_id = $1
+                AND eli.debtor_member_id <> e.paid_by_member_id
+            GROUP BY eli.debtor_member_id, e.paid_by_member_id
+            ",
         )
         .bind::<Uuid, _>(pool_id)
         .load::<DebtPair>(conn)
@@ -722,10 +576,6 @@ impl ExpenseLineItem {
             .get_result(conn)
     }
 
-    pub fn find(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<Self> {
-        expense_line_item::table.find(id).get_result(conn)
-    }
-
     pub fn find_for_expense(
         conn: &mut PgConnection,
         expense_id_query: uuid::Uuid,
@@ -733,20 +583,6 @@ impl ExpenseLineItem {
         expense_line_item::table
             .filter(expense_line_item::expense_id.eq(expense_id_query))
             .get_results(conn)
-    }
-
-    pub fn update(
-        conn: &mut PgConnection,
-        id: uuid::Uuid,
-        changeset: &ExpenseLineItemChangeset,
-    ) -> QueryResult<Self> {
-        diesel::update(expense_line_item::table.find(id))
-            .set(changeset)
-            .get_result(conn)
-    }
-
-    pub fn delete(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<usize> {
-        diesel::delete(expense_line_item::table.find(id)).execute(conn)
     }
 }
 
