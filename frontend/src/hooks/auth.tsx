@@ -16,6 +16,7 @@ export function useAuth() {
   }, [token]);
 
   const loginMutation = apiClient.useMutation("post", "/api/login");
+
   const signupMutation = apiClient.useMutation("post", "/api/signup");
 
   const setAuthMetadata = async ({
@@ -77,7 +78,7 @@ export function useAuth() {
     email: string,
     password: string,
     firstName: string,
-    lastName: string,
+    lastName: string
   ) => {
     try {
       const result = await signupMutation.mutateAsync({

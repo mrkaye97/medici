@@ -11,6 +11,7 @@ import {
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { FormEvent, useCallback } from "react";
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
 
 type LoginFormProps = {
   className?: string;
@@ -21,12 +22,18 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    },
+    }
   ) => void;
   formType: "login" | "signup";
+  hasError?: boolean;
 };
 
-export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
+export function LoginForm({
+  className,
+  onSubmit,
+  formType,
+  hasError,
+}: LoginFormProps) {
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -41,7 +48,7 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit],
+    [onSubmit]
   );
 
   return (
@@ -120,6 +127,14 @@ export function LoginForm({ className, onSubmit, formType }: LoginFormProps) {
               </div>
             </Link>
           )}{" "}
+          {hasError && (
+            <div className="mt-4">
+              <Alert variant="destructive">
+                <AlertTitle>Login failed</AlertTitle>
+                <AlertDescription>Invalid email or password</AlertDescription>
+              </Alert>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

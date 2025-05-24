@@ -307,10 +307,13 @@ pub async fn get_member_handler(
     request_body = LoginInput,
     responses(
         (status = 200, description = "Log in a member successfully", body = AuthResult),
+        (status = 400, description = "Incorrect credentials", body = AuthResult),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
+pub async fn login_handler(
+    Json(input): Json<LoginInput>,
+) -> Result<Json<AuthResult>, (StatusCode, Json<AuthResult>)> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -356,7 +359,10 @@ pub async fn login_handler(Json(input): Json<LoginInput>) -> Json<AuthResult> {
     .await
     .expect("Task panicked");
 
-    Json(result)
+    match result {
+        AuthResult::Authenticated { .. } => Ok(Json(result)),
+        AuthResult::Unauthenticated { .. } => Err((StatusCode::BAD_REQUEST, Json(result))),
+    }
 }
 
 #[derive(Debug, Deserialize)]

@@ -2,6 +2,8 @@ import { LoginForm } from "@/components/login-form";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 import { useAuth } from "@/hooks/auth";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from "react";
 
 const fallback = "/" as const;
 
@@ -14,6 +16,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const { isAuthenticated, login } = useAuth();
+  const [isError, setIsError] = useState(false);
 
   if (isAuthenticated) {
     return <Navigate to={fallback} />;
@@ -23,12 +26,18 @@ function LoginPage() {
     <div className="flex flex-col justify-center items-center h-full">
       <LoginForm
         onSubmit={async (e) => {
+          setIsError(false);
           const email = e.currentTarget.email.value as string;
           const password = e.currentTarget.password.value as string;
 
-          await login(email, password);
+          const result = await login(email, password);
+
+          if (!result) {
+            setIsError(true);
+          }
         }}
         formType="login"
+        hasError={isError}
       />
     </div>
   );
