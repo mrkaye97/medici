@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
 import { AddMemberModal } from "@/components/add-member-modal";
+import { SettleUpModal } from "@/components/settle-up-modal";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -32,6 +33,7 @@ function Pool() {
   const { memberId, createAuthHeader } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
+  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
 
   const { data: pool } = apiClient.useQuery(
     "get",
@@ -156,6 +158,10 @@ function Pool() {
         setIsOpen={setIsAddMemberModalOpen}
         poolId={poolId}
       />
+      <SettleUpModal
+        isOpen={isSettleUpModalOpen}
+        setIsOpen={(isOpen) => setIsSettleUpModalOpen(isOpen)}
+      />
 
       <div className="flex-1 overflow-hidden flex flex-col p-6">
         <div className="flex justify-between items-center mb-6">
@@ -249,7 +255,11 @@ function Pool() {
                   <ArrowUpDown className="h-4 w-4" />
                   Balances
                 </h3>
-                <Button size="sm" variant="outline">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setIsSettleUpModalOpen(true)}
+                >
                   <CheckCircle className="h-4 w-4 mr-1" />
                   Settle Up
                 </Button>
