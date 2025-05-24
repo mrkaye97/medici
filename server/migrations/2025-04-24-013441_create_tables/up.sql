@@ -132,7 +132,7 @@ $$ LANGUAGE plpgsql;
 CREATE
 OR REPLACE FUNCTION add_updated_at_trigger(table_name text) RETURNS void AS $$ BEGIN EXECUTE format(
   '
-    CREATE TRIGGER set_updated_at
+    CREATE OR REPLACE TRIGGER set_updated_at
     BEFORE UPDATE ON %I
     FOR EACH ROW
     EXECUTE FUNCTION trigger_set_updated_at();
