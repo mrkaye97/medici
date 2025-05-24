@@ -13,10 +13,10 @@ CREATE TABLE member (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   first_name character varying(255) NOT NULL,
   last_name character varying(255) NOT NULL,
-  bio TEXT,
   email character varying(255) NOT NULL,
   inserted_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  bio TEXT,
   PRIMARY KEY (id),
   CONSTRAINT member_email_key UNIQUE (email)
 );
@@ -54,16 +54,16 @@ CREATE TYPE expense_category AS ENUM (
 
 CREATE TABLE expense (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
-  pool_id UUID NOT NULL,
-  paid_by_member_id uuid NOT NULL,
   name text NOT NULL,
   amount DOUBLE PRECISION NOT NULL,
-  description TEXT,
-  notes TEXT,
-  category expense_category NOT NULL DEFAULT 'miscellaneous',
   is_settled boolean NOT NULL DEFAULT false,
   inserted_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  pool_id UUID NOT NULL,
+  paid_by_member_id uuid NOT NULL,
+  description TEXT,
+  notes TEXT,
+  category expense_category NOT NULL DEFAULT 'miscellaneous',
   PRIMARY KEY (id, is_settled),
   CONSTRAINT expense_paid_by_member_id_fkey FOREIGN KEY (paid_by_member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT expense_pool_id_fkey FOREIGN KEY (pool_id) REFERENCES pool (id) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -80,11 +80,11 @@ VALUES IN (FALSE);
 CREATE TABLE expense_line_item (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   expense_id uuid NOT NULL,
-  debtor_member_id UUID NOT NULL,
   is_settled boolean NOT NULL DEFAULT false,
   amount DOUBLE PRECISION NOT NULL,
   inserted_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
+  debtor_member_id UUID NOT NULL,
   PRIMARY KEY (id),
   CONSTRAINT expense_line_item_expense_id_is_settled_fkey FOREIGN KEY (expense_id, is_settled) REFERENCES expense (id, is_settled),
   CONSTRAINT expense_line_item_debtor_member_id_fkey FOREIGN KEY (debtor_member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE
