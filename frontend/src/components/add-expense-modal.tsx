@@ -28,6 +28,7 @@ import {
   Gift,
   HelpingHand,
   Ellipsis,
+  Pin,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { z } from "zod";
@@ -56,6 +57,7 @@ import { components } from "schema";
 enum SplitMethodType {
   Percentage = "percentage",
   Amount = "amount",
+  Default = "default",
 }
 
 export type ExpenseCategory = components["schemas"]["ExpenseCategory"];
@@ -203,6 +205,11 @@ const splitMethodType = Object.values(SplitMethodType);
 
 function typeToLabelAndIcon(type: SplitMethodType) {
   switch (type) {
+    case SplitMethodType.Default:
+      return {
+        label: "Split by default",
+        icon: <Pin className="size-4" />,
+      };
     case SplitMethodType.Amount:
       return {
         label: "Split by dollar amounts",
@@ -228,19 +235,28 @@ export function SplitMethod({ value, setValue }: SplitMethodProps) {
   return (
     <div className="flex flex-col gap-y-2">
       <RadioGroup value={value} onValueChange={setValue}>
-        {splitMethodType.map((t) => {
-          const { label, icon } = typeToLabelAndIcon(t);
+        {splitMethodType
+          .sort((a, b) => {
+            if (a === SplitMethodType.Default) return -1;
+            if (b === SplitMethodType.Default) return 1;
+            return a.localeCompare(b);
+          })
+          .map((t) => {
+            const { label, icon } = typeToLabelAndIcon(t);
 
-          return (
-            <div key={t} className="flex items-center space-x-2">
-              <RadioGroupItem value={t} id={t} />
-              <Label htmlFor={t} className="flex flex-row items-center gap-x-2">
-                {icon}
-                {label}
-              </Label>
-            </div>
-          );
-        })}
+            return (
+              <div key={t} className="flex items-center space-x-2">
+                <RadioGroupItem value={t} id={t} />
+                <Label
+                  htmlFor={t}
+                  className="flex flex-row items-center gap-x-2"
+                >
+                  {icon}
+                  {label}
+                </Label>
+              </div>
+            );
+          })}
       </RadioGroup>
     </div>
   );
@@ -251,9 +267,16 @@ const expenseSchema = z.object({
   amount: z.coerce.number().positive("Must be greater than 0"),
   category: z.string(),
   description: z.string().optional(),
-  splitMethod: z.enum([SplitMethodType.Amount, SplitMethodType.Percentage], {
-    errorMap: () => ({ message: "Required" }),
-  }),
+  splitMethod: z.enum(
+    [
+      SplitMethodType.Amount,
+      SplitMethodType.Percentage,
+      SplitMethodType.Default,
+    ],
+    {
+      errorMap: () => ({ message: "Required" }),
+    },
+  ),
   paidByMemberId: z.string().min(1, "Required"),
 });
 
@@ -310,7 +333,7 @@ export function AddExpenseModal({
 
   const members = useMemo(() => data ?? [], [data]);
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
-    splitMethod: SplitMethodType.Percentage,
+    splitMethod: SplitMethodType.Default,
     splitAmounts: members.map((member) => ({
       memberId: member.member.id,
       amount: round(100 / members.length),
@@ -319,7 +342,7 @@ export function AddExpenseModal({
 
   const resetSplitAmounts = useCallback(() => {
     setSplitAmounts({
-      splitMethod: SplitMethodType.Percentage,
+      splitMethod: SplitMethodType.Default,
       splitAmounts: members.map((member) => ({
         memberId: member.member.id,
         amount: round(100 / members.length),
@@ -334,7 +357,7 @@ export function AddExpenseModal({
       amount: 0,
       category: "Miscellaneous",
       description: undefined,
-      splitMethod: SplitMethodType.Percentage,
+      splitMethod: SplitMethodType.Default,
       paidByMemberId: memberId || "",
     },
   });
@@ -364,10 +387,22 @@ export function AddExpenseModal({
             onSubmit={form.handleSubmit((data) => {
               const memberLineItemAmounts = splitAmounts.splitAmounts.map(
                 (a) => {
+                  const member = members.find(
+                    (m) => m.member.id === a.memberId,
+                  );
+
+                  if (!member) {
+                    throw new Error(
+                      `Member with id ${a.memberId} not found in pool`,
+                    );
+                  }
+
                   const amount =
                     splitAmounts.splitMethod === SplitMethodType.Percentage
                       ? (a.amount / 100) * data.amount
-                      : a.amount;
+                      : splitAmounts.splitMethod === SplitMethodType.Amount
+                        ? a.amount
+                        : (member.default_split_percentage / 100) * data.amount;
 
                   return {
                     debtor_member_id: a.memberId,
@@ -596,65 +631,72 @@ export function AddExpenseModal({
                           });
                         }}
                       />
-                      <div className="flex flex-col gap-y-2 border border-[#00000025] p-4 rounded-lg mt-4">
-                        {members
-                          .sort((a, b) =>
-                            a.member.first_name
-                              .toLowerCase()
-                              .localeCompare(b.member.first_name.toLowerCase()),
-                          )
-                          .map((m, ix) => (
-                            <div className="flex flex-col" key={m.member.email}>
+                      {form.getValues("splitMethod") !==
+                        SplitMethodType.Default && (
+                        <div className="flex flex-col gap-y-2 border border-[#00000025] p-4 rounded-lg mt-4">
+                          {members
+                            .sort((a, b) =>
+                              a.member.first_name
+                                .toLowerCase()
+                                .localeCompare(
+                                  b.member.first_name.toLowerCase(),
+                                ),
+                            )
+                            .map((m, ix) => (
                               <div
-                                key={m.member.id}
-                                className="flex flex-row gap-y-2 justify-between items-center"
+                                className="flex flex-col"
+                                key={m.member.email}
                               >
-                                <Label
-                                  htmlFor={m.member.id}
-                                  className="flex flex-row items-center gap-x-2"
+                                <div
+                                  key={m.member.id}
+                                  className="flex flex-row gap-y-2 justify-between items-center"
                                 >
-                                  {`${m.member.first_name} ${m.member.last_name} ${m.member.id === memberId ? "(Me)" : ""}`}
-                                </Label>
-                                <Input
-                                  type="number"
-                                  value={
-                                    splitAmounts.splitAmounts.find(
-                                      (a) => a.memberId == m.member.id,
-                                    )?.amount
-                                  }
-                                  onChange={(e) => {
-                                    const memberId = m.member.id;
+                                  <Label
+                                    htmlFor={m.member.id}
+                                    className="flex flex-row items-center gap-x-2"
+                                  >
+                                    {`${m.member.first_name} ${m.member.last_name} ${m.member.id === memberId ? "(Me)" : ""}`}
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    value={
+                                      splitAmounts.splitAmounts.find(
+                                        (a) => a.memberId == m.member.id,
+                                      )?.amount
+                                    }
+                                    onChange={(e) => {
+                                      const memberId = m.member.id;
 
-                                    setSplitAmounts((prev) => {
-                                      const newAmounts = prev.splitAmounts.map(
-                                        (a) => {
-                                          if (a.memberId === memberId) {
-                                            return {
-                                              ...a,
-                                              amount: round(
-                                                parseFloat(e.target.value),
-                                              ),
-                                            };
-                                          }
-                                          return a;
-                                        },
-                                      );
+                                      setSplitAmounts((prev) => {
+                                        const newAmounts =
+                                          prev.splitAmounts.map((a) => {
+                                            if (a.memberId === memberId) {
+                                              return {
+                                                ...a,
+                                                amount: round(
+                                                  parseFloat(e.target.value),
+                                                ),
+                                              };
+                                            }
+                                            return a;
+                                          });
 
-                                      return {
-                                        ...prev,
-                                        splitAmounts: newAmounts,
-                                      };
-                                    });
-                                  }}
-                                  className="w-32"
-                                />
+                                        return {
+                                          ...prev,
+                                          splitAmounts: newAmounts,
+                                        };
+                                      });
+                                    }}
+                                    className="w-32"
+                                  />
+                                </div>
+                                {ix !== members.length - 1 && (
+                                  <Separator className="my-4" />
+                                )}
                               </div>
-                              {ix !== members.length - 1 && (
-                                <Separator className="my-4" />
-                              )}
-                            </div>
-                          ))}
-                      </div>
+                            ))}
+                        </div>
+                      )}
                     </div>
                   </FormControl>
                   <FormMessage />
