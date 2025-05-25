@@ -560,24 +560,28 @@ impl Expense {
         debtor_member_ids: &[uuid::Uuid],
         amounts: &[f64],
     ) -> QueryResult<(Self, Vec<ExpenseLineItem>)> {
-        let expense = Self::create(conn, new_expense)?;
+        let result = conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let expense = Self::create(conn, new_expense)?;
 
-        let mut line_items = Vec::new();
-        for (i, &debtor_id) in debtor_member_ids.iter().enumerate() {
-            if i < amounts.len() {
-                let line_item = NewExpenseLineItem {
-                    expense_id: expense.id,
-                    is_settled: false,
-                    amount: amounts[i].clone(),
-                    debtor_member_id: debtor_id,
-                };
+            let mut line_items = Vec::new();
+            for (i, &debtor_id) in debtor_member_ids.iter().enumerate() {
+                if i < amounts.len() {
+                    let line_item = NewExpenseLineItem {
+                        expense_id: expense.id,
+                        is_settled: false,
+                        amount: amounts[i].clone(),
+                        debtor_member_id: debtor_id,
+                    };
 
-                let created_item = ExpenseLineItem::create(conn, &line_item)?;
-                line_items.push(created_item);
+                    let created_item = ExpenseLineItem::create(conn, &line_item)?;
+                    line_items.push(created_item);
+                }
             }
-        }
 
-        Ok((expense, line_items))
+            Ok((expense, line_items))
+        })?;
+
+        return Ok(result);
     }
 
     pub fn list_unpaid_for_balance_computation(
