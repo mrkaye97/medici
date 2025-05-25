@@ -8,6 +8,9 @@ use std::{
     env,
 };
 
+#[cfg(test)]
+mod tests;
+
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
 
@@ -153,7 +156,11 @@ pub fn compute_balances_for_member(
         let target_member_id = graph[target_node_index];
         let amount = *graph.edge_weight(edge).unwrap();
 
-        if source_member_id == member_id && amount > 0.0 {
+        if amount <= 0.0 {
+            continue;
+        }
+
+        if source_member_id == member_id {
             payments.push(models::Balance {
                 member_id: target_member_id,
                 amount,

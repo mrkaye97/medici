@@ -523,7 +523,7 @@ pub struct ExpenseForBalanceCalculation {
     pub amount: f64,
 }
 
-#[derive(QueryableByName, Debug)]
+#[derive(QueryableByName, Debug, Clone)]
 pub struct DebtPair {
     #[diesel(sql_type = SqlUuid)]
     pub from_member_id: uuid::Uuid,
@@ -788,7 +788,7 @@ impl Friendship {
     }
 }
 
-#[derive(Serialize, ToSchema, Debug)]
+#[derive(Serialize, ToSchema, Debug, Eq, Hash, PartialEq, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum PaymentDirection {
     Inbound,
