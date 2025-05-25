@@ -51,7 +51,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -68,7 +68,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -82,7 +82,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -97,7 +97,7 @@ function Pool() {
           },
         },
         headers: createAuthHeader(),
-      }
+      },
     );
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
@@ -112,7 +112,7 @@ function Pool() {
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0
+    0,
   );
 
   const balances = useMemo(() => {
