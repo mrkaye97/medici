@@ -38,7 +38,7 @@ function Pool() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden h-dvh">
+    <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh">
       <ExpensesPane poolId={poolId} />
       <PoolDetailsPane memberId={memberId} poolId={poolId} />
     </div>
@@ -52,7 +52,7 @@ type PoolPaneProps = {
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   return (
-    <div className="w-[500px] bg-muted/5 flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 ">
+    <div className="md:w-[500px] bg-muted/5 flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 ">
       <div className="p-6 border-b bg-background">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
@@ -65,13 +65,9 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
 
       <div className="p-6 space-y-6">
         <PoolBalancesPane poolId={poolId} />
-
         <Separator />
-
         <PoolStatistics poolId={poolId} />
-
         <Separator />
-
         <PoolMemberManagementPane poolId={poolId} memberId={memberId} />
       </div>
     </div>
@@ -105,7 +101,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   }
 
   return (
-    <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 pl-6">
+    <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-2 md:px-0 md:pl-6">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
@@ -113,7 +109,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       />
       <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col">
         <CardHeader className="pb-4 flex-shrink-0">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">
                 {details.name}
