@@ -62,7 +62,7 @@ function Home() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col p-6">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
