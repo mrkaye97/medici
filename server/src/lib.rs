@@ -19,16 +19,14 @@ pub fn establish_connection() -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
-pub fn compute_balances_for_member(
+fn debt_pairs_to_graph(
     member_id: uuid::Uuid,
     expenses: Vec<models::DebtPair>,
-) -> Vec<models::Balance> {
-    let mut payments = Vec::new();
-
-    if expenses.is_empty() {
-        return payments;
-    }
-
+) -> (
+    Graph<uuid::Uuid, f64, petgraph::Directed>,
+    HashSet<uuid::Uuid>,
+    HashSet<uuid::Uuid>,
+) {
     let mut pairwise_expenses: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
     let mut necessary_payments: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
 
@@ -72,6 +70,7 @@ pub fn compute_balances_for_member(
                 .entry(*from_member_id)
                 .and_modify(|e| *e -= amount)
                 .or_insert(-amount);
+
             member_id_to_balance
                 .entry(*to_member_id)
                 .and_modify(|e| *e += amount)
@@ -81,6 +80,7 @@ pub fn compute_balances_for_member(
                 .entry(*to_member_id)
                 .and_modify(|e| *e += amount)
                 .or_insert(amount);
+
             member_id_to_balance
                 .entry(*from_member_id)
                 .and_modify(|e| *e -= amount)
@@ -116,6 +116,53 @@ pub fn compute_balances_for_member(
         graph.add_edge(from_node, to_node, *payment);
     }
 
+    return (graph, net_payers, net_receivers);
+}
+
+fn graph_to_payments(
+    graph: &Graph<uuid::Uuid, f64, petgraph::Directed>,
+    member_id: uuid::Uuid,
+) -> Vec<models::Balance> {
+    let mut payments = Vec::new();
+
+    for edge in graph.edge_indices() {
+        let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
+        let source_member_id = graph[source_node_index];
+        let target_member_id = graph[target_node_index];
+        let amount = *graph.edge_weight(edge).unwrap();
+
+        if amount <= 0.0 {
+            continue;
+        }
+
+        if source_member_id == member_id {
+            payments.push(models::Balance {
+                member_id: target_member_id,
+                amount,
+                direction: models::PaymentDirection::Outbound,
+            });
+        } else if target_member_id == member_id {
+            payments.push(models::Balance {
+                member_id: source_member_id,
+                amount,
+                direction: models::PaymentDirection::Inbound,
+            });
+        }
+    }
+
+    payments
+}
+
+pub fn compute_balances_for_member(
+    member_id: uuid::Uuid,
+    expenses: Vec<models::DebtPair>,
+) -> Vec<models::Balance> {
+    if expenses.is_empty() {
+        return Vec::new();
+    }
+
+    let (mut graph, net_payers, net_receivers) = debt_pairs_to_graph(member_id, expenses);
+
     for payer_member_id in net_payers {
         for receiver_member_id in net_receivers.iter().clone() {
             let destination = graph
@@ -150,30 +197,5 @@ pub fn compute_balances_for_member(
         }
     }
 
-    for edge in graph.edge_indices() {
-        let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
-        let source_member_id = graph[source_node_index];
-        let target_member_id = graph[target_node_index];
-        let amount = *graph.edge_weight(edge).unwrap();
-
-        if amount <= 0.0 {
-            continue;
-        }
-
-        if source_member_id == member_id {
-            payments.push(models::Balance {
-                member_id: target_member_id,
-                amount,
-                direction: models::PaymentDirection::Outbound,
-            });
-        } else if target_member_id == member_id {
-            payments.push(models::Balance {
-                member_id: source_member_id,
-                amount,
-                direction: models::PaymentDirection::Inbound,
-            });
-        }
-    }
-
-    return payments;
+    graph_to_payments(&graph, member_id)
 }
