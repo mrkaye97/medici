@@ -16,12 +16,14 @@ import { Spinner } from "./ui/spinner";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { apiClient } from "@/api/client";
 import { Link } from "@tanstack/react-router";
+import { SettleUpModal } from "./settle-up-modal";
 
 export function PoolSummary({ poolId }: { poolId: string }) {
   const { memberId, createAuthHeader } = useAuth();
 
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
 
   const { data: poolDetails, isLoading: isPoolDetailsLoading } =
     apiClient.useQuery(
@@ -38,7 +40,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
@@ -59,7 +61,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   if (
@@ -81,6 +83,11 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         pool={poolDetails}
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
+      />
+      <SettleUpModal
+        poolId={poolId}
+        isOpen={isSettleUpModalOpen}
+        setIsOpen={setIsSettleUpModalOpen}
       />
       <Card key={poolId} className="overflow-hidden border border-gray-200">
         <Link to="/pools/$poolId" params={{ poolId }}>
@@ -154,7 +161,11 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </CardContent>
 
         <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
-          <Button variant="outline" size="sm">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsSettleUpModalOpen(true)}
+          >
             Settle Up
           </Button>
           <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
