@@ -25,6 +25,7 @@ import { AddMemberModal } from "@/components/add-member-modal";
 import { SettleUpModal } from "@/components/settle-up-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -378,7 +379,7 @@ function Pool() {
                           </p>
                         </div>
                       </div>
-                      <div className="flex flex-row items-center gap-x-2">
+                      <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
                         {pool.role === "ADMIN" &&
                           member.member.id !== memberId && (
                             <Button
@@ -409,7 +410,12 @@ function Pool() {
                             </Button>
                           )}
                         {pool.role === "ADMIN" && (
-                          <Input type="number" className="max-w-16" />
+                          <div className="flex flex-col items-start gap-1">
+                            <Label htmlFor="email" className="text-xs">
+                              Split %
+                            </Label>
+                            <Input type="number" className="max-w-16" />
+                          </div>
                         )}
                       </div>
                     </div>
