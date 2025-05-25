@@ -53,7 +53,6 @@ pub fn compute_balances_for_member(
         }
     }
 
-    let mut payments = Vec::new();
     let mut member_id_to_balance: HashMap<uuid::Uuid, f64> = HashMap::new();
 
     for ((from_member_id, to_member_id), value) in &necessary_payments {
@@ -63,7 +62,7 @@ pub fn compute_balances_for_member(
             member_id_to_balance
                 .entry(*from_member_id)
                 .and_modify(|e| *e -= amount)
-                .or_insert(amount);
+                .or_insert(-amount);
             member_id_to_balance
                 .entry(*to_member_id)
                 .and_modify(|e| *e += amount)
@@ -92,15 +91,7 @@ pub fn compute_balances_for_member(
         .map(|x| *x.0)
         .collect();
 
-    let is_net_receiver = net_receivers.clone().contains(&member_id);
-    let members_to_consider = if is_net_receiver {
-        net_payers.clone()
-    } else {
-        net_receivers.clone()
-    };
-
     let mut graph = Graph::<uuid::Uuid, f64>::new();
-    let member_node = graph.add_node(member_id);
 
     for ((from_member_id, to_member_id), payment) in &necessary_payments {
         let from_node = graph
@@ -149,6 +140,8 @@ pub fn compute_balances_for_member(
             }
         }
     }
+
+    let mut payments = Vec::new();
 
     for edge in graph.edge_indices() {
         let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();

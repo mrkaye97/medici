@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
+use diesel::sql_types::Uuid;
 use diesel::sql_types::{Double, Uuid as SqlUuid};
-use diesel::sql_types::{Numeric, Uuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -525,13 +525,13 @@ pub struct ExpenseForBalanceCalculation {
 
 #[derive(QueryableByName, Debug)]
 pub struct DebtPair {
-    #[sql_type = "SqlUuid"]
+    #[diesel(sql_type = SqlUuid)]
     pub from_member_id: uuid::Uuid,
 
-    #[sql_type = "SqlUuid"]
+    #[diesel(sql_type = SqlUuid)]
     pub to_member_id: uuid::Uuid,
 
-    #[sql_type = "Double"]
+    #[diesel(sql_type = Double)]
     pub amount: f64,
 }
 
