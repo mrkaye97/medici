@@ -103,7 +103,7 @@ function Pool() {
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/members");
 
-  const { mutate: removeFriendFromPool, isPending: isRemovePending } =
+  const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
     apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
 
   const expenses = data || [];
@@ -383,8 +383,8 @@ function Pool() {
                             variant="ghost"
                             className="h-8 w-8 p-0 text-destructive hover:text-destructive"
                             disabled={isAddPending || isRemovePending}
-                            onClick={() => {
-                              removeFriendFromPool({
+                            onClick={async () => {
+                              await removeFriendFromPool({
                                 params: {
                                   path: {
                                     pool_id: poolId,
@@ -392,6 +392,13 @@ function Pool() {
                                   },
                                 },
                                 headers: createAuthHeader(),
+                              });
+
+                              await queryClient.invalidateQueries({
+                                queryKey: [
+                                  "get",
+                                  "/api/members/{member_id}/pools/{pool_id}/members",
+                                ],
                               });
                             }}
                           >
