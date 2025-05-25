@@ -5,7 +5,13 @@ import { useFriends } from "./use-friends";
 import { useCallback, useMemo } from "react";
 import { components } from "schema";
 
-export const usePool = ({ poolId }: { poolId: string }) => {
+export const usePool = ({
+  poolId,
+  expensesLimit,
+}: {
+  poolId: string;
+  expensesLimit?: number;
+}) => {
   const { memberId, createAuthHeader } = useAuth();
   const queryClient = useQueryClient();
 
@@ -22,7 +28,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: details, isLoading: isDetailsLoading } = apiClient.useQuery(
@@ -39,7 +45,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data: expenses, isLoading: isExpensesLoading } = apiClient.useQuery(
@@ -52,11 +58,11 @@ export const usePool = ({ poolId }: { poolId: string }) => {
           member_id: memberId || "",
         },
         query: {
-          limit: 100,
+          limit: expensesLimit ?? 100,
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: rawBalances, isLoading: isBalancesLoading } =
@@ -71,7 +77,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
           },
         },
         headers: createAuthHeader(),
-      },
+      }
     );
 
   const balances = useMemo(() => {
@@ -111,7 +117,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
     isPending: isModifyDefaultSplitPending,
   } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/default-splits",
+    "/api/members/{member_id}/pools/{pool_id}/default-splits"
   );
 
   const addFriend = useCallback(
@@ -128,7 +134,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
 
       await invalidate();
     },
-    [addFriendToPool, createAuthHeader, poolId, invalidate],
+    [addFriendToPool, createAuthHeader, poolId, invalidate]
   );
 
   const removeFriend = useCallback(
@@ -145,7 +151,7 @@ export const usePool = ({ poolId }: { poolId: string }) => {
 
       await invalidate();
     },
-    [poolId, createAuthHeader, invalidate, removeFriendFromPool],
+    [poolId, createAuthHeader, invalidate, removeFriendFromPool]
   );
 
   const modifyDefaultSplit = useCallback(
@@ -169,17 +175,11 @@ export const usePool = ({ poolId }: { poolId: string }) => {
 
       await invalidate();
     },
-    [
-      createAuthHeader,
-      invalidate,
-      memberId,
-      modifyDefaultSplitMutation,
-      poolId,
-    ],
+    [createAuthHeader, invalidate, memberId, modifyDefaultSplitMutation, poolId]
   );
 
   const friendsEligibleToAdd = friends.filter(
-    (f) => !members?.find((m) => (m.member.id = f.id)),
+    (f) => !members?.find((m) => (m.member.id = f.id))
   );
 
   const totalExpenses =

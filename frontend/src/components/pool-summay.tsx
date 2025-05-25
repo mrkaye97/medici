@@ -26,7 +26,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
     poolId,
   });
 
-  const { expenses, isExpensesLoading } = usePool({ poolId });
+  const { expenses, isExpensesLoading } = usePool({ poolId, expensesLimit: 5 });
   if (isDetailsLoading || !details || isExpensesLoading) {
     return (
       <div className="flex flex-col items-center">
