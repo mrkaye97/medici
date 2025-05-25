@@ -13,9 +13,6 @@ BEGIN
 END
 $$;
 
-DROP FUNCTION add_updated_at_trigger;
-DROP FUNCTION trigger_set_updated_at;
-
 DROP TABLE expense_line_item;
 DROP TABLE expense_p_is_settled_false;
 DROP TABLE expense_p_is_settled_true;
@@ -29,3 +26,9 @@ DROP TABLE member;
 DROP TYPE pool_role;
 DROP TYPE expense_category;
 DROP TYPE friendship_status;
+
+
+DROP FUNCTION add_updated_at_trigger;
+DROP FUNCTION trigger_set_updated_at;
+DROP FUNCTION validate_expense_after_insert;
+DROP FUNCTION validate_split_percentages_sum_to_100;

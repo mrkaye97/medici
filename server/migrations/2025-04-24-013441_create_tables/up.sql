@@ -91,6 +91,8 @@ CREATE TABLE expense_line_item (
   CONSTRAINT expense_line_item_debtor_member_id_fkey FOREIGN KEY (debtor_member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
+CREATE INDEX ix_expense_line_item_expense_id_is_settled ON expense_line_item (expense_id, is_settled);
+
 -- Passwords
 CREATE TABLE member_password (
   id UUID PRIMARY KEY DEFAULT GEN_RANDOM_UUID(),
@@ -125,13 +127,13 @@ CREATE UNIQUE INDEX ix_friendship_no_symmetric_pairs ON friendship (
 );
 
 -- Triggers
-CREATE
-OR REPLACE FUNCTION trigger_set_updated_at() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW();
+-- Set updated_at on insert and update
+CREATE OR REPLACE FUNCTION trigger_set_updated_at() RETURNS TRIGGER AS $$ BEGIN NEW.updated_at = NOW();
 RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-CREATE
-OR REPLACE FUNCTION add_updated_at_trigger(table_name TEXT) RETURNS void AS $$ BEGIN EXECUTE format(
+
+CREATE OR REPLACE FUNCTION add_updated_at_trigger(table_name TEXT) RETURNS void AS $$ BEGIN EXECUTE format(
   '
     CREATE OR REPLACE TRIGGER set_updated_at
     BEFORE UPDATE ON %I
@@ -163,3 +165,70 @@ WHERE
 END IF;
 END LOOP;
 END $$;
+
+
+-- Check that the sum of line items matches the expense amount
+CREATE OR REPLACE FUNCTION validate_expense_after_insert()
+RETURNS TRIGGER AS $$
+DECLARE
+    line_items_sum DOUBLE PRECISION;
+    line_items_count INTEGER;
+BEGIN
+    SELECT COALESCE(SUM(amount), 0), COUNT(*)
+    INTO line_items_sum, line_items_count
+    FROM expense_line_item
+    WHERE expense_id = NEW.id
+      AND is_settled = NEW.is_settled;
+
+    IF line_items_count > 0 THEN
+        IF line_items_sum <> NEW.amount THEN
+            RAISE EXCEPTION 'Line items sum (%) does not match expense amount (%) for expense_id %',
+                line_items_sum, NEW.amount, NEW.id;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER expense_validation_after_insert_trigger
+    AFTER INSERT ON expense
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_expense_after_insert();
+
+-- Validate that the sum of default_split_percentages for a pool equals 100
+CREATE OR REPLACE FUNCTION validate_split_percentages_sum_to_100()
+RETURNS TRIGGER AS $$
+DECLARE
+    default_split_sum DOUBLE PRECISION;
+    default_split_count INTEGER;
+    pool_id_to_check UUID;
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        pool_id_to_check := OLD.pool_id;
+    ELSE
+        pool_id_to_check := NEW.pool_id;
+    END IF;
+
+    SELECT COALESCE(SUM(default_split_percentage), 0), COUNT(*)
+    INTO default_split_sum, default_split_count
+    FROM pool_membership
+    WHERE pool_id = pool_id_to_check;
+
+    IF default_split_count > 0 THEN
+        IF default_split_sum <> 100.0 THEN
+            RAISE EXCEPTION 'Default split percentage sum (%) does not equal 100 for pool_id %',
+                default_split_sum, pool_id_to_check;
+        END IF;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE CONSTRAINT TRIGGER expense_validation_after_insert_trigger
+    AFTER INSERT OR UPDATE OR DELETE ON pool_membership
+    DEFERRABLE INITIALLY DEFERRED
+    FOR EACH ROW
+    EXECUTE FUNCTION validate_split_percentages_sum_to_100();
