@@ -11,17 +11,13 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { useAuth } from "@/hooks/use-auth";
 import { Spinner } from "./ui/spinner";
 import { Expense, formatCurrency, formatDate } from "./expense";
-import { apiClient } from "@/api/client";
 import { Link } from "@tanstack/react-router";
 import { SettleUpModal } from "./settle-up-modal";
 import { usePool } from "@/hooks/use-pool";
 
 export function PoolSummary({ poolId }: { poolId: string }) {
-  const { memberId, createAuthHeader } = useAuth();
-
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);

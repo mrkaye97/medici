@@ -40,7 +40,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const email = member?.email;
@@ -49,10 +49,10 @@ export const FriendsView = () => {
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound"
+    (r) => r.direction === "inbound",
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound"
+    (r) => r.direction === "outbound",
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;
@@ -201,7 +201,7 @@ export const FriendsView = () => {
                               disabled={mutations.isDeleting}
                               onClick={async () => {
                                 await mutations.deleteFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                             >
@@ -212,7 +212,7 @@ export const FriendsView = () => {
                               className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
                               onClick={async () => {
                                 await mutations.acceptFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                               disabled={mutations.isAccepting}
@@ -261,7 +261,7 @@ export const FriendsView = () => {
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={async () => {
                                 mutations.deleteFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                             >

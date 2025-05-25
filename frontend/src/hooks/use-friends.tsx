@@ -18,7 +18,7 @@ export const useFriends = () => {
       },
       headers: createAuthHeader(),
     },
-    { enabled: !!memberId }
+    { enabled: !!memberId },
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -33,7 +33,7 @@ export const useFriends = () => {
       },
       {
         enabled: !!memberId,
-      }
+      },
     );
 
   const { mutate: acceptFriendRequestMutation, isPending: isAccepting } =
@@ -49,7 +49,7 @@ export const useFriends = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      }
+      },
     );
 
   const { mutate: deleteFriendRequestMutation, isPending: isDeleting } =
@@ -62,7 +62,7 @@ export const useFriends = () => {
             queryKey: ["get", "/api/members/{member_id}/friend-requests"],
           });
         },
-      }
+      },
     );
 
   const acceptFriendRequest = useCallback(
@@ -77,7 +77,7 @@ export const useFriends = () => {
         headers: createAuthHeader(),
       });
     },
-    [acceptFriendRequestMutation, memberId, createAuthHeader]
+    [acceptFriendRequestMutation, memberId, createAuthHeader],
   );
 
   const deleteFriendRequest = useCallback(
@@ -92,7 +92,7 @@ export const useFriends = () => {
         headers: createAuthHeader(),
       });
     },
-    [deleteFriendRequestMutation, memberId, createAuthHeader]
+    [deleteFriendRequestMutation, memberId, createAuthHeader],
   );
 
   const invalidate = async () => {
