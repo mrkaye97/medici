@@ -149,7 +149,7 @@ function Pool() {
   }
 
   return (
-    <div className="flex overflow-hidden h-full">
+    <div className="flex overflow-hidden h-dvh">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}

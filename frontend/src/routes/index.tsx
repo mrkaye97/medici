@@ -43,7 +43,7 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const pools = data || [];
@@ -62,12 +62,12 @@ function Home() {
   }
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-dvh flex flex-col p-6">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
       />{" "}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1 max-h-[calc(100vh-10rem)]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
         <Card className="shadow-sm bg-white border rounded-lg flex flex-col">
           <CardHeader className="pb-2">
             <div className="flex justify-between items-center">
