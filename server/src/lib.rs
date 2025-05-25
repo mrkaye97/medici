@@ -92,11 +92,11 @@ pub fn compute_balances_for_member(
         .map(|x| *x.0)
         .collect();
 
-    let is_net_receiver = net_receivers.contains(&member_id);
+    let is_net_receiver = net_receivers.clone().contains(&member_id);
     let members_to_consider = if is_net_receiver {
-        net_payers
+        net_payers.clone()
     } else {
-        net_receivers
+        net_receivers.clone()
     };
 
     let mut graph = Graph::<uuid::Uuid, f64>::new();
@@ -116,40 +116,36 @@ pub fn compute_balances_for_member(
         graph.add_edge(from_node, to_node, *payment);
     }
 
-    for m in members_to_consider {
-        if m == member_id {
-            continue;
-        }
+    for payer_member_id in net_payers {
+        for receiver_member_id in net_receivers.iter().clone() {
+            let destination = graph
+                .node_indices()
+                .find(|&n| graph[n] == *receiver_member_id)
+                .unwrap();
 
-        let pair_node = graph.node_indices().find(|&n| graph[n] == m).unwrap();
-        let source = if is_net_receiver {
-            pair_node
-        } else {
-            member_node
-        };
+            let source = graph
+                .node_indices()
+                .find(|&n| graph[n] == payer_member_id)
+                .unwrap();
 
-        let destination = if is_net_receiver {
-            member_node
-        } else {
-            pair_node
-        };
+            let (max_flow, edge_flows) = ford_fulkerson(&graph, source, destination);
 
-        let (max_flow, edge_flows) = ford_fulkerson(&graph, source, destination);
+            for edge_index in graph.edge_indices() {
+                let flow = edge_flows[edge_index.index()];
+                let (source_node_index, target_node_index) =
+                    graph.edge_endpoints(edge_index).unwrap();
 
-        for edge_index in graph.edge_indices() {
-            let flow = edge_flows[edge_index.index()];
-            let (source_node_index, target_node_index) = graph.edge_endpoints(edge_index).unwrap();
+                if source_node_index == source && target_node_index == destination {
+                    if let Some(weight) = graph.edge_weight_mut(edge_index) {
+                        *weight = max_flow;
+                    }
 
-            if source_node_index == source && target_node_index == destination {
-                if let Some(weight) = graph.edge_weight_mut(edge_index) {
-                    *weight = max_flow;
+                    continue;
                 }
 
-                continue;
-            }
-
-            if let Some(weight) = graph.edge_weight_mut(edge_index) {
-                *weight = *weight - flow;
+                if let Some(weight) = graph.edge_weight_mut(edge_index) {
+                    *weight = *weight - flow;
+                }
             }
         }
     }
@@ -158,17 +154,18 @@ pub fn compute_balances_for_member(
         let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
         let source_member_id = graph[source_node_index];
         let target_member_id = graph[target_node_index];
+        let amount = *graph.edge_weight(edge).unwrap();
 
-        if source_member_id == member_id {
+        if source_member_id == member_id && amount > 0.0 {
             payments.push(models::Balance {
                 member_id: target_member_id,
-                amount: *graph.edge_weight(edge).unwrap(),
+                amount,
                 direction: models::PaymentDirection::Outbound,
             });
         } else if target_member_id == member_id {
             payments.push(models::Balance {
                 member_id: source_member_id,
-                amount: *graph.edge_weight(edge).unwrap(),
+                amount,
                 direction: models::PaymentDirection::Inbound,
             });
         }
