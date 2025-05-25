@@ -1,0 +1,6 @@
+*.json linguist-detectable=false
+*.xml linguist-detectable=false
+*.yml linguist-detectable=false
+*.yaml linguist-detectable=
+*.gen.ts linguist-detectable=false
+*.components.ui.*.ts linguist-detectable=false
