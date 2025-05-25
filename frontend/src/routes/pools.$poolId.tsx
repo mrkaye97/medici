@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -20,12 +20,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
 import { SettleUpModal } from "@/components/settle-up-modal";
-import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { components } from "schema";
 import { usePool } from "@/hooks/use-pool";
-import { useFriends } from "@/hooks/use-friends";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -53,98 +51,8 @@ type PoolPaneProps = {
 };
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
-  const { createAuthHeader } = useAuth();
-  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
-
-  const queryClient = useQueryClient();
-
-  const { friends, isFriendsLoading } = useFriends();
-
-  const {
-    members,
-    expenses,
-    details,
-    balances,
-    isBalancesLoading,
-    isDetailsLoading,
-    isMembersLoading,
-    isExpensesLoading,
-    invalidate,
-    mutations,
-  } = usePool({
-    poolId,
-  });
-
-  const isLoading =
-    isMembersLoading ||
-    isExpensesLoading ||
-    isFriendsLoading ||
-    isDetailsLoading;
-
-  const [
-    maybeModifiedDefaultSplitPercentages,
-    setMaybeModifiedDefaultSplitPercentages,
-  ] = useState<components["schemas"]["MemberIdSplitPercentage"][]>([]);
-
-  useEffect(() => {
-    async function maybeUpdate() {
-      const isValid =
-        maybeModifiedDefaultSplitPercentages.reduce((acc, curr) => {
-          return (acc += curr.split_percentage);
-        }, 0) === 100;
-
-      if (isValid && memberId) {
-        await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
-        );
-
-        setMaybeModifiedDefaultSplitPercentages([]);
-      }
-    }
-
-    maybeUpdate();
-  }, [
-    maybeModifiedDefaultSplitPercentages,
-    memberId,
-    poolId,
-    queryClient,
-    mutations,
-    createAuthHeader,
-    invalidate,
-  ]);
-
-  const isPoolMember = useCallback(
-    (friend: components["schemas"]["Member"]) => {
-      return members.some((m) => m.member.id === friend.id);
-    },
-    [members],
-  );
-
-  const nonPoolMemberFriends = useMemo(() => {
-    return friends.filter((friend) => !isPoolMember(friend));
-  }, [isPoolMember, friends]);
-
-  if (
-    isLoading ||
-    isFriendsLoading ||
-    isMembersLoading ||
-    !details ||
-    isBalancesLoading
-  ) {
-    return (
-      <div className="flex flex-col items-center">
-        <Spinner className="mt-8" />
-      </div>
-    );
-  }
-
   return (
     <div className="w-[500px] bg-muted/5 flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 ">
-      <SettleUpModal
-        isOpen={isSettleUpModalOpen}
-        setIsOpen={(isOpen) => setIsSettleUpModalOpen(isOpen)}
-        poolId={poolId}
-      />
       <div className="p-6 border-b bg-background">
         <h2 className="text-lg font-semibold flex items-center gap-2">
           <DollarSign className="h-5 w-5" />
@@ -156,223 +64,15 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
       </div>
 
       <div className="p-6 space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium flex items-center gap-2">
-              <ArrowUpDown className="h-4 w-4" />
-              Balances
-            </h3>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setIsSettleUpModalOpen(true)}
-            >
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Settle Up
-            </Button>
-          </div>
-
-          {balances.length === 0 ? (
-            <div className="text-center py-6">
-              <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">All settled up!</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {balances.map((balance, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-3 rounded-lg bg-background border"
-                >
-                  <div>
-                    <p className="font-medium text-sm">{balance.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {balance.type === "inbound" ? "Owes you" : "You owe"}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p
-                      className={`font-semibold text-sm ${
-                        balance.type === "inbound"
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }`}
-                    >
-                      ${balance.amount.toFixed(2)}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <PoolBalancesPane poolId={poolId} />
 
         <Separator />
 
-        <div className="space-y-4">
-          <h3 className="font-medium">Pool Statistics</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-background p-3 rounded-lg border text-center">
-              <p className="text-2xl font-bold">{expenses.length}</p>
-              <p className="text-xs text-muted-foreground">Expenses</p>
-            </div>
-            <div className="bg-background p-3 rounded-lg border text-center">
-              <p className="text-2xl font-bold">{members.length}</p>
-              <p className="text-xs text-muted-foreground">Members</p>
-            </div>
-          </div>
-        </div>
+        <PoolStatistics poolId={poolId} />
 
         <Separator />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-medium flex items-center gap-2">
-              <UsersRound className="h-4 w-4" />
-              Members
-            </h3>
-          </div>
-
-          <div className="space-y-2">
-            {members.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">
-                No members yet
-              </p>
-            ) : (
-              members.map((member) => (
-                <div
-                  key={member.member.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-background border"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-medium">
-                        {member.member.first_name[0]}
-                        {member.member.last_name[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">
-                        {member.member.first_name} {member.member.last_name}
-                        {member.member.id === memberId && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            You
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {member.member.email}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
-                    {details.role === "ADMIN" &&
-                      member.member.id !== memberId && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          disabled={
-                            mutations.isAddPending || mutations.isRemovePending
-                          }
-                          onClick={async () => {
-                            await mutations.removeFriend(member.member.id);
-                          }}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
-                      )}
-                    {details.role === "ADMIN" && (
-                      <div className="flex flex-col items-start gap-1">
-                        <Label htmlFor="email" className="text-xs">
-                          Split %
-                        </Label>
-                        <Input
-                          type="number"
-                          className="max-w-16"
-                          value={
-                            maybeModifiedDefaultSplitPercentages.find(
-                              (m) => m.member_id === member.member.id,
-                            )?.split_percentage ||
-                            member.pool_membership.default_split_percentage
-                          }
-                          onChange={async (e) => {
-                            setMaybeModifiedDefaultSplitPercentages((prev) => {
-                              const iter = prev.length
-                                ? prev
-                                : members.map((m) => ({
-                                    member_id: m.member.id,
-                                    split_percentage:
-                                      m.pool_membership
-                                        .default_split_percentage,
-                                  }));
-
-                              return iter.map((f) => {
-                                if (f.member_id === member.member.id) {
-                                  return {
-                                    member_id: f.member_id,
-                                    split_percentage: parseFloat(
-                                      e.target.value,
-                                    ),
-                                  };
-                                } else {
-                                  return {
-                                    member_id: f.member_id,
-                                    split_percentage: f.split_percentage,
-                                  };
-                                }
-                              });
-                            });
-                          }}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-          {details.role === "ADMIN" && nonPoolMemberFriends.length > 0 && (
-            <>
-              <div className="pt-4">
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                  Add Friends to Pool
-                </h4>
-                <div className="space-y-2">
-                  {nonPoolMemberFriends.map((friend) => (
-                    <div
-                      key={friend.id}
-                      className="flex items-center justify-between p-2 rounded bg-muted/50"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {friend.first_name} {friend.last_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {friend.email}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                        disabled={
-                          mutations.isAddPending || mutations.isRemovePending
-                        }
-                        onClick={async () => {
-                          await mutations.addFriend(friend.id);
-                        }}
-                      >
-                        <UserRoundPlus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <PoolMemberManagementPane poolId={poolId} memberId={memberId} />
       </div>
     </div>
   );
@@ -479,6 +179,303 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+};
+
+const PoolStatistics = ({ poolId }: { poolId: string }) => {
+  const { members, expenses } = usePool({
+    poolId,
+  });
+
+  return (
+    <div className="space-y-4">
+      <h3 className="font-medium">Pool Statistics</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-background p-3 rounded-lg border text-center">
+          <p className="text-2xl font-bold">{expenses.length}</p>
+          <p className="text-xs text-muted-foreground">Expenses</p>
+        </div>
+        <div className="bg-background p-3 rounded-lg border text-center">
+          <p className="text-2xl font-bold">{members.length}</p>
+          <p className="text-xs text-muted-foreground">Members</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
+  const { members, details, invalidate, mutations, friendsEligibleToAdd } =
+    usePool({
+      poolId,
+    });
+
+  const [
+    maybeModifiedDefaultSplitPercentages,
+    setMaybeModifiedDefaultSplitPercentages,
+  ] = useState<components["schemas"]["MemberIdSplitPercentage"][]>([]);
+
+  useEffect(() => {
+    async function maybeUpdate() {
+      const isValid =
+        maybeModifiedDefaultSplitPercentages.reduce((acc, curr) => {
+          return (acc += curr.split_percentage);
+        }, 0) === 100;
+
+      if (isValid && memberId) {
+        await mutations.modifyDefaultSplit(
+          maybeModifiedDefaultSplitPercentages,
+        );
+
+        setMaybeModifiedDefaultSplitPercentages([]);
+      }
+    }
+
+    maybeUpdate();
+  }, [
+    maybeModifiedDefaultSplitPercentages,
+    memberId,
+    poolId,
+    mutations,
+    invalidate,
+  ]);
+
+  if (!details) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium flex items-center gap-2">
+          <UsersRound className="h-4 w-4" />
+          Members
+        </h3>
+      </div>
+
+      <div className="space-y-2">
+        {members.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-4 text-center">
+            No members yet
+          </p>
+        ) : (
+          members.map((member) => (
+            <div
+              key={member.member.id}
+              className="flex items-center justify-between p-3 rounded-lg bg-background border"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <span className="text-xs font-medium">
+                    {member.member.first_name[0]}
+                    {member.member.last_name[0]}
+                  </span>
+                </div>
+                <div>
+                  <div className="font-medium text-sm">
+                    {member.member.first_name} {member.member.last_name}
+                    {member.member.id === memberId && (
+                      <Badge variant="secondary" className="ml-2 text-xs">
+                        You
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {member.member.email}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
+                {details.role === "ADMIN" && member.member.id !== memberId && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                    disabled={
+                      mutations.isAddPending || mutations.isRemovePending
+                    }
+                    onClick={async () => {
+                      await mutations.removeFriend(member.member.id);
+                    }}
+                  >
+                    <UserMinus className="h-4 w-4" />
+                  </Button>
+                )}
+                {details.role === "ADMIN" && (
+                  <div className="flex flex-col items-start gap-1">
+                    <Label htmlFor="email" className="text-xs">
+                      Split %
+                    </Label>
+                    <Input
+                      type="number"
+                      className="max-w-16"
+                      value={
+                        maybeModifiedDefaultSplitPercentages.find(
+                          (m) => m.member_id === member.member.id,
+                        )?.split_percentage ||
+                        member.pool_membership.default_split_percentage
+                      }
+                      onChange={async (e) => {
+                        setMaybeModifiedDefaultSplitPercentages((prev) => {
+                          const iter = prev.length
+                            ? prev
+                            : members.map((m) => ({
+                                member_id: m.member.id,
+                                split_percentage:
+                                  m.pool_membership.default_split_percentage,
+                              }));
+
+                          return iter.map((f) => {
+                            if (f.member_id === member.member.id) {
+                              return {
+                                member_id: f.member_id,
+                                split_percentage: parseFloat(e.target.value),
+                              };
+                            } else {
+                              return {
+                                member_id: f.member_id,
+                                split_percentage: f.split_percentage,
+                              };
+                            }
+                          });
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {details.role === "ADMIN" && friendsEligibleToAdd.length > 0 && (
+        <>
+          <div className="pt-4">
+            <h4 className="text-sm font-medium text-muted-foreground mb-3">
+              Add Friends to Pool
+            </h4>
+            <div className="space-y-2">
+              {friendsEligibleToAdd.map((friend) => (
+                <div
+                  key={friend.id}
+                  className="flex items-center justify-between p-2 rounded bg-muted/50"
+                >
+                  <div>
+                    <p className="text-sm font-medium">
+                      {friend.first_name} {friend.last_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {friend.email}
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                    disabled={
+                      mutations.isAddPending || mutations.isRemovePending
+                    }
+                    onClick={async () => {
+                      await mutations.addFriend(friend.id);
+                    }}
+                  >
+                    <UserRoundPlus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
+  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
+
+  const {
+    details,
+    balances,
+    isBalancesLoading,
+    isDetailsLoading,
+    isMembersLoading,
+    isExpensesLoading,
+  } = usePool({
+    poolId,
+  });
+
+  const isLoading =
+    isMembersLoading ||
+    isExpensesLoading ||
+    isDetailsLoading ||
+    isBalancesLoading;
+
+  if (isLoading || !details) {
+    return (
+      <div className="flex flex-col items-center">
+        <Spinner className="mt-8" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <SettleUpModal
+        isOpen={isSettleUpModalOpen}
+        setIsOpen={(isOpen) => setIsSettleUpModalOpen(isOpen)}
+        poolId={poolId}
+      />
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium flex items-center gap-2">
+          <ArrowUpDown className="h-4 w-4" />
+          Balances
+        </h3>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setIsSettleUpModalOpen(true)}
+        >
+          <CheckCircle className="h-4 w-4 mr-1" />
+          Settle Up
+        </Button>
+      </div>
+
+      {balances.length === 0 ? (
+        <div className="text-center py-6">
+          <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">All settled up!</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {balances.map((balance, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-3 rounded-lg bg-background border"
+            >
+              <div>
+                <p className="font-medium text-sm">{balance.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {balance.type === "inbound" ? "Owes you" : "You owe"}
+                </p>
+              </div>
+              <div className="text-right">
+                <p
+                  className={`font-semibold text-sm ${
+                    balance.type === "inbound"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
+                  ${balance.amount.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
