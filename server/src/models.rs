@@ -147,6 +147,7 @@ pub struct PoolMembership {
     pub role: PoolRole,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub default_split_percentage: f64,
 }
 
 #[derive(Debug, Insertable, Deserialize, Selectable, ToSchema)]

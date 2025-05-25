@@ -8,6 +8,7 @@ CREATE TABLE pool (
   PRIMARY KEY (id)
 );
 
+
 -- Members
 CREATE TABLE member (
   id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
@@ -31,6 +32,7 @@ CREATE TABLE pool_membership (
   role pool_role NOT NULL DEFAULT 'PARTICIPANT',
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  default_split_percentage DOUBLE PRECISION NOT NULL DEFAULT 0.0,
   PRIMARY KEY (id),
   CONSTRAINT pool_membership_member_id_fkey FOREIGN KEY (member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT pool_membership_pool_id_fkey FOREIGN KEY (pool_id) REFERENCES pool (id) ON UPDATE NO ACTION ON DELETE CASCADE

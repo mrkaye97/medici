@@ -99,12 +99,9 @@ diesel::table! {
 diesel::table! {
     member (id) {
         id -> Uuid,
-        #[max_length = 255]
-        first_name -> Varchar,
-        #[max_length = 255]
-        last_name -> Varchar,
-        #[max_length = 255]
-        email -> Varchar,
+        first_name -> Text,
+        last_name -> Text,
+        email -> Text,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
         bio -> Nullable<Text>,
@@ -124,8 +121,7 @@ diesel::table! {
 diesel::table! {
     pool (id) {
         id -> Uuid,
-        #[max_length = 255]
-        name -> Varchar,
+        name -> Text,
         description -> Nullable<Text>,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
@@ -143,6 +139,7 @@ diesel::table! {
         role -> PoolRole,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
+        default_split_percentage -> Float8,
     }
 }
 
