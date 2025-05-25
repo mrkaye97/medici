@@ -910,7 +910,7 @@ pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<P
     Json(details)
 }
 
-#[derive(Deserialize, Serialize, ToSchema)]
+#[derive(Deserialize, Serialize, ToSchema, Debug)]
 pub struct PoolMembershipWithMemberDetails {
     member: models::Member,
     pool_membership: models::PoolMembership,
@@ -1105,8 +1105,6 @@ pub async fn list_members_of_pool_handler(
     })
     .await
     .expect("Task panicked");
-
-    println!("Members: {:?}", members.iter().clone());
 
     Json(
         members

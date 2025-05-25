@@ -28,7 +28,7 @@ export const usePool = ({
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: details, isLoading: isDetailsLoading } = apiClient.useQuery(
@@ -45,7 +45,7 @@ export const usePool = ({
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data: expenses, isLoading: isExpensesLoading } = apiClient.useQuery(
@@ -62,7 +62,7 @@ export const usePool = ({
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: rawBalances, isLoading: isBalancesLoading } =
@@ -77,7 +77,7 @@ export const usePool = ({
           },
         },
         headers: createAuthHeader(),
-      }
+      },
     );
 
   const balances = useMemo(() => {
@@ -117,7 +117,7 @@ export const usePool = ({
     isPending: isModifyDefaultSplitPending,
   } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/default-splits"
+    "/api/members/{member_id}/pools/{pool_id}/default-splits",
   );
 
   const addFriend = useCallback(
@@ -134,7 +134,7 @@ export const usePool = ({
 
       await invalidate();
     },
-    [addFriendToPool, createAuthHeader, poolId, invalidate]
+    [addFriendToPool, createAuthHeader, poolId, invalidate],
   );
 
   const removeFriend = useCallback(
@@ -151,7 +151,7 @@ export const usePool = ({
 
       await invalidate();
     },
-    [poolId, createAuthHeader, invalidate, removeFriendFromPool]
+    [poolId, createAuthHeader, invalidate, removeFriendFromPool],
   );
 
   const modifyDefaultSplit = useCallback(
@@ -175,11 +175,17 @@ export const usePool = ({
 
       await invalidate();
     },
-    [createAuthHeader, invalidate, memberId, modifyDefaultSplitMutation, poolId]
+    [
+      createAuthHeader,
+      invalidate,
+      memberId,
+      modifyDefaultSplitMutation,
+      poolId,
+    ],
   );
 
   const friendsEligibleToAdd = friends.filter(
-    (f) => !members?.find((m) => (m.member.id = f.id))
+    (f) => !members?.find((m) => m.member.id === f.id),
   );
 
   const totalExpenses =
