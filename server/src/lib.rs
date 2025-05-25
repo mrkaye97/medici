@@ -2,6 +2,7 @@ pub mod models;
 pub mod schema;
 use diesel::prelude::*;
 use dotenvy::dotenv;
+use petgraph::{Graph, algo::ford_fulkerson};
 use std::{
     collections::{HashMap, HashSet},
     env,
@@ -53,23 +54,123 @@ pub fn compute_balances_for_member(
     }
 
     let mut payments = Vec::new();
+    let mut member_id_to_balance: HashMap<uuid::Uuid, f64> = HashMap::new();
 
-    for (key, value) in &necessary_payments {
-        let (from_member_id, to_member_id) = key;
+    for ((from_member_id, to_member_id), value) in &necessary_payments {
         let amount = *value;
 
         if *from_member_id == member_id {
-            payments.push(models::Balance {
-                member_id: *to_member_id,
-                amount,
-                direction: models::PaymentDirection::Outbound,
-            })
+            member_id_to_balance
+                .entry(*from_member_id)
+                .and_modify(|e| *e -= amount)
+                .or_insert(amount);
+            member_id_to_balance
+                .entry(*to_member_id)
+                .and_modify(|e| *e += amount)
+                .or_insert(amount);
         } else if *to_member_id == member_id {
+            member_id_to_balance
+                .entry(*to_member_id)
+                .and_modify(|e| *e += amount)
+                .or_insert(amount);
+            member_id_to_balance
+                .entry(*from_member_id)
+                .and_modify(|e| *e -= amount)
+                .or_insert(-amount);
+        }
+    }
+
+    let net_payers: HashSet<uuid::Uuid> = member_id_to_balance
+        .iter()
+        .filter(|x| *x.1 < 0.0)
+        .map(|x| *x.0)
+        .collect();
+
+    let net_receivers: HashSet<uuid::Uuid> = member_id_to_balance
+        .iter()
+        .filter(|x| *x.1 > 0.0)
+        .map(|x| *x.0)
+        .collect();
+
+    let is_net_receiver = net_receivers.contains(&member_id);
+    let members_to_consider = if is_net_receiver {
+        net_payers
+    } else {
+        net_receivers
+    };
+
+    let mut graph = Graph::<uuid::Uuid, f64>::new();
+    let member_node = graph.add_node(member_id);
+
+    for ((from_member_id, to_member_id), payment) in &necessary_payments {
+        let from_node = graph
+            .node_indices()
+            .find(|&n| graph[n] == *from_member_id)
+            .unwrap_or_else(|| graph.add_node(*from_member_id));
+
+        let to_node = graph
+            .node_indices()
+            .find(|&n| graph[n] == *to_member_id)
+            .unwrap_or_else(|| graph.add_node(*to_member_id));
+
+        graph.add_edge(from_node, to_node, *payment);
+    }
+
+    for m in members_to_consider {
+        if m == member_id {
+            continue;
+        }
+
+        let pair_node = graph.node_indices().find(|&n| graph[n] == m).unwrap();
+        let source = if is_net_receiver {
+            pair_node
+        } else {
+            member_node
+        };
+
+        let destination = if is_net_receiver {
+            member_node
+        } else {
+            pair_node
+        };
+
+        let (max_flow, edge_flows) = ford_fulkerson(&graph, source, destination);
+
+        for edge_index in graph.edge_indices() {
+            let flow = edge_flows[edge_index.index()];
+            let (source_node_index, target_node_index) = graph.edge_endpoints(edge_index).unwrap();
+
+            if source_node_index == source && target_node_index == destination {
+                if let Some(weight) = graph.edge_weight_mut(edge_index) {
+                    *weight = max_flow;
+                }
+
+                continue;
+            }
+
+            if let Some(weight) = graph.edge_weight_mut(edge_index) {
+                *weight = *weight - flow;
+            }
+        }
+    }
+
+    for edge in graph.edge_indices() {
+        let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
+        let source_member_id = graph[source_node_index];
+        let target_member_id = graph[target_node_index];
+
+        if source_member_id == member_id {
             payments.push(models::Balance {
-                member_id: *from_member_id,
-                amount,
+                member_id: target_member_id,
+                amount: *graph.edge_weight(edge).unwrap(),
+                direction: models::PaymentDirection::Outbound,
+            });
+        } else if target_member_id == member_id {
+            payments.push(models::Balance {
+                member_id: source_member_id,
+                amount: *graph.edge_weight(edge).unwrap(),
                 direction: models::PaymentDirection::Inbound,
-            })
+            });
         }
     }
 
