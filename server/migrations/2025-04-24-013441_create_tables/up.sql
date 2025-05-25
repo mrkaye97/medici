@@ -32,7 +32,7 @@ CREATE TABLE pool_membership (
   role pool_role NOT NULL DEFAULT 'PARTICIPANT',
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  default_split_percentage DOUBLE PRECISION NOT NULL DEFAULT 0.0,
+  default_split_percentage DOUBLE PRECISION NOT NULL DEFAULT 0.0 CHECK (default_split_percentage >= 0.0 AND default_split_percentage <= 100.0),
   PRIMARY KEY (id),
   CONSTRAINT pool_membership_member_id_fkey FOREIGN KEY (member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT pool_membership_pool_id_fkey FOREIGN KEY (pool_id) REFERENCES pool (id) ON UPDATE NO ACTION ON DELETE CASCADE
@@ -56,7 +56,7 @@ CREATE TYPE expense_category AS ENUM (
 CREATE TABLE expense (
   id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
   name TEXT NOT NULL,
-  amount DOUBLE PRECISION NOT NULL,
+  amount DOUBLE PRECISION NOT NULL CHECK (amount >= 0.0),
   is_settled BOOLEAN NOT NULL DEFAULT FALSE,
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -82,7 +82,7 @@ CREATE TABLE expense_line_item (
   id UUID NOT NULL DEFAULT GEN_RANDOM_UUID(),
   expense_id UUID NOT NULL,
   is_settled BOOLEAN NOT NULL DEFAULT FALSE,
-  amount DOUBLE PRECISION NOT NULL,
+  amount DOUBLE PRECISION NOT NULL CHECK (amount >= 0.0),
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   debtor_member_id UUID NOT NULL,
