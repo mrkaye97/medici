@@ -34,12 +34,7 @@ export function CreatePoolModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/pools",
-  );
-
-  const { mutateAsync: createPoolMembership } = apiClient.useMutation(
-    "post",
-    "/api/pools/{pool_id}/memberships",
+    "/api/members/{member_id}/pools",
   );
 
   const form = useForm<PoolFormValues>({
@@ -72,26 +67,14 @@ export function CreatePoolModal({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async (data) => {
-              const pool = await createPool({
+              await createPool({
                 body: {
                   name: data.poolName,
                   description: data.poolDescription,
                 },
-                headers: createAuthHeader(),
-              });
-
-              if (!pool) {
-                console.error("Failed to create pool");
-                return;
-              }
-
-              await createPoolMembership({
                 params: {
-                  query: {
-                    member_id: memberId,
-                  },
                   path: {
-                    pool_id: pool.id,
+                    member_id: memberId,
                   },
                 },
                 headers: createAuthHeader(),

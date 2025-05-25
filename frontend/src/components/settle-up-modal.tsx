@@ -17,7 +17,7 @@ export function SettleUpModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutate: settleUpPool } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/settle-up"
+    "/api/members/{member_id}/pools/{pool_id}/settle-up",
   );
 
   if (!memberId) {

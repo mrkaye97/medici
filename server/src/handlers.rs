@@ -177,14 +177,20 @@ pub struct FriendRequestInput {
 
 #[utoipa::path(
     post,
-    path = "/api/pools",
+    path = "/api/members/{member_id}/pools",
     request_body = PoolInput,
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to create a pool under")
+    ),
     responses(
         (status = 200, description = "Create a pool successfully", body = models::Pool),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<models::Pool> {
+pub async fn create_pool_handler(
+    Path(member_id): Path<uuid::Uuid>,
+    Json(pool_input): Json<PoolInput>,
+) -> Json<models::Pool> {
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -196,6 +202,25 @@ pub async fn create_pool_handler(Json(pool_input): Json<PoolInput>) -> Json<mode
 
     let pool = tokio::task::spawn_blocking(move || {
         models::Pool::create(&mut conn, &new_pool).expect("Failed to create pool")
+    })
+    .await
+    .expect("Task panicked");
+
+    let pool_id = pool.id;
+
+    let new_membership = models::NewPoolMembership {
+        pool_id: pool_id,
+        member_id: member_id,
+        role: models::PoolRole::ADMIN,
+    };
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    tokio::task::spawn_blocking(move || {
+        PoolMembership::create(&mut conn, &new_membership)
+            .expect("Failed to create pool membership")
     })
     .await
     .expect("Task panicked");

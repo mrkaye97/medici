@@ -17,8 +17,7 @@ CREATE TABLE member (
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   bio TEXT,
-  PRIMARY KEY (id),
-  CONSTRAINT member_email_key UNIQUE (email)
+  PRIMARY KEY (id)
 );
 
 CREATE UNIQUE INDEX index_member_on_email ON member (email);

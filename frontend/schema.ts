@@ -125,7 +125,7 @@ export interface paths {
     };
     get: operations["list_pools_for_member_handler"];
     put?: never;
-    post?: never;
+    post: operations["create_pool_handler"];
     delete?: never;
     options?: never;
     head?: never;
@@ -194,22 +194,6 @@ export interface paths {
     options?: never;
     head?: never;
     patch: operations["settle_up_pool_handler"];
-    trace?: never;
-  };
-  "/api/pools": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post: operations["create_pool_handler"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
     trace?: never;
   };
   "/api/pools/{pool_id}/expenses": {
@@ -790,6 +774,40 @@ export interface operations {
       };
     };
   };
+  create_pool_handler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the member to create a pool under */
+        member_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PoolInput"];
+      };
+    };
+    responses: {
+      /** @description Create a pool successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Pool"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
   get_pool_details_handler: {
     parameters: {
       query?: never;
@@ -909,37 +927,6 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PoolDetails"];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-    };
-  };
-  create_pool_handler: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["PoolInput"];
-      };
-    };
-    responses: {
-      /** @description Create a pool successfully */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Pool"];
         };
       };
       /** @description Internal server error */
