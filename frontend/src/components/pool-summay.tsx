@@ -40,7 +40,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      }
+      },
     );
 
   const { data: poolRecentExpenses, isLoading: isPoolRecentExpensesLoading } =
@@ -61,7 +61,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       },
       {
         enabled: !!memberId,
-      }
+      },
     );
 
   if (
