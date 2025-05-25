@@ -2,7 +2,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { AddFriendModal } from "@/components/add-friend-modal";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -18,70 +17,19 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, X, UserPlus, Clock, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "./ui/separator";
+import { useFriends } from "@/hooks/use-friends";
 
 export const FriendsView = () => {
   const { memberId, createAuthHeader, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("friends");
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/friends",
-    {
-      params: {
-        path: { member_id: memberId || "" },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    },
-  );
-
-  const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
-    apiClient.useQuery(
-      "get",
-      "/api/members/{member_id}/friend-requests",
-      {
-        params: {
-          path: { member_id: memberId || "" },
-        },
-        headers: createAuthHeader(),
-      },
-      {
-        enabled: !!memberId,
-      },
-    );
-
-  const { mutate: acceptFriendRequest, isPending: isAccepting } =
-    apiClient.useMutation(
-      "post",
-      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept",
-      {
-        onSuccess: () => {
-          queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-          });
-          queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friends"],
-          });
-        },
-      },
-    );
-
-  const { mutate: deleteFriendRequest, isPending: isDeleting } =
-    apiClient.useMutation(
-      "delete",
-      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}",
-      {
-        onSuccess: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-          });
-        },
-      },
-    );
+  const {
+    friends,
+    isFriendsLoading,
+    mutations,
+    friendRequests,
+    isFriendRequestsLoading,
+  } = useFriends();
 
   const { data: member } = apiClient.useQuery(
     "get",
@@ -92,21 +40,19 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const email = member?.email;
   const name = `${member?.first_name} ${member?.last_name}`;
 
-  const friends = friendsRaw || [];
-  const friendRequests = friendRequestsRaw || [];
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound",
+    (r) => r.direction === "inbound"
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound",
+    (r) => r.direction === "outbound"
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;
@@ -252,18 +198,11 @@ export const FriendsView = () => {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                              disabled={isDeleting}
-                              onClick={() => {
-                                deleteFriendRequest({
-                                  params: {
-                                    path: {
-                                      inviting_member_id:
-                                        request.member.id || "",
-                                      invitee_member_id: memberId || "",
-                                    },
-                                  },
-                                  headers: createAuthHeader(),
-                                });
+                              disabled={mutations.isDeleting}
+                              onClick={async () => {
+                                await mutations.deleteFriendRequest(
+                                  request.member.id
+                                );
                               }}
                             >
                               <X className="h-4 w-4" />
@@ -271,18 +210,12 @@ export const FriendsView = () => {
                             <Button
                               size="icon"
                               className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
-                              onClick={() => {
-                                acceptFriendRequest({
-                                  params: {
-                                    path: {
-                                      invitee_member_id: memberId || "",
-                                      inviting_member_id: request.member.id,
-                                    },
-                                  },
-                                  headers: createAuthHeader(),
-                                });
+                              onClick={async () => {
+                                await mutations.acceptFriendRequest(
+                                  request.member.id
+                                );
                               }}
-                              disabled={isAccepting}
+                              disabled={mutations.isAccepting}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -326,17 +259,10 @@ export const FriendsView = () => {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => {
-                                deleteFriendRequest({
-                                  params: {
-                                    path: {
-                                      inviting_member_id: memberId || "",
-                                      invitee_member_id:
-                                        request.member.id || "",
-                                    },
-                                  },
-                                  headers: createAuthHeader(),
-                                });
+                              onClick={async () => {
+                                mutations.deleteFriendRequest(
+                                  request.member.id
+                                );
                               }}
                             >
                               <X className="h-4 w-4" />
