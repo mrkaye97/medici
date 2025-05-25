@@ -20,6 +20,12 @@ pub fn compute_balances_for_member(
     member_id: uuid::Uuid,
     expenses: Vec<models::DebtPair>,
 ) -> Vec<models::Balance> {
+    let mut payments = Vec::new();
+
+    if expenses.is_empty() {
+        return payments;
+    }
+
     let mut pairwise_expenses: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
     let mut necessary_payments: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
 
@@ -140,8 +146,6 @@ pub fn compute_balances_for_member(
             }
         }
     }
-
-    let mut payments = Vec::new();
 
     for edge in graph.edge_indices() {
         let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
