@@ -288,7 +288,7 @@ export function AddExpenseModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutate: addExpense } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/expenses"
+    "/api/pools/{pool_id}/expenses",
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -305,7 +305,7 @@ export function AddExpenseModal({
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const members = useMemo(() => data ?? [], [data]);
@@ -373,12 +373,12 @@ export function AddExpenseModal({
                     debtor_member_id: a.memberId,
                     amount,
                   };
-                }
+                },
               );
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0
+                0,
               );
 
               const roundingError = Math.abs(total - data.amount);
@@ -396,7 +396,7 @@ export function AddExpenseModal({
 
               if (total !== data.amount && roundingError > maxRoundingError) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`
+                  `Total amount (${data.amount}) does not match split amounts (${total})`,
                 );
                 return;
               }
@@ -432,7 +432,7 @@ export function AddExpenseModal({
                     form.reset();
                     resetSplitAmounts();
                   },
-                }
+                },
               );
 
               form.reset();
@@ -541,7 +541,7 @@ export function AddExpenseModal({
                               if (a.member.id === memberId) return -1;
 
                               return a.member.first_name.localeCompare(
-                                b.member.first_name
+                                b.member.first_name,
                               );
                             })
                             .map((c) => (
@@ -585,7 +585,7 @@ export function AddExpenseModal({
                                 : members.map((member) => ({
                                     memberId: member.member.id,
                                     amount: round(
-                                      form.getValues("amount") / members.length
+                                      form.getValues("amount") / members.length,
                                     ),
                                   }));
 
@@ -601,7 +601,7 @@ export function AddExpenseModal({
                           .sort((a, b) =>
                             a.member.first_name
                               .toLowerCase()
-                              .localeCompare(b.member.first_name.toLowerCase())
+                              .localeCompare(b.member.first_name.toLowerCase()),
                           )
                           .map((m, ix) => (
                             <div className="flex flex-col" key={m.member.email}>
@@ -619,7 +619,7 @@ export function AddExpenseModal({
                                   type="number"
                                   value={
                                     splitAmounts.splitAmounts.find(
-                                      (a) => a.memberId == m.member.id
+                                      (a) => a.memberId == m.member.id,
                                     )?.amount
                                   }
                                   onChange={(e) => {
@@ -632,12 +632,12 @@ export function AddExpenseModal({
                                             return {
                                               ...a,
                                               amount: round(
-                                                parseFloat(e.target.value)
+                                                parseFloat(e.target.value),
                                               ),
                                             };
                                           }
                                           return a;
-                                        }
+                                        },
                                       );
 
                                       return {
