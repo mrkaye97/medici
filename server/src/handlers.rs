@@ -212,6 +212,7 @@ pub async fn create_pool_handler(
         pool_id: pool_id,
         member_id: member_id,
         role: models::PoolRole::ADMIN,
+        default_split_percentage: 100.0,
     };
 
     let mut conn = get_db_connection()
@@ -909,6 +910,67 @@ pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<P
     Json(details)
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct ModifyDefaultSplitInput {
+    default_split_percentages: Vec<models::MemberIdSplitPercentage>,
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/members/{member_id}/pools/{pool_id}/default-splits",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to modify default split percentages for"),
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member who confirmed the modification")
+    ),
+    request_body = ModifyDefaultSplitInput,
+    responses(
+        (status = 200, description = "Default splits modified", body = Vec<MembersWithPoolStatus>),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn modify_default_splits_handler(
+    Path(path): Path<PoolDetailsPath>,
+    Json(input): Json<ModifyDefaultSplitInput>,
+) -> Json<Vec<MembersWithPoolStatus>> {
+    let member_id = path.member_id;
+    let pool_id = path.pool_id;
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    tokio::task::spawn_blocking(move || {
+        models::PoolMembership::update_default_split_percentage(
+            &mut conn,
+            pool_id,
+            input.default_split_percentages,
+        )
+    });
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let members = tokio::task::spawn_blocking(move || {
+        Friendship::get_friends_with_pool_status(&mut conn, member_id, pool_id)
+            .expect("Failed to list members of pool")
+    })
+    .await
+    .expect("Task panicked");
+
+    Json(
+        members
+            .into_iter()
+            .map(
+                |(member, is_pool_member, default_split_percentage)| MembersWithPoolStatus {
+                    member,
+                    is_pool_member,
+                    default_split_percentage,
+                },
+            )
+            .collect(),
+    )
+}
 #[derive(Serialize, ToSchema)]
 pub struct RecentExpenseDetails {
     #[serde(flatten)]
@@ -1012,6 +1074,7 @@ pub async fn get_pool_balances_for_member(
 pub struct MembersWithPoolStatus {
     member: models::Member,
     is_pool_member: bool,
+    default_split_percentage: f64,
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
@@ -1052,10 +1115,13 @@ pub async fn list_members_of_pool_handler(
     Json(
         members
             .into_iter()
-            .map(|(member, is_pool_member)| MembersWithPoolStatus {
-                member,
-                is_pool_member,
-            })
+            .map(
+                |(member, is_pool_member, default_split_percentage)| MembersWithPoolStatus {
+                    member,
+                    is_pool_member,
+                    default_split_percentage,
+                },
+            )
             .collect(),
     )
 }
@@ -1118,6 +1184,7 @@ pub async fn create_pool_membership_handler(
         pool_id: pool_id,
         member_id: member_id,
         role: models::PoolRole::PARTICIPANT,
+        default_split_percentage: 0.0,
     };
 
     let membership = tokio::task::spawn_blocking(move || {
@@ -1155,6 +1222,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(delete_friend_request))
         .routes(routes!(get_pool_balances_for_member))
         .routes(routes!(settle_up_pool_handler))
+        .routes(routes!(modify_default_splits_handler))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)

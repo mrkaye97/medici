@@ -148,6 +148,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/members/{member_id}/pools/{pool_id}/default-splits": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch: operations["modify_default_splits_handler"];
+    trace?: never;
+  };
   "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}": {
     parameters: {
       query?: never;
@@ -420,9 +436,20 @@ export interface components {
       /** Format: date-time */
       updated_at: string;
     };
+    MemberIdSplitPercentage: {
+      /** Format: uuid */
+      member_id: string;
+      /** Format: double */
+      split_percentage: number;
+    };
     MembersWithPoolStatus: {
+      /** Format: double */
+      default_split_percentage: number;
       is_pool_member: boolean;
       member: components["schemas"]["Member"];
+    };
+    ModifyDefaultSplitInput: {
+      default_split_percentages: components["schemas"]["MemberIdSplitPercentage"][];
     };
     /** @enum {string} */
     PaymentDirection: "inbound" | "outbound";
@@ -446,6 +473,8 @@ export interface components {
       name: string;
     };
     PoolMembership: {
+      /** Format: double */
+      default_split_percentage: number;
       /** Format: uuid */
       id: string;
       /** Format: date-time */
@@ -829,6 +858,42 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["PoolDetails"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  modify_default_splits_handler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the pool to modify default split percentages for */
+        pool_id: string;
+        /** @description ID of the member who confirmed the modification */
+        member_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ModifyDefaultSplitInput"];
+      };
+    };
+    responses: {
+      /** @description Default splits modified */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["MembersWithPoolStatus"][];
         };
       };
       /** @description Internal server error */

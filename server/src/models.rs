@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::sql_types::Uuid;
 use diesel::sql_types::{Double, Uuid as SqlUuid};
+use diesel::sql_types::{Numeric, Uuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -156,6 +156,7 @@ pub struct NewPoolMembership {
     pub pool_id: uuid::Uuid,
     pub member_id: uuid::Uuid,
     pub role: PoolRole,
+    pub default_split_percentage: f64,
 }
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
@@ -394,6 +395,12 @@ impl Pool {
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct MemberIdSplitPercentage {
+    pub member_id: uuid::Uuid,
+    pub split_percentage: f64,
+}
+
 impl PoolMembership {
     pub fn create(
         conn: &mut PgConnection,
@@ -413,6 +420,7 @@ impl PoolMembership {
             pool_id: pool_id_query,
             member_id: member_id_query,
             role: PoolRole::PARTICIPANT,
+            default_split_percentage: 0.0,
         };
 
         Self::create(conn, &new_membership)
@@ -429,6 +437,39 @@ impl PoolMembership {
                 .filter(pool_membership::member_id.eq(member_id_query)),
         )
         .execute(conn)
+    }
+
+    pub fn update_default_split_percentage(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        inputs: Vec<MemberIdSplitPercentage>,
+    ) -> QueryResult<usize> {
+        let total: f64 = inputs
+            .iter()
+            .map(|item| item.split_percentage)
+            .collect::<Vec<f64>>()
+            .into_iter()
+            .sum();
+
+        if total != 100.0 {
+            return Ok(0);
+        }
+
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            for input in inputs {
+                diesel::update(pool_membership::table)
+                    .filter(
+                        pool_membership::member_id
+                            .eq(input.member_id)
+                            .and(pool_membership::pool_id.eq(pool_id)),
+                    )
+                    .set(pool_membership::default_split_percentage.eq(input.split_percentage))
+                    .execute(conn)?;
+            }
+            Ok(())
+        })?;
+
+        return Ok(1);
     }
 }
 
@@ -677,7 +718,7 @@ impl Friendship {
         conn: &mut PgConnection,
         member_id_query: uuid::Uuid,
         pool_id_query: uuid::Uuid,
-    ) -> QueryResult<Vec<(Member, bool)>> {
+    ) -> QueryResult<Vec<(Member, bool, f64)>> {
         let inviter_friends = friendship::table
             .filter(friendship::inviting_member_id.eq(member_id_query))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
@@ -697,14 +738,23 @@ impl Friendship {
             .load::<uuid::Uuid>(conn)?;
 
         let friends = member::table
-            .filter(member::id.eq_any(friend_ids))
-            .load::<Member>(conn)?;
+            .inner_join(pool_membership::table.on(member::id.eq(pool_membership::member_id)))
+            .filter(
+                member::id
+                    .eq_any(friend_ids)
+                    .and(pool_membership::pool_id.eq(pool_id_query)),
+            )
+            .select((
+                member::all_columns,
+                pool_membership::default_split_percentage,
+            ))
+            .load::<(Member, f64)>(conn)?;
 
         let result = friends
             .into_iter()
-            .map(|friend| {
+            .map(|(friend, default_split_pct)| {
                 let is_pool_member = pool_member_ids.contains(&friend.id);
-                (friend, is_pool_member)
+                (friend, is_pool_member, default_split_pct)
             })
             .collect();
 

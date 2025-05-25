@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -26,6 +26,7 @@ import { SettleUpModal } from "@/components/settle-up-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { components } from "schema";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -37,6 +38,7 @@ function Pool() {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
+
   const queryClient = useQueryClient();
 
   const { data: pool } = apiClient.useQuery(
@@ -53,7 +55,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -70,7 +72,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -84,7 +86,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    }
+    },
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -99,7 +101,7 @@ function Pool() {
           },
         },
         headers: createAuthHeader(),
-      }
+      },
     );
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
@@ -108,13 +110,28 @@ function Pool() {
   const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
     apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
 
+  const { mutateAsync: modifyDefaultSplit } = apiClient.useMutation(
+    "patch",
+    "/api/members/{member_id}/pools/{pool_id}/default-splits",
+  );
+
   const expenses = data || [];
-  const friends = (friendsRaw || []).filter((f) => f.member.id !== memberId);
+  const allMembers = useMemo(() => friendsRaw || [], [friendsRaw]);
+  const friends = useMemo(
+    () => allMembers.filter((f) => f.member.id !== memberId),
+    [allMembers, memberId],
+  );
+
+  const [
+    maybeModifiedDefaultSplitPercentages,
+    setMaybeModifiedDefaultSplitPercentages,
+  ] = useState<components["schemas"]["MemberIdSplitPercentage"][]>([]);
+
   const poolMembers = (friendsRaw || []).filter((f) => f.is_pool_member);
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0
+    0,
   );
 
   const balances = useMemo(() => {
@@ -137,6 +154,44 @@ function Pool() {
       })
       .filter((b) => b !== null);
   }, [balancesRaw, friends]);
+
+  useEffect(() => {
+    async function maybeUpdate() {
+      const isValid =
+        maybeModifiedDefaultSplitPercentages.reduce((acc, curr) => {
+          return (acc += curr.split_percentage);
+        }, 0) === 100;
+
+      if (isValid && memberId) {
+        await modifyDefaultSplit({
+          params: {
+            path: {
+              pool_id: poolId,
+              member_id: memberId,
+            },
+          },
+          body: {
+            default_split_percentages: maybeModifiedDefaultSplitPercentages,
+          },
+          headers: createAuthHeader(),
+        });
+
+        await queryClient.invalidateQueries({
+          queryKey: ["get", "/api/members/{member_id}/pools/{pool_id}/members"],
+        });
+        setMaybeModifiedDefaultSplitPercentages([]);
+      }
+    }
+
+    maybeUpdate();
+  }, [
+    maybeModifiedDefaultSplitPercentages,
+    memberId,
+    poolId,
+    queryClient,
+    modifyDefaultSplit,
+    createAuthHeader,
+  ]);
 
   if (!memberId) {
     return null;
@@ -414,7 +469,45 @@ function Pool() {
                             <Label htmlFor="email" className="text-xs">
                               Split %
                             </Label>
-                            <Input type="number" className="max-w-16" />
+                            <Input
+                              type="number"
+                              className="max-w-16"
+                              value={
+                                maybeModifiedDefaultSplitPercentages.find(
+                                  (m) => m.member_id === member.member.id,
+                                )?.split_percentage ||
+                                member.default_split_percentage
+                              }
+                              onChange={async (e) => {
+                                setMaybeModifiedDefaultSplitPercentages(
+                                  (prev) => {
+                                    const iter = prev.length
+                                      ? prev
+                                      : allMembers.map((m) => ({
+                                          member_id: m.member.id,
+                                          split_percentage:
+                                            m.default_split_percentage,
+                                        }));
+
+                                    return iter.map((f) => {
+                                      if (f.member_id === member.member.id) {
+                                        return {
+                                          member_id: f.member_id,
+                                          split_percentage: parseFloat(
+                                            e.target.value,
+                                          ),
+                                        };
+                                      } else {
+                                        return {
+                                          member_id: f.member_id,
+                                          split_percentage: f.split_percentage,
+                                        };
+                                      }
+                                    });
+                                  },
+                                );
+                              }}
+                            />
                           </div>
                         )}
                       </div>
