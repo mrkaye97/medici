@@ -3,4 +3,4 @@
 *.yml linguist-detectable=false
 *.yaml linguist-detectable=
 *.gen.ts linguist-detectable=false
-*.components.ui.*.ts linguist-detectable=false
+frontend/src/components/lib/* linguist-detectable=false
