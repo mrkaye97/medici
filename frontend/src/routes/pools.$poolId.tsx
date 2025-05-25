@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
 import { AddMemberModal } from "@/components/add-member-modal";
 import { SettleUpModal } from "@/components/settle-up-modal";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -34,6 +35,7 @@ function Pool() {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data: pool } = apiClient.useQuery(
     "get",
@@ -49,7 +51,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -66,7 +68,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -80,7 +82,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -95,10 +97,10 @@ function Pool() {
           },
         },
         headers: createAuthHeader(),
-      },
+      }
     );
 
-  const { mutate: addFriendToPool, isPending: isAddPending } =
+  const { mutateAsync: addFriendToPool, isPending: isAddPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/members");
 
   const { mutate: removeFriendFromPool, isPending: isRemovePending } =
@@ -110,7 +112,7 @@ function Pool() {
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0,
+    0
   );
 
   const balances = useMemo(() => {
@@ -431,8 +433,8 @@ function Pool() {
                                 variant="ghost"
                                 className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                                 disabled={isAddPending || isRemovePending}
-                                onClick={() => {
-                                  addFriendToPool({
+                                onClick={async () => {
+                                  await addFriendToPool({
                                     body: {
                                       member_id: friend.member.id,
                                     },
@@ -440,6 +442,13 @@ function Pool() {
                                       path: { pool_id: poolId },
                                     },
                                     headers: createAuthHeader(),
+                                  });
+
+                                  await queryClient.invalidateQueries({
+                                    queryKey: [
+                                      "get",
+                                      "/api/members/{member_id}/pools/{pool_id}/members",
+                                    ],
                                   });
                                 }}
                               >
