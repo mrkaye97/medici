@@ -311,24 +311,24 @@ impl Pool {
 
     pub fn find_by_member_id(
         conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
+        member_id: uuid::Uuid,
     ) -> QueryResult<Vec<Self>> {
         pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
-            .filter(pool_membership::member_id.eq(member_id_query))
+            .filter(pool_membership::member_id.eq(member_id))
             .select(pool::all_columns)
             .get_results(conn)
     }
 
     pub fn get_with_debt_for_member(
         conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-        member_id_query: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
     ) -> QueryResult<(Self, PoolRole, f64)> {
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
-            .filter(pool::id.eq(pool_id_query))
-            .filter(pool_membership::member_id.eq(member_id_query))
+            .filter(pool::id.eq(pool_id))
+            .filter(pool_membership::member_id.eq(member_id))
             .select((pool::all_columns, pool_membership::role))
             .load::<(Pool, PoolRole)>(conn)?;
 
@@ -338,8 +338,8 @@ impl Pool {
                     .eq(expense::id)
                     .and(expense_line_item::is_settled.eq(false))),
             )
-            .filter(expense_line_item::debtor_member_id.eq(member_id_query))
-            .filter(expense::pool_id.eq(pool_id_query))
+            .filter(expense_line_item::debtor_member_id.eq(member_id))
+            .filter(expense::pool_id.eq(pool_id))
             .select((
                 expense::paid_by_member_id,
                 expense_line_item::amount,
@@ -349,7 +349,7 @@ impl Pool {
 
         let mut total_debt = f64::from(0);
         for (paid_by_id, line_amount, expense_amount) in debts {
-            if paid_by_id == member_id_query {
+            if paid_by_id == member_id {
                 total_debt += &line_amount - &expense_amount;
             } else {
                 total_debt += line_amount;
@@ -413,12 +413,12 @@ impl PoolMembership {
 
     pub fn add_member(
         conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-        member_id_query: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
     ) -> QueryResult<Self> {
         let new_membership = NewPoolMembership {
-            pool_id: pool_id_query,
-            member_id: member_id_query,
+            pool_id: pool_id,
+            member_id: member_id,
             role: PoolRole::PARTICIPANT,
             default_split_percentage: 0.0,
         };
@@ -428,15 +428,52 @@ impl PoolMembership {
 
     pub fn remove_member(
         conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-        member_id_query: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
     ) -> QueryResult<usize> {
-        diesel::delete(
-            pool_membership::table
-                .filter(pool_membership::pool_id.eq(pool_id_query))
-                .filter(pool_membership::member_id.eq(member_id_query)),
-        )
-        .execute(conn)
+        let num_updated = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
+            let _ = diesel::delete(
+                pool_membership::table
+                    .filter(pool_membership::pool_id.eq(pool_id))
+                    .filter(pool_membership::member_id.eq(member_id)),
+            )
+            .execute(conn);
+
+            let existing_memberships = pool_membership::table
+                .filter(
+                    pool_membership::pool_id
+                        .eq(pool_id)
+                        .and(pool_membership::member_id.ne(member_id)),
+                )
+                .select(pool_membership::all_columns)
+                .load::<PoolMembership>(conn)?;
+
+            let mut inputs: Vec<MemberIdSplitPercentage> = Vec::new();
+            let num_existing_memberships = existing_memberships.len();
+            let total_split_percentage_remaining: f64 = existing_memberships
+                .iter()
+                .clone()
+                .map(|x| x.default_split_percentage)
+                .collect::<Vec<f64>>()
+                .iter()
+                .sum();
+
+            let to_assign = 100.0 - total_split_percentage_remaining;
+            let share_per_member = to_assign / num_existing_memberships as f64;
+
+            for membership in existing_memberships {
+                inputs.push(MemberIdSplitPercentage {
+                    member_id: membership.member_id,
+                    split_percentage: membership.default_split_percentage + share_per_member,
+                })
+            }
+
+            let num_updated = Self::update_default_split_percentage(conn, pool_id, inputs);
+
+            return Ok(num_updated.unwrap_or(0));
+        });
+
+        return Ok(num_updated.unwrap_or(0));
     }
 
     pub fn update_default_split_percentage(
@@ -518,8 +555,8 @@ impl Expense {
 
     pub fn get_recent_for_member_in_pool(
         conn: &mut PgConnection,
-        pool_id_query: uuid::Uuid,
-        member_id_query: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
         limit: i64,
     ) -> QueryResult<Vec<(Self, f64)>> {
         let results = expense::table
@@ -527,9 +564,9 @@ impl Expense {
                 expense_line_item::table.on(expense::id
                     .eq(expense_line_item::expense_id)
                     .and(expense::is_settled.eq(false)) // <-- fix here
-                    .and(expense_line_item::debtor_member_id.eq(member_id_query))),
+                    .and(expense_line_item::debtor_member_id.eq(member_id))),
             )
-            .filter(expense::pool_id.eq(pool_id_query))
+            .filter(expense::pool_id.eq(pool_id))
             .filter(expense::is_settled.eq(false))
             .order_by(expense::inserted_at.desc())
             .limit(limit)
@@ -542,7 +579,7 @@ impl Expense {
 
         let mut formatted_results = Vec::new();
         for (expense, paid_by_id, line_amount) in results {
-            let amount_owed = if paid_by_id == member_id_query {
+            let amount_owed = if paid_by_id == member_id {
                 &line_amount - &expense.amount
             } else {
                 line_amount
@@ -668,17 +705,14 @@ impl Friendship {
         diesel::delete(friendship::table.find((inviting_id, friend_id))).execute(conn)
     }
 
-    pub fn get_friends(
-        conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
-    ) -> QueryResult<Vec<Member>> {
+    pub fn get_friends(conn: &mut PgConnection, member_id: uuid::Uuid) -> QueryResult<Vec<Member>> {
         let inviter_friends = friendship::table
-            .filter(friendship::inviting_member_id.eq(member_id_query))
+            .filter(friendship::inviting_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::friend_member_id);
 
         let invitee_friends = friendship::table
-            .filter(friendship::friend_member_id.eq(member_id_query))
+            .filter(friendship::friend_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::inviting_member_id);
 
@@ -693,11 +727,11 @@ impl Friendship {
 
     pub fn get_pending_requests(
         conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
+        member_id: uuid::Uuid,
     ) -> QueryResult<Vec<(Member, bool)>> {
         let inbound_requests = friendship::table
             .inner_join(member::table.on(friendship::inviting_member_id.eq(member::id)))
-            .filter(friendship::friend_member_id.eq(member_id_query))
+            .filter(friendship::friend_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Pending))
             .select((
                 member::all_columns,
@@ -706,7 +740,7 @@ impl Friendship {
 
         let outbound_requests = friendship::table
             .inner_join(member::table.on(friendship::friend_member_id.eq(member::id)))
-            .filter(friendship::inviting_member_id.eq(member_id_query))
+            .filter(friendship::inviting_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Pending))
             .select((
                 member::all_columns,
@@ -720,24 +754,24 @@ impl Friendship {
 
     pub fn get_friends_with_pool_status(
         conn: &mut PgConnection,
-        member_id_query: uuid::Uuid,
-        pool_id_query: uuid::Uuid,
+        member_id: uuid::Uuid,
+        pool_id: uuid::Uuid,
     ) -> QueryResult<Vec<(Member, bool, f64)>> {
         let inviter_friends = friendship::table
-            .filter(friendship::inviting_member_id.eq(member_id_query))
+            .filter(friendship::inviting_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::friend_member_id);
 
         let invitee_friends = friendship::table
-            .filter(friendship::friend_member_id.eq(member_id_query))
+            .filter(friendship::friend_member_id.eq(member_id))
             .filter(friendship::status.eq(FriendshipStatus::Accepted))
             .select(friendship::inviting_member_id);
 
         let mut friend_ids: Vec<uuid::Uuid> = inviter_friends.union(invitee_friends).load(conn)?;
-        friend_ids.push(member_id_query);
+        friend_ids.push(member_id);
 
         let pool_member_ids = pool_membership::table
-            .filter(pool_membership::pool_id.eq(pool_id_query))
+            .filter(pool_membership::pool_id.eq(pool_id))
             .select(pool_membership::member_id)
             .load::<uuid::Uuid>(conn)?;
 
@@ -746,7 +780,7 @@ impl Friendship {
             .filter(
                 member::id
                     .eq_any(friend_ids)
-                    .and(pool_membership::pool_id.eq(pool_id_query)),
+                    .and(pool_membership::pool_id.eq(pool_id)),
             )
             .select((
                 member::all_columns,
