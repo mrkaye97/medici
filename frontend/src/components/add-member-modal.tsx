@@ -31,9 +31,24 @@ export function AddMemberModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: friends, isLoading } = apiClient.useQuery(
+  const { data: poolMembers, isLoading: isPoolMembersLoading } =
+    apiClient.useQuery(
+      "get",
+      "/api/members/{member_id}/pools/{pool_id}/members",
+      {
+        params: {
+          path: {
+            member_id: memberId || "",
+            pool_id: poolId,
+          },
+        },
+        headers: createAuthHeader(),
+      }
+    );
+
+  const { data: friends, isLoading: friendsIsLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/pools/{pool_id}/members",
+    "/api/members/{member_id}/friends",
     {
       params: {
         path: {
@@ -42,10 +57,20 @@ export function AddMemberModal({
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
-  const availableFriends = (friends || [])?.filter((f) => !f.is_pool_member);
+  const availableFriends = (friends || [])?.filter((f) => {
+    const member = poolMembers?.find((m) => (m.member.id = f.id));
+
+    if (!member) {
+      return false;
+    }
+
+    return !member.is_pool_member;
+  });
+
+  const isLoading = isPoolMembersLoading || friendsIsLoading;
 
   const { mutate: addFriendToPool } = apiClient.useMutation(
     "post",
@@ -58,7 +83,7 @@ export function AddMemberModal({
         setIsOpen(false);
         setSelectedFriends([]);
       },
-    },
+    }
   );
 
   const handleAddMembers = async () => {
@@ -121,24 +146,24 @@ export function AddMemberModal({
             <div className="space-y-2">
               {availableFriends.map((friend) => (
                 <div
-                  key={friend.member.id}
+                  key={friend.id}
                   className="flex items-center space-x-3 py-2 px-1"
                 >
                   <Checkbox
-                    id={`friend-${friend.member.id}`}
-                    checked={selectedFriends.includes(friend.member.id)}
-                    onCheckedChange={() => toggleFriend(friend.member.id)}
+                    id={`friend-${friend.id}`}
+                    checked={selectedFriends.includes(friend.id)}
+                    onCheckedChange={() => toggleFriend(friend.id)}
                   />
                   <div className="flex-1">
                     <label
-                      htmlFor={`friend-${friend.member.id}`}
+                      htmlFor={`friend-${friend.id}`}
                       className="text-sm font-medium cursor-pointer flex flex-col"
                     >
                       <span>
-                        {friend.member.first_name} {friend.member.last_name}
+                        {friend.first_name} {friend.last_name}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {friend.member.email}
+                        {friend.email}
                       </span>
                     </label>
                   </div>
