@@ -22,7 +22,7 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex flex-col justify-center items-center h-full">
+    <div className="flex flex-col justify-center items-center h-full pt-12">
       <LoginForm
         onSubmit={async (e) => {
           setIsError(false);
