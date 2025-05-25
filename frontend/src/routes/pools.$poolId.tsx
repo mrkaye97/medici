@@ -190,8 +190,8 @@ function Pool() {
           </Button>
         </div>
 
-        <Card className="flex-1 overflow-auto">
-          <CardHeader className="pb-4">
+        <Card className="flex-1 overflow-hidden flex flex-col">
+          <CardHeader className="pb-4 flex-shrink-0">
             <CardTitle className="text-xl font-semibold flex flex-row items-center gap-2">
               <BanknoteIcon className="h-5 w-5 text-muted-foreground" />
               Recent Expenses
@@ -200,7 +200,7 @@ function Pool() {
               </Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
             {expenses.length === 0 ? (
               <div className="text-center py-16 px-4">
                 <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6">
@@ -220,15 +220,18 @@ function Pool() {
                 </Button>
               </div>
             ) : (
-              <div className="divide-y">
-                {expenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="p-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <Expense expense={expense} />
-                  </div>
-                ))}
+              <div className="flex-1 overflow-auto">
+                <div className="divide-y">
+                  {" "}
+                  {expenses.map((expense) => (
+                    <div
+                      key={expense.id}
+                      className="p-4 hover:bg-muted/30 transition-colors"
+                    >
+                      <Expense expense={expense} />
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </CardContent>
