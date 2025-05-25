@@ -15,9 +15,9 @@ export function SettleUpModal({
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutate: settleUpPool } = apiClient.useMutation(
+  const { mutateAsync: settleUpPool } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/settle-up",
+    "/api/members/{member_id}/pools/{pool_id}/settle-up"
   );
 
   if (!memberId) {
@@ -40,7 +40,7 @@ export function SettleUpModal({
           Clicking here will confirm your pool is all settled up.
           <Button
             onClick={async () => {
-              settleUpPool({
+              await settleUpPool({
                 params: {
                   path: {
                     member_id: memberId,
@@ -49,8 +49,12 @@ export function SettleUpModal({
                 },
                 headers: createAuthHeader(),
               });
+
               await queryClient.invalidateQueries({
-                queryKey: ["get"],
+                queryKey: [
+                  "get",
+                  "/api/pools/{pool_id}/members/{member_id}/expenses",
+                ],
               });
               setIsOpen(false);
             }}
