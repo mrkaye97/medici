@@ -17,6 +17,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, X, UserPlus, Clock, LogOut } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "./ui/separator";
 
 export const FriendsView = () => {
   const { memberId, createAuthHeader, logout } = useAuth();
@@ -35,7 +36,7 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
@@ -50,7 +51,7 @@ export const FriendsView = () => {
       },
       {
         enabled: !!memberId,
-      },
+      }
     );
 
   const { mutate: acceptFriendRequest, isPending: isAccepting } =
@@ -66,7 +67,7 @@ export const FriendsView = () => {
             queryKey: ["get", "/api/members/{member_id}/friends"],
           });
         },
-      },
+      }
     );
 
   const { mutate: deleteFriendRequest, isPending: isDeleting } =
@@ -77,7 +78,7 @@ export const FriendsView = () => {
         onSuccess: async () => {
           // await queryClient.invalidateQueries();
         },
-      },
+      }
     );
 
   const { data: member } = apiClient.useQuery(
@@ -89,20 +90,21 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const email = member?.email;
+  const name = `${member?.first_name} ${member?.last_name}`;
 
   const friends = friendsRaw || [];
   const friendRequests = friendRequestsRaw || [];
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound",
+    (r) => r.direction === "inbound"
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound",
+    (r) => r.direction === "outbound"
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;
@@ -349,18 +351,22 @@ export const FriendsView = () => {
         </TabsContent>
 
         <TabsContent value="me" className="mt-0 pt-2">
-          <CardContent className="space-y-1 pb-2 flex flex-col">
-            <p className="pl-2 py-1">Email: {email}</p>
+          <CardContent className="pb-2 flex flex-col">
+            <div className="flex flex-row items-center h-12 flex-shrink-0">
+              <p>{name}</p>
+              <Separator orientation="vertical" className="mx-2 h-6" />
+              <p>{email}</p>
+            </div>
             <Button
               variant="outline"
               onClick={() => {
                 logout();
               }}
-              className="max-w-32 justify-center py-0 ml-2"
+              className="justify-center py-0 flex-shrink-0"
             >
               Log Out
               <LogOut className="size-4" />
-            </Button>{" "}
+            </Button>
           </CardContent>
         </TabsContent>
       </Tabs>
