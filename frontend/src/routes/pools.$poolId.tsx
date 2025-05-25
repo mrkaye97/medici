@@ -51,7 +51,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -68,7 +68,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -82,7 +82,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -97,7 +97,7 @@ function Pool() {
           },
         },
         headers: createAuthHeader(),
-      },
+      }
     );
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
@@ -112,7 +112,7 @@ function Pool() {
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0,
+    0
   );
 
   const balances = useMemo(() => {
@@ -149,7 +149,7 @@ function Pool() {
   }
 
   return (
-    <div className="flex overflow-hidden h-[calc(100vh-6rem)]">
+    <div className="flex overflow-hidden h-full">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
@@ -166,32 +166,34 @@ function Pool() {
         poolId={poolId}
       />
 
-      <div className="flex-1 overflow-hidden flex flex-col p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{pool.name}</h1>
-            <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
-              <UsersRound className="h-4 w-4" />
-              <span>{poolMembers.length} members</span>
-              {pool.role === "ADMIN" && (
-                <Badge variant="outline" className="ml-2">
-                  Admin
-                </Badge>
-              )}
-            </div>
-          </div>
-          <Button
-            onClick={() => setIsAddExpenseModalOpen(true)}
-            className="flex items-center gap-2"
-            size="lg"
-          >
-            <PlusCircleIcon className="h-5 w-5" />
-            Add Expense
-          </Button>
-        </div>
-
+      <div className="flex-1 overflow-hidden flex flex-col py-6 pl-6">
         <Card className="flex-1 overflow-hidden flex flex-col">
           <CardHeader className="pb-4 flex-shrink-0">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {pool.name}
+                </h1>
+                <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+                  <UsersRound className="h-4 w-4" />
+                  <span>{poolMembers.length} members</span>
+                  {pool.role === "ADMIN" && (
+                    <Badge variant="outline" className="ml-2">
+                      Admin
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <Button
+                onClick={() => setIsAddExpenseModalOpen(true)}
+                className="flex items-center gap-2"
+                size="lg"
+              >
+                <PlusCircleIcon className="h-5 w-5" />
+                Add Expense
+              </Button>
+            </div>
+
             <CardTitle className="text-xl font-semibold flex flex-row items-center gap-2">
               <BanknoteIcon className="h-5 w-5 text-muted-foreground" />
               Recent Expenses
@@ -238,7 +240,7 @@ function Pool() {
         </Card>
       </div>
 
-      <div className="w-[400px] border-l bg-muted/5 flex flex-col h-full overflow-hidden">
+      <div className="w-[400px] bg-muted/5 flex flex-col h-full overflow-hidden py-6 px-2 ">
         <div className="p-6 border-b bg-background">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <DollarSign className="h-5 w-5" />

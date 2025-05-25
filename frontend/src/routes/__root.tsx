@@ -32,13 +32,7 @@ export const Route = createRootRouteWithContext<{
   component: () => {
     return (
       <RootDocument>
-        <main className="flex-1 relative p-6">
-          <div className="mb-4">
-            <Link to="/" className="flex flex-row items-center gap-2">
-              <HandCoinsIcon className="size-6 text-emerald-800" />
-              <h1 className="text-2xl font-bold tracking-tight">Medici</h1>
-            </Link>
-          </div>
+        <main>
           <Outlet />
         </main>
       </RootDocument>
@@ -49,12 +43,9 @@ export const Route = createRootRouteWithContext<{
 function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      <>
-        <hr />
-        {props.children}
-        <ReactQueryDevtools buttonPosition="bottom-left" />
-        <Scripts />
-      </>
+      {props.children}
+      <ReactQueryDevtools buttonPosition="bottom-left" />
+      <Scripts />
     </>
   );
 }

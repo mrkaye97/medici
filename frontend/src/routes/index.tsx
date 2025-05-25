@@ -43,7 +43,7 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const pools = data || [];
@@ -62,7 +62,7 @@ function Home() {
   }
 
   return (
-    <div className="h-[calc(100vh-4rem)] flex flex-col">
+    <div className="h-full flex flex-col">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
