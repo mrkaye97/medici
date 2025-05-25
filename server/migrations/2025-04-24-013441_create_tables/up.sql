@@ -192,10 +192,10 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER expense_validation_after_insert_trigger
-    AFTER INSERT ON expense
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_expense_after_insert();
+AFTER INSERT ON expense
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION validate_expense_after_insert();
 
 -- Validate that the sum of default_split_percentages for a pool equals 100
 CREATE OR REPLACE FUNCTION validate_split_percentages_sum_to_100()
@@ -228,7 +228,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE CONSTRAINT TRIGGER expense_validation_after_insert_trigger
-    AFTER INSERT OR UPDATE OR DELETE ON pool_membership
-    DEFERRABLE INITIALLY DEFERRED
-    FOR EACH ROW
-    EXECUTE FUNCTION validate_split_percentages_sum_to_100();
+AFTER INSERT OR UPDATE OR DELETE ON pool_membership
+DEFERRABLE INITIALLY DEFERRED
+FOR EACH ROW
+EXECUTE FUNCTION validate_split_percentages_sum_to_100();
