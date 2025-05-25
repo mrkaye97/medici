@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "./ui/button";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 
 export function SettleUpModal({

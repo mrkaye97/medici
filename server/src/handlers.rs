@@ -910,6 +910,12 @@ pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<P
     Json(details)
 }
 
+#[derive(Deserialize, Serialize, ToSchema)]
+pub struct PoolMembershipWithMemberDetails {
+    member: models::Member,
+    pool_membership: models::PoolMembership,
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct ModifyDefaultSplitInput {
     default_split_percentages: Vec<models::MemberIdSplitPercentage>,
@@ -924,15 +930,14 @@ pub struct ModifyDefaultSplitInput {
     ),
     request_body = ModifyDefaultSplitInput,
     responses(
-        (status = 200, description = "Default splits modified", body = Vec<MembersWithPoolStatus>),
+        (status = 200, description = "Default splits modified", body = Vec<PoolMembershipWithMemberDetails>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn modify_default_splits_handler(
     Path(path): Path<PoolDetailsPath>,
     Json(input): Json<ModifyDefaultSplitInput>,
-) -> Json<Vec<MembersWithPoolStatus>> {
-    let member_id = path.member_id;
+) -> Json<Vec<PoolMembershipWithMemberDetails>> {
     let pool_id = path.pool_id;
 
     let mut conn = get_db_connection()
@@ -952,8 +957,7 @@ pub async fn modify_default_splits_handler(
         .expect("Failed to get database connection");
 
     let members = tokio::task::spawn_blocking(move || {
-        Friendship::get_friends_with_pool_status(&mut conn, member_id, pool_id)
-            .expect("Failed to list members of pool")
+        PoolMembership::list(&mut conn, pool_id).expect("Failed to list members of pool")
     })
     .await
     .expect("Task panicked");
@@ -962,10 +966,9 @@ pub async fn modify_default_splits_handler(
         members
             .into_iter()
             .map(
-                |(member, is_pool_member, default_split_percentage)| MembersWithPoolStatus {
+                |(pool_membership, member)| PoolMembershipWithMemberDetails {
                     member,
-                    is_pool_member,
-                    default_split_percentage,
+                    pool_membership,
                 },
             )
             .collect(),
@@ -1071,13 +1074,6 @@ pub async fn get_pool_balances_for_member(
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]
-pub struct MembersWithPoolStatus {
-    member: models::Member,
-    is_pool_member: bool,
-    default_split_percentage: f64,
-}
-
-#[derive(Deserialize, Serialize, ToSchema)]
 pub struct MembersOfPoolPath {
     pool_id: uuid::Uuid,
     member_id: uuid::Uuid,
@@ -1091,35 +1087,34 @@ pub struct MembersOfPoolPath {
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch members for")
     ),
     responses(
-        (status = 200, description = "List all members of a pool successfully", body = Vec<MembersWithPoolStatus>),
+        (status = 200, description = "List all members of a pool successfully", body = Vec<PoolMembershipWithMemberDetails>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_members_of_pool_handler(
     Path(path): Path<MembersOfPoolPath>,
-) -> Json<Vec<MembersWithPoolStatus>> {
+) -> Json<Vec<PoolMembershipWithMemberDetails>> {
     let pool_id = path.pool_id;
-    let member_id = path.member_id;
 
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
     let members = tokio::task::spawn_blocking(move || {
-        Friendship::get_friends_with_pool_status(&mut conn, member_id, pool_id)
-            .expect("Failed to list members of pool")
+        PoolMembership::list(&mut conn, pool_id).expect("Failed to list members of pool")
     })
     .await
     .expect("Task panicked");
+
+    println!("Members: {:?}", members.iter().clone());
 
     Json(
         members
             .into_iter()
             .map(
-                |(member, is_pool_member, default_split_percentage)| MembersWithPoolStatus {
+                |(pool_membership, member)| PoolMembershipWithMemberDetails {
                     member,
-                    is_pool_member,
-                    default_split_percentage,
+                    pool_membership,
                 },
             )
             .collect(),

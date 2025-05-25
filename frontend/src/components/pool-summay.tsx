@@ -11,7 +11,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { Spinner } from "./ui/spinner";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { apiClient } from "@/api/client";

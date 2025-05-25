@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { AddExpenseModal } from "@/components/add-expense-modal";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -16,17 +16,17 @@ import {
   CheckCircle,
   Clock,
 } from "lucide-react";
-import { apiClient } from "@/api/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense } from "@/components/expense";
-import { AddMemberModal } from "@/components/add-member-modal";
 import { SettleUpModal } from "@/components/settle-up-modal";
 import { useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { components } from "schema";
+import { usePool } from "@/hooks/use-pool";
+import { useFriends } from "@/hooks/use-friends";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -36,124 +36,38 @@ function Pool() {
   const { poolId } = Route.useParams();
   const { memberId, createAuthHeader } = useAuth();
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-  const [isAddMemberModalOpen, setIsAddMemberModalOpen] = useState(false);
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
 
   const queryClient = useQueryClient();
 
-  const { data: pool } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/pools/{pool_id}",
-    {
-      params: {
-        path: {
-          pool_id: poolId,
-          member_id: memberId || "",
-        },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    },
-  );
+  const { friends, isFriendsLoading } = useFriends();
 
-  const { data, isLoading } = apiClient.useQuery(
-    "get",
-    "/api/pools/{pool_id}/members/{member_id}/expenses",
-    {
-      params: {
-        path: {
-          pool_id: poolId,
-          member_id: memberId || "",
-        },
-        query: {
-          limit: 100,
-        },
-      },
-      headers: createAuthHeader(),
-    },
-  );
+  const {
+    members,
+    expenses,
+    details,
+    balances,
+    isBalancesLoading,
+    isDetailsLoading,
+    isMembersLoading,
+    isExpensesLoading,
+    invalidate,
+    mutations,
+    totalExpenses,
+  } = usePool({
+    poolId,
+  });
 
-  const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/pools/{pool_id}/members",
-    {
-      params: {
-        path: {
-          member_id: memberId || "",
-          pool_id: poolId,
-        },
-      },
-      headers: createAuthHeader(),
-    },
-  );
-
-  const { data: balancesRaw, isLoading: isBalanacesLoading } =
-    apiClient.useQuery(
-      "get",
-      "/api/pools/{pool_id}/members/{member_id}/balances",
-      {
-        params: {
-          path: {
-            member_id: memberId || "",
-            pool_id: poolId,
-          },
-        },
-        headers: createAuthHeader(),
-      },
-    );
-
-  const { mutateAsync: addFriendToPool, isPending: isAddPending } =
-    apiClient.useMutation("post", "/api/pools/{pool_id}/members");
-
-  const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
-    apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
-
-  const { mutateAsync: modifyDefaultSplit } = apiClient.useMutation(
-    "patch",
-    "/api/members/{member_id}/pools/{pool_id}/default-splits",
-  );
-
-  const expenses = data || [];
-  const allMembers = useMemo(() => friendsRaw || [], [friendsRaw]);
-  const friends = useMemo(
-    () => allMembers.filter((f) => f.member.id !== memberId),
-    [allMembers, memberId],
-  );
+  const isLoading =
+    isMembersLoading ||
+    isExpensesLoading ||
+    isFriendsLoading ||
+    isDetailsLoading;
 
   const [
     maybeModifiedDefaultSplitPercentages,
     setMaybeModifiedDefaultSplitPercentages,
   ] = useState<components["schemas"]["MemberIdSplitPercentage"][]>([]);
-
-  const poolMembers = (friendsRaw || []).filter((f) => f.is_pool_member);
-
-  const totalExpenses = expenses.reduce(
-    (sum, expense) => sum + (expense.amount || 0),
-    0,
-  );
-
-  const balances = useMemo(() => {
-    return (balancesRaw || [])
-      .map((b) => {
-        const otherMember = friends.find((m) => m.member.id === b.member_id);
-
-        if (!otherMember) {
-          return null;
-        }
-
-        const name =
-          otherMember.member.first_name + " " + otherMember.member.last_name;
-
-        return {
-          name,
-          amount: b.amount,
-          type: b.direction,
-        };
-      })
-      .filter((b) => b !== null);
-  }, [balancesRaw, friends]);
 
   useEffect(() => {
     async function maybeUpdate() {
@@ -163,22 +77,10 @@ function Pool() {
         }, 0) === 100;
 
       if (isValid && memberId) {
-        await modifyDefaultSplit({
-          params: {
-            path: {
-              pool_id: poolId,
-              member_id: memberId,
-            },
-          },
-          body: {
-            default_split_percentages: maybeModifiedDefaultSplitPercentages,
-          },
-          headers: createAuthHeader(),
-        });
+        await mutations.modifyDefaultSplit(
+          maybeModifiedDefaultSplitPercentages,
+        );
 
-        await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/members/{member_id}/pools/{pool_id}/members"],
-        });
         setMaybeModifiedDefaultSplitPercentages([]);
       }
     }
@@ -189,15 +91,33 @@ function Pool() {
     memberId,
     poolId,
     queryClient,
-    modifyDefaultSplit,
+    mutations,
     createAuthHeader,
+    invalidate,
   ]);
+
+  const isPoolMember = useCallback(
+    (friend: components["schemas"]["Member"]) => {
+      return members.some((m) => m.member.id === friend.id);
+    },
+    [members],
+  );
+
+  const nonPoolMemberFriends = useMemo(() => {
+    return friends.filter((friend) => !isPoolMember(friend));
+  }, [isPoolMember, friends]);
 
   if (!memberId) {
     return null;
   }
 
-  if (isLoading || isFriendsLoading || !pool || isBalanacesLoading) {
+  if (
+    isLoading ||
+    isFriendsLoading ||
+    isMembersLoading ||
+    !details ||
+    isBalancesLoading
+  ) {
     return (
       <div className="flex flex-col items-center">
         <Spinner className="mt-8" />
@@ -210,12 +130,7 @@ function Pool() {
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
-        pool={pool}
-      />
-      <AddMemberModal
-        isOpen={isAddMemberModalOpen}
-        setIsOpen={setIsAddMemberModalOpen}
-        poolId={poolId}
+        pool={details}
       />
       <SettleUpModal
         isOpen={isSettleUpModalOpen}
@@ -229,12 +144,12 @@ function Pool() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight">
-                  {pool.name}
+                  {details.name}
                 </h1>
                 <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
                   <UsersRound className="h-4 w-4" />
-                  <span>{poolMembers.length} members</span>
-                  {pool.role === "ADMIN" && (
+                  <span>{members.length} members</span>
+                  {details.role === "ADMIN" && (
                     <Badge variant="outline" className="ml-2">
                       Admin
                     </Badge>
@@ -373,7 +288,7 @@ function Pool() {
                   <p className="text-xs text-muted-foreground">Expenses</p>
                 </div>
                 <div className="bg-background p-3 rounded-lg border text-center">
-                  <p className="text-2xl font-bold">{poolMembers.length}</p>
+                  <p className="text-2xl font-bold">{members.length}</p>
                   <p className="text-xs text-muted-foreground">Members</p>
                 </div>
               </div>
@@ -387,25 +302,15 @@ function Pool() {
                   <UsersRound className="h-4 w-4" />
                   Members
                 </h3>
-                {pool.role === "ADMIN" && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setIsAddMemberModalOpen(true)}
-                  >
-                    <UserRoundPlus className="h-4 w-4 mr-1" />
-                    Add
-                  </Button>
-                )}
               </div>
 
               <div className="space-y-2">
-                {poolMembers.length === 0 ? (
+                {members.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-4 text-center">
                     No members yet
                   </p>
                 ) : (
-                  poolMembers.map((member) => (
+                  members.map((member) => (
                     <div
                       key={member.member.id}
                       className="flex items-center justify-between p-3 rounded-lg bg-background border"
@@ -435,36 +340,24 @@ function Pool() {
                         </div>
                       </div>
                       <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
-                        {pool.role === "ADMIN" &&
+                        {details.role === "ADMIN" &&
                           member.member.id !== memberId && (
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              disabled={isAddPending || isRemovePending}
+                              disabled={
+                                mutations.isAddPending ||
+                                mutations.isRemovePending
+                              }
                               onClick={async () => {
-                                await removeFriendFromPool({
-                                  params: {
-                                    path: {
-                                      pool_id: poolId,
-                                      member_id: member.member.id,
-                                    },
-                                  },
-                                  headers: createAuthHeader(),
-                                });
-
-                                await queryClient.invalidateQueries({
-                                  queryKey: [
-                                    "get",
-                                    "/api/members/{member_id}/pools/{pool_id}/members",
-                                  ],
-                                });
+                                await mutations.removeFriend(member.member.id);
                               }}
                             >
                               <UserMinus className="h-4 w-4" />
                             </Button>
                           )}
-                        {pool.role === "ADMIN" && (
+                        {details.role === "ADMIN" && (
                           <div className="flex flex-col items-start gap-1">
                             <Label htmlFor="email" className="text-xs">
                               Split %
@@ -476,17 +369,18 @@ function Pool() {
                                 maybeModifiedDefaultSplitPercentages.find(
                                   (m) => m.member_id === member.member.id,
                                 )?.split_percentage ||
-                                member.default_split_percentage
+                                member.pool_membership.default_split_percentage
                               }
                               onChange={async (e) => {
                                 setMaybeModifiedDefaultSplitPercentages(
                                   (prev) => {
                                     const iter = prev.length
                                       ? prev
-                                      : allMembers.map((m) => ({
+                                      : members.map((m) => ({
                                           member_id: m.member.id,
                                           split_percentage:
-                                            m.default_split_percentage,
+                                            m.pool_membership
+                                              .default_split_percentage,
                                         }));
 
                                     return iter.map((f) => {
@@ -516,77 +410,46 @@ function Pool() {
                 )}
               </div>
 
-              {pool.role === "ADMIN" &&
-                friends.filter((f) => !f.is_pool_member).length > 0 && (
-                  <>
-                    <div className="pt-4">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                        Add Friends to Pool
-                      </h4>
-                      <div className="space-y-2">
-                        {friends
-                          .filter((f) => !f.is_pool_member)
-                          .slice(0, 3)
-                          .map((friend) => (
-                            <div
-                              key={friend.member.id}
-                              className="flex items-center justify-between p-2 rounded bg-muted/50"
-                            >
-                              <div>
-                                <p className="text-sm font-medium">
-                                  {friend.member.first_name}{" "}
-                                  {friend.member.last_name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {friend.member.email}
-                                </p>
-                              </div>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                                disabled={isAddPending || isRemovePending}
-                                onClick={async () => {
-                                  await addFriendToPool({
-                                    body: {
-                                      member_id: friend.member.id,
-                                    },
-                                    params: {
-                                      path: { pool_id: poolId },
-                                    },
-                                    headers: createAuthHeader(),
-                                  });
-
-                                  await queryClient.invalidateQueries({
-                                    queryKey: [
-                                      "get",
-                                      "/api/members/{member_id}/pools/{pool_id}/members",
-                                    ],
-                                  });
-                                }}
-                              >
-                                <UserRoundPlus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ))}
-                        {friends.filter((f) => !f.is_pool_member).length >
-                          3 && (
+              {details.role === "ADMIN" && nonPoolMemberFriends.length > 0 && (
+                <>
+                  <div className="pt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                      Add Friends to Pool
+                    </h4>
+                    <div className="space-y-2">
+                      {nonPoolMemberFriends.map((friend) => (
+                        <div
+                          key={friend.id}
+                          className="flex items-center justify-between p-2 rounded bg-muted/50"
+                        >
+                          <div>
+                            <p className="text-sm font-medium">
+                              {friend.first_name} {friend.last_name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {friend.email}
+                            </p>
+                          </div>
                           <Button
                             size="sm"
-                            variant="outline"
-                            className="w-full"
-                            onClick={() => setIsAddMemberModalOpen(true)}
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                            disabled={
+                              mutations.isAddPending ||
+                              mutations.isRemovePending
+                            }
+                            onClick={async () => {
+                              await mutations.addFriend(friend.id);
+                            }}
                           >
-                            View all (
-                            {friends.filter((f) => !f.is_pool_member).length -
-                              3}{" "}
-                            more)
+                            <UserRoundPlus className="h-4 w-4" />
                           </Button>
-                        )}
-                      </div>
+                        </div>
+                      ))}
                     </div>
-                  </>
-                )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </ScrollArea>

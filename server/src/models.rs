@@ -508,6 +508,13 @@ impl PoolMembership {
 
         return Ok(1);
     }
+
+    pub fn list(conn: &mut PgConnection, pool_id: uuid::Uuid) -> QueryResult<Vec<(Self, Member)>> {
+        pool_membership::table
+            .inner_join(member::table.on(pool_membership::member_id.eq(member::id)))
+            .filter(pool_membership::pool_id.eq(pool_id))
+            .get_results(conn)
+    }
 }
 
 pub struct ExpenseForBalanceCalculation {
@@ -750,53 +757,6 @@ impl Friendship {
         inbound_requests
             .union_all(outbound_requests)
             .get_results(conn)
-    }
-
-    pub fn get_friends_with_pool_status(
-        conn: &mut PgConnection,
-        member_id: uuid::Uuid,
-        pool_id: uuid::Uuid,
-    ) -> QueryResult<Vec<(Member, bool, f64)>> {
-        let inviter_friends = friendship::table
-            .filter(friendship::inviting_member_id.eq(member_id))
-            .filter(friendship::status.eq(FriendshipStatus::Accepted))
-            .select(friendship::friend_member_id);
-
-        let invitee_friends = friendship::table
-            .filter(friendship::friend_member_id.eq(member_id))
-            .filter(friendship::status.eq(FriendshipStatus::Accepted))
-            .select(friendship::inviting_member_id);
-
-        let mut friend_ids: Vec<uuid::Uuid> = inviter_friends.union(invitee_friends).load(conn)?;
-        friend_ids.push(member_id);
-
-        let pool_member_ids = pool_membership::table
-            .filter(pool_membership::pool_id.eq(pool_id))
-            .select(pool_membership::member_id)
-            .load::<uuid::Uuid>(conn)?;
-
-        let friends = member::table
-            .inner_join(pool_membership::table.on(member::id.eq(pool_membership::member_id)))
-            .filter(
-                member::id
-                    .eq_any(friend_ids)
-                    .and(pool_membership::pool_id.eq(pool_id)),
-            )
-            .select((
-                member::all_columns,
-                pool_membership::default_split_percentage,
-            ))
-            .load::<(Member, f64)>(conn)?;
-
-        let result = friends
-            .into_iter()
-            .map(|(friend, default_split_pct)| {
-                let is_pool_member = pool_member_ids.contains(&friend.id);
-                (friend, is_pool_member, default_split_pct)
-            })
-            .collect();
-
-        Ok(result)
     }
 
     pub fn send_request_by_email(

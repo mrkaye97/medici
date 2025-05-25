@@ -21,7 +21,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { apiClient } from "@/api/client";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 
 export const MemberProfile = ({ id }: { id: string }) => {
   const { createAuthHeader } = useAuth();

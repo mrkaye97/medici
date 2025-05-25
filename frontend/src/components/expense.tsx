@@ -1,8 +1,8 @@
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "./lib/utils";
 import { ExpenseCategory, ExpenseIcon } from "@/components/add-expense-modal";
-import { apiClient } from "@/api/client";
 import { components } from "schema";
+import { usePool } from "@/hooks/use-pool";
 
 export const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -22,25 +22,10 @@ export const formatCurrency = (amount: number) => {
 type Expense = components["schemas"]["RecentExpenseDetails"];
 
 export function Expense({ expense }: { expense: Expense }) {
-  const { memberId, createAuthHeader } = useAuth();
-  const { data, isLoading } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/pools/{pool_id}/members",
-    {
-      params: {
-        path: {
-          member_id: memberId || "",
-          pool_id: expense.pool_id,
-        },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    },
-  );
+  const { memberId } = useAuth();
+  const { members, isMembersLoading } = usePool({ poolId: expense.pool_id });
 
-  if (!data || isLoading || !memberId) {
+  if (!members || isMembersLoading || !memberId) {
     return (
       <div className="flex flex-1 w-full mt-4 px-4 gap-x-4">
         <div className="flex flex-1 flex-col w-full">
@@ -77,7 +62,7 @@ export function Expense({ expense }: { expense: Expense }) {
             Paid by{" "}
             <span className="font-medium">
               {
-                data?.find((m) => m.member.id === expense.paid_by_member_id)
+                members?.find((m) => m.member.id === expense.paid_by_member_id)
                   ?.member.first_name
               }
             </span>

@@ -1,6 +1,6 @@
 import { LoginForm } from "@/components/login-form";
 
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { z } from "zod";
 

@@ -39,9 +39,9 @@ import { Button } from "./ui/button";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { CircleDollarSign, CirclePercent } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Separator } from "./ui/separator";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import {
   Select,
   SelectContent,
@@ -53,6 +53,7 @@ import {
 import { Textarea } from "./ui/textarea";
 import { apiClient } from "@/api/client";
 import { components } from "schema";
+import { usePool } from "@/hooks/use-pool";
 
 enum SplitMethodType {
   Percentage = "percentage",
@@ -314,24 +315,8 @@ export function AddExpenseModal({
     "/api/pools/{pool_id}/expenses",
   );
 
-  const { data, isLoading } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/pools/{pool_id}/members",
-    {
-      params: {
-        path: {
-          pool_id: pool.id,
-          member_id: memberId || "",
-        },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    },
-  );
+  const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id });
 
-  const members = useMemo(() => data ?? [], [data]);
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
     splitMethod: SplitMethodType.Default,
     splitAmounts: members.map((member) => ({
@@ -362,7 +347,7 @@ export function AddExpenseModal({
     },
   });
 
-  if (!data || isLoading) {
+  if (!members.length || isLoading) {
     return null;
   }
 
@@ -402,7 +387,9 @@ export function AddExpenseModal({
                       ? (a.amount / 100) * data.amount
                       : splitAmounts.splitMethod === SplitMethodType.Amount
                         ? a.amount
-                        : (member.default_split_percentage / 100) * data.amount;
+                        : (member.pool_membership.default_split_percentage /
+                            100) *
+                          data.amount;
 
                   return {
                     debtor_member_id: a.memberId,

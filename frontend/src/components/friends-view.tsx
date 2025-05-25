@@ -1,5 +1,5 @@
 import { Spinner } from "@/components/ui/spinner";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";

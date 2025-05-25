@@ -1,6 +1,6 @@
 import { PoolSummary } from "@/components/pool-summay";
 import { Spinner } from "@/components/ui/spinner";
-import { useAuth } from "@/hooks/auth";
+import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";

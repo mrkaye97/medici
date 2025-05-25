@@ -442,12 +442,6 @@ export interface components {
       /** Format: double */
       split_percentage: number;
     };
-    MembersWithPoolStatus: {
-      /** Format: double */
-      default_split_percentage: number;
-      is_pool_member: boolean;
-      member: components["schemas"]["Member"];
-    };
     ModifyDefaultSplitInput: {
       default_split_percentages: components["schemas"]["MemberIdSplitPercentage"][];
     };
@@ -490,6 +484,10 @@ export interface components {
     PoolMembershipInput: {
       /** Format: uuid */
       member_id: string;
+    };
+    PoolMembershipWithMemberDetails: {
+      member: components["schemas"]["Member"];
+      pool_membership: components["schemas"]["PoolMembership"];
     };
     /** @enum {string} */
     PoolRole: "PARTICIPANT" | "ADMIN";
@@ -893,7 +891,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["MembersWithPoolStatus"][];
+          "application/json": components["schemas"]["PoolMembershipWithMemberDetails"][];
         };
       };
       /** @description Internal server error */
@@ -959,7 +957,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["MembersWithPoolStatus"][];
+          "application/json": components["schemas"]["PoolMembershipWithMemberDetails"][];
         };
       };
       /** @description Internal server error */
