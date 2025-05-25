@@ -24,6 +24,7 @@ import { Expense } from "@/components/expense";
 import { AddMemberModal } from "@/components/add-member-modal";
 import { SettleUpModal } from "@/components/settle-up-modal";
 import { useQueryClient } from "@tanstack/react-query";
+import { Input } from "@/components/ui/input";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -51,7 +52,7 @@ function Pool() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { data, isLoading } = apiClient.useQuery(
@@ -68,7 +69,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: friendsRaw, isLoading: isFriendsLoading } = apiClient.useQuery(
@@ -82,7 +83,7 @@ function Pool() {
         },
       },
       headers: createAuthHeader(),
-    },
+    }
   );
 
   const { data: balancesRaw, isLoading: isBalanacesLoading } =
@@ -97,7 +98,7 @@ function Pool() {
           },
         },
         headers: createAuthHeader(),
-      },
+      }
     );
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
@@ -112,7 +113,7 @@ function Pool() {
 
   const totalExpenses = expenses.reduce(
     (sum, expense) => sum + (expense.amount || 0),
-    0,
+    0
   );
 
   const balances = useMemo(() => {
@@ -240,7 +241,7 @@ function Pool() {
         </Card>
       </div>
 
-      <div className="w-[400px] bg-muted/5 flex flex-col h-full overflow-hidden py-6 px-2 ">
+      <div className="w-[500px] bg-muted/5 flex flex-col h-full overflow-hidden py-6 px-2 ">
         <div className="p-6 border-b bg-background">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <DollarSign className="h-5 w-5" />
@@ -377,35 +378,40 @@ function Pool() {
                           </p>
                         </div>
                       </div>
-                      {pool.role === "ADMIN" &&
-                        member.member.id !== memberId && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            disabled={isAddPending || isRemovePending}
-                            onClick={async () => {
-                              await removeFriendFromPool({
-                                params: {
-                                  path: {
-                                    pool_id: poolId,
-                                    member_id: member.member.id,
+                      <div className="flex flex-row items-center gap-x-2">
+                        {pool.role === "ADMIN" &&
+                          member.member.id !== memberId && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={isAddPending || isRemovePending}
+                              onClick={async () => {
+                                await removeFriendFromPool({
+                                  params: {
+                                    path: {
+                                      pool_id: poolId,
+                                      member_id: member.member.id,
+                                    },
                                   },
-                                },
-                                headers: createAuthHeader(),
-                              });
+                                  headers: createAuthHeader(),
+                                });
 
-                              await queryClient.invalidateQueries({
-                                queryKey: [
-                                  "get",
-                                  "/api/members/{member_id}/pools/{pool_id}/members",
-                                ],
-                              });
-                            }}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
+                                await queryClient.invalidateQueries({
+                                  queryKey: [
+                                    "get",
+                                    "/api/members/{member_id}/pools/{pool_id}/members",
+                                  ],
+                                });
+                              }}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          )}
+                        {pool.role === "ADMIN" && (
+                          <Input type="number" className="max-w-16" />
                         )}
+                      </div>
                     </div>
                   ))
                 )}
