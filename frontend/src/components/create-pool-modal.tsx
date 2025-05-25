@@ -34,7 +34,7 @@ export function CreatePoolModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/pools",
+    "/api/members/{member_id}/pools"
   );
 
   const form = useForm<PoolFormValues>({
@@ -59,7 +59,7 @@ export function CreatePoolModal({
         }
       }}
     >
-      <DialogContent className="ml-32">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Create a pool</DialogTitle>
         </DialogHeader>
