@@ -181,7 +181,7 @@ pub fn compute_balances_for_member(
     let (mut graph, net_payers, net_receivers) = debt_pairs_to_graph(member_id, &expenses);
 
     for payer_member_id in net_payers {
-        for receiver_member_id in net_receivers.iter().clone() {
+        for receiver_member_id in net_receivers.iter() {
             let destination = graph
                 .node_indices()
                 .find(|&n| graph[n] == *receiver_member_id)
