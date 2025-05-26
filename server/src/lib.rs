@@ -27,66 +27,73 @@ fn debt_pairs_to_graph(
     HashSet<uuid::Uuid>,
     HashSet<uuid::Uuid>,
 ) {
-    let mut pairwise_expenses: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
-    let mut necessary_payments: HashMap<(uuid::Uuid, uuid::Uuid), f64> = HashMap::new();
+    let pairwise_expenses =
+        expenses
+            .clone()
+            .into_iter()
+            .fold(HashMap::new(), |mut acc, expense| {
+                let from_member_id = expense.from_member_id;
+                let to_member_id = expense.to_member_id;
 
-    for expense in &expenses {
-        let from_member_id = expense.from_member_id;
-        let to_member_id = expense.to_member_id;
+                acc.insert((from_member_id, to_member_id), expense.amount);
 
-        pairwise_expenses.insert((from_member_id, to_member_id), expense.amount);
-    }
+                acc
+            });
 
-    let mut unique_member_ids = HashSet::new();
-    for expense in &expenses {
-        unique_member_ids.insert(expense.from_member_id);
-        unique_member_ids.insert(expense.to_member_id);
-    }
+    let unique_member_ids =
+        expenses
+            .clone()
+            .into_iter()
+            .fold(HashSet::new(), |mut acc, expense| {
+                acc.insert(expense.from_member_id);
+                acc.insert(expense.to_member_id);
+                acc
+            });
 
-    for member_a in &unique_member_ids {
-        for member_b in &unique_member_ids {
-            let a_to_b = pairwise_expenses
-                .get(&(*member_a, *member_b))
-                .unwrap_or(&0.0);
-            let b_to_a = pairwise_expenses
-                .get(&(*member_b, *member_a))
-                .unwrap_or(&0.0);
+    let necessary_payments =
+        unique_member_ids
+            .clone()
+            .into_iter()
+            .fold(HashMap::new(), |mut acc, a| {
+                for b in &unique_member_ids {
+                    let a_to_b = pairwise_expenses.get(&(a, *b)).unwrap_or(&0.0);
+                    let b_to_a = pairwise_expenses.get(&(*b, a)).unwrap_or(&0.0);
 
-            if a_to_b > b_to_a {
-                necessary_payments.insert((*member_a, *member_b), *a_to_b - *b_to_a);
-            } else if b_to_a > a_to_b {
-                necessary_payments.insert((*member_b, *member_a), *b_to_a - *a_to_b);
+                    if a_to_b > b_to_a {
+                        acc.insert((a, *b), *a_to_b - *b_to_a);
+                    } else if b_to_a > a_to_b {
+                        acc.insert((*b, a), *b_to_a - *a_to_b);
+                    }
+                }
+                acc
+            });
+
+    let member_id_to_balance = necessary_payments.iter().fold(
+        HashMap::new(),
+        |mut acc, ((from_member_id, to_member_id), value)| {
+            let amount = *value;
+
+            if *from_member_id == member_id {
+                acc.entry(*from_member_id)
+                    .and_modify(|e| *e -= amount)
+                    .or_insert(-amount);
+
+                acc.entry(*to_member_id)
+                    .and_modify(|e| *e += amount)
+                    .or_insert(amount);
+            } else if *to_member_id == member_id {
+                acc.entry(*to_member_id)
+                    .and_modify(|e| *e += amount)
+                    .or_insert(amount);
+
+                acc.entry(*from_member_id)
+                    .and_modify(|e| *e -= amount)
+                    .or_insert(-amount);
             }
-        }
-    }
 
-    let mut member_id_to_balance: HashMap<uuid::Uuid, f64> = HashMap::new();
-
-    for ((from_member_id, to_member_id), value) in &necessary_payments {
-        let amount = *value;
-
-        if *from_member_id == member_id {
-            member_id_to_balance
-                .entry(*from_member_id)
-                .and_modify(|e| *e -= amount)
-                .or_insert(-amount);
-
-            member_id_to_balance
-                .entry(*to_member_id)
-                .and_modify(|e| *e += amount)
-                .or_insert(amount);
-        } else if *to_member_id == member_id {
-            member_id_to_balance
-                .entry(*to_member_id)
-                .and_modify(|e| *e += amount)
-                .or_insert(amount);
-
-            member_id_to_balance
-                .entry(*from_member_id)
-                .and_modify(|e| *e -= amount)
-                .or_insert(-amount);
-        }
-    }
+            acc
+        },
+    );
 
     let net_payers: HashSet<uuid::Uuid> = member_id_to_balance
         .iter()
@@ -123,34 +130,36 @@ fn graph_to_payments(
     graph: &Graph<uuid::Uuid, f64, petgraph::Directed>,
     member_id: uuid::Uuid,
 ) -> Vec<models::Balance> {
-    let mut payments = Vec::new();
+    graph
+        .edge_indices()
+        .into_iter()
+        .map(|edge| {
+            let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
+            let source_member_id = graph[source_node_index];
+            let target_member_id = graph[target_node_index];
+            let amount = *graph.edge_weight(edge).unwrap();
 
-    for edge in graph.edge_indices() {
-        let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
-        let source_member_id = graph[source_node_index];
-        let target_member_id = graph[target_node_index];
-        let amount = *graph.edge_weight(edge).unwrap();
-
-        if amount <= 0.0 {
-            continue;
-        }
-
-        if source_member_id == member_id {
-            payments.push(models::Balance {
-                member_id: target_member_id,
-                amount,
-                direction: models::PaymentDirection::Outbound,
-            });
-        } else if target_member_id == member_id {
-            payments.push(models::Balance {
-                member_id: source_member_id,
-                amount,
-                direction: models::PaymentDirection::Inbound,
-            });
-        }
-    }
-
-    payments
+            return (amount, source_member_id, target_member_id);
+        })
+        .filter(|(amount, source_member_id, target_member_id)| {
+            *amount > 0.0 && (*source_member_id == member_id || *target_member_id == member_id)
+        })
+        .map(|(amount, source_member_id, target_member_id)| {
+            if source_member_id == member_id {
+                return models::Balance {
+                    member_id: target_member_id,
+                    amount,
+                    direction: models::PaymentDirection::Outbound,
+                };
+            } else {
+                return models::Balance {
+                    member_id: source_member_id,
+                    amount,
+                    direction: models::PaymentDirection::Inbound,
+                };
+            }
+        })
+        .collect()
 }
 
 pub fn compute_balances_for_member(
