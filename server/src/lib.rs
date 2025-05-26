@@ -19,55 +19,31 @@ pub fn establish_connection() -> PgConnection {
         .unwrap_or_else(|_| panic!("Error connecting to {}", database_url))
 }
 
-fn debt_pairs_to_graph(
-    member_id: uuid::Uuid,
-    expenses: Vec<models::DebtPair>,
-) -> (
-    Graph<uuid::Uuid, f64, petgraph::Directed>,
-    HashSet<uuid::Uuid>,
-    HashSet<uuid::Uuid>,
-) {
-    let pairwise_expenses =
-        expenses
-            .clone()
-            .into_iter()
-            .fold(HashMap::new(), |mut acc, expense| {
-                let from_member_id = expense.from_member_id;
-                let to_member_id = expense.to_member_id;
+fn build_necessary_payments(
+    unique_member_ids: &HashSet<uuid::Uuid>,
+    pairwise_expenses: &HashMap<(uuid::Uuid, uuid::Uuid), f64>,
+) -> HashMap<(uuid::Uuid, uuid::Uuid), f64> {
+    unique_member_ids
+        .into_iter()
+        .fold(HashMap::new(), |mut acc, a| {
+            for b in unique_member_ids {
+                let a_to_b = pairwise_expenses.get(&(*a, *b)).unwrap_or(&0.0);
+                let b_to_a = pairwise_expenses.get(&(*b, *a)).unwrap_or(&0.0);
 
-                acc.insert((from_member_id, to_member_id), expense.amount);
-
-                acc
-            });
-
-    let unique_member_ids =
-        expenses
-            .clone()
-            .into_iter()
-            .fold(HashSet::new(), |mut acc, expense| {
-                acc.insert(expense.from_member_id);
-                acc.insert(expense.to_member_id);
-                acc
-            });
-
-    let necessary_payments =
-        unique_member_ids
-            .clone()
-            .into_iter()
-            .fold(HashMap::new(), |mut acc, a| {
-                for b in &unique_member_ids {
-                    let a_to_b = pairwise_expenses.get(&(a, *b)).unwrap_or(&0.0);
-                    let b_to_a = pairwise_expenses.get(&(*b, a)).unwrap_or(&0.0);
-
-                    if a_to_b > b_to_a {
-                        acc.insert((a, *b), *a_to_b - *b_to_a);
-                    } else if b_to_a > a_to_b {
-                        acc.insert((*b, a), *b_to_a - *a_to_b);
-                    }
+                if a_to_b > b_to_a {
+                    acc.insert((*a, *b), *a_to_b - *b_to_a);
+                } else if b_to_a > a_to_b {
+                    acc.insert((*b, *a), *b_to_a - *a_to_b);
                 }
-                acc
-            });
+            }
+            acc
+        })
+}
 
+fn determine_net_payers_and_lenders(
+    member_id: uuid::Uuid,
+    necessary_payments: &HashMap<(uuid::Uuid, uuid::Uuid), f64>,
+) -> (HashSet<uuid::Uuid>, HashSet<uuid::Uuid>) {
     let member_id_to_balance = necessary_payments.iter().fold(
         HashMap::new(),
         |mut acc, ((from_member_id, to_member_id), value)| {
@@ -106,6 +82,38 @@ fn debt_pairs_to_graph(
         .filter(|x| *x.1 > 0.0)
         .map(|x| *x.0)
         .collect();
+
+    (net_payers, net_receivers)
+}
+
+fn debt_pairs_to_graph(
+    member_id: uuid::Uuid,
+    expenses: &[models::DebtPair],
+) -> (
+    Graph<uuid::Uuid, f64, petgraph::Directed>,
+    HashSet<uuid::Uuid>,
+    HashSet<uuid::Uuid>,
+) {
+    let (pairwise_expenses, unique_member_ids) =
+        expenses
+            .into_iter()
+            .fold((HashMap::new(), HashSet::new()), |acc, expense| {
+                let (mut m, mut s) = acc;
+
+                let from_member_id = expense.from_member_id;
+                let to_member_id = expense.to_member_id;
+
+                m.insert((from_member_id, to_member_id), expense.amount);
+                s.insert(from_member_id);
+                s.insert(to_member_id);
+
+                (m, s)
+            });
+
+    let necessary_payments = build_necessary_payments(&unique_member_ids, &pairwise_expenses);
+
+    let (net_payers, net_receivers) =
+        determine_net_payers_and_lenders(member_id, &necessary_payments);
 
     let mut graph = Graph::<uuid::Uuid, f64>::new();
 
@@ -170,7 +178,7 @@ pub fn compute_balances_for_member(
         return Vec::new();
     }
 
-    let (mut graph, net_payers, net_receivers) = debt_pairs_to_graph(member_id, expenses);
+    let (mut graph, net_payers, net_receivers) = debt_pairs_to_graph(member_id, &expenses);
 
     for payer_member_id in net_payers {
         for receiver_member_id in net_receivers.iter().clone() {
