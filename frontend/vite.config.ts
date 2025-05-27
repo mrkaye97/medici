@@ -16,6 +16,8 @@ export default defineConfig({
     },
   },
   preview: {
-    allowedHosts: ["localhost", import.meta.env.VITE_HOST].filter(Boolean),
+    allowedHosts: ["localhost", process.env.VITE_HOST].filter(
+      (host): host is string => Boolean(host),
+    ),
   },
 });
