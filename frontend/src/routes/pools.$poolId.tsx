@@ -490,7 +490,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                 </p>
                 {balance.venmoHandle && (
                   <a
-                    href={`https://venmo.com/?txn=pay&recipients=${balance.venmoHandle}&amount=${balance.amount}&note=Settling up our pool on Medici`}
+                    href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${balance.amount}&note=Settling up our pool on Medici`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >
