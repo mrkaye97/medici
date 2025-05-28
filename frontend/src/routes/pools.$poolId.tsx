@@ -478,7 +478,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                   {balance.type === "inbound" ? "Owes you" : "You owe"}
                 </p>
               </div>
-              <div className="text-right">
+              <div className="text-right flex flex-row gap-x-2 items-center">
                 <p
                   className={`font-semibold text-sm ${
                     balance.type === "inbound"
@@ -488,6 +488,15 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                 >
                   ${balance.amount.toFixed(2)}
                 </p>
+                {balance.venmoHandle && (
+                  <a
+                    href={`https://venmo.com/?txn=pay&recipients=${balance.venmoHandle}&amount=${balance.amount}&note=Settling up our pool on Medici`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    <img src="/venmo.webp" className="size-6" />
+                  </a>
+                )}
               </div>
             </div>
           ))}

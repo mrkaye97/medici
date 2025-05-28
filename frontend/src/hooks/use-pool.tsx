@@ -95,6 +95,7 @@ export const usePool = ({
           name,
           amount: b.amount,
           type: b.direction,
+          venmoHandle: otherMember.venmo_handle,
         };
       })
       .filter((b) => b !== null);

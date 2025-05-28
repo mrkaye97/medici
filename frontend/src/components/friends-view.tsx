@@ -1,7 +1,7 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AddFriendModal } from "@/components/add-friend-modal";
 import { motion } from "motion/react";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, X, UserPlus, Clock, LogOut } from "lucide-react";
+import { CheckCircle, X, UserPlus, Clock, LogOut, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "./ui/separator";
 import { useFriends } from "@/hooks/use-friends";
+import { Input } from "./ui/input";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const FriendsView = () => {
+  const queryClient = useQueryClient();
   const { memberId, createAuthHeader, logout } = useAuth();
   const [activeTab, setActiveTab] = useState("friends");
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -43,8 +46,20 @@ export const FriendsView = () => {
     },
   );
 
+  const { mutateAsync: updateMember, isPending } = apiClient.useMutation(
+    "patch",
+    "/api/members/{member_id}",
+  );
+
   const email = member?.email;
   const name = `${member?.first_name} ${member?.last_name}`;
+  const [venmoHandle, setVenmoHandle] = useState(member?.venmo_handle || null);
+
+  useEffect(() => {
+    if (member) {
+      setVenmoHandle(member.venmo_handle || "");
+    }
+  }, [member]);
 
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
@@ -284,6 +299,38 @@ export const FriendsView = () => {
               <p>{name}</p>
               <Separator orientation="vertical" className="mx-2 h-6" />
               <p>{email}</p>
+            </div>
+            <div className="flex flex-row gap-x-2 items-center h-12 max-w-64">
+              <Input
+                placeholder="my-venmo-handle"
+                value={venmoHandle || ""}
+                onChange={(event) => {
+                  setVenmoHandle(event.target.value);
+                }}
+              />
+              <Button
+                variant={"outline"}
+                onClick={async () => {
+                  if (memberId) {
+                    await updateMember({
+                      params: {
+                        path: { member_id: memberId },
+                      },
+                      body: {
+                        venmo_handle: venmoHandle || null,
+                      },
+                      headers: createAuthHeader(),
+                    });
+
+                    await queryClient.invalidateQueries({
+                      queryKey: ["get", "/api/members/{member_id}"],
+                    });
+                  }
+                }}
+                disabled={isPending}
+              >
+                <Save className="size-4" />
+              </Button>
             </div>
             <Button
               variant="outline"

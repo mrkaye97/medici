@@ -81,7 +81,7 @@ export interface paths {
     delete?: never;
     options?: never;
     head?: never;
-    patch?: never;
+    patch: operations["update_member_handler"];
     trace?: never;
   };
   "/api/members/{member_id}/friend-requests": {
@@ -435,6 +435,14 @@ export interface components {
       last_name: string;
       /** Format: date-time */
       updated_at: string;
+      venmo_handle?: string | null;
+    };
+    MemberChangeset: {
+      bio?: string | null;
+      email?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      venmo_handle?: string | null;
     };
     MemberIdSplitPercentage: {
       /** Format: uuid */
@@ -660,6 +668,40 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Get a member successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Member"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  update_member_handler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the member to update */
+        member_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["MemberChangeset"];
+      };
+    };
+    responses: {
+      /** @description Updated member */
       200: {
         headers: {
           [name: string]: unknown;

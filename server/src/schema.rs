@@ -105,6 +105,7 @@ diesel::table! {
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
         bio -> Nullable<Text>,
+        venmo_handle -> Nullable<Text>,
     }
 }
 

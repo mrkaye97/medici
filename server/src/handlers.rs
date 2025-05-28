@@ -20,7 +20,9 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, deco
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
-use server::models::{self, Expense, Friendship, Member, MemberPassword, NewPool, PoolMembership};
+use server::models::{
+    self, Expense, Friendship, Member, MemberChangeset, MemberPassword, NewPool, PoolMembership,
+};
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -1227,6 +1229,35 @@ pub async fn create_pool_membership_handler(
     Json(membership)
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/members/{member_id}",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to update")
+    ),
+    request_body = MemberChangeset,
+    responses(
+        (status = 200, description = "Updated member", body = Member),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn update_member_handler(
+    Path(member_id): Path<uuid::Uuid>,
+    Json(json): Json<MemberChangeset>,
+) -> Json<Member> {
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let membership = tokio::task::spawn_blocking(move || {
+        Member::update(&mut conn, member_id, &json).expect("Failed to create pool membership")
+    })
+    .await
+    .expect("Task panicked");
+
+    Json(membership)
+}
+
 pub fn handlers_routes() -> OpenApiRouter {
     let public_routes = OpenApiRouter::new()
         .routes(routes!(signup_handler))
@@ -1254,6 +1285,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(settle_up_pool_handler))
         .routes(routes!(modify_default_splits_handler))
         .routes(routes!(delete_expense_handler))
+        .routes(routes!(update_member_handler))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)

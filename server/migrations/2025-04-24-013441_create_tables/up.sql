@@ -18,6 +18,7 @@ CREATE TABLE member (
   inserted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   bio TEXT,
+  venmo_handle TEXT,
   PRIMARY KEY (id)
 );
 

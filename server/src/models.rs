@@ -74,6 +74,7 @@ pub struct Member {
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub bio: Option<String>,
+    pub venmo_handle: Option<String>,
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
@@ -92,6 +93,7 @@ pub struct MemberChangeset {
     pub last_name: Option<String>,
     pub email: Option<String>,
     pub bio: Option<String>,
+    pub venmo_handle: Option<String>,
 }
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
@@ -270,6 +272,16 @@ impl Member {
                 eprintln!("Error creating member: {:?}", e);
                 e
             })
+    }
+
+    pub fn update(
+        conn: &mut PgConnection,
+        id: uuid::Uuid,
+        changeset: &MemberChangeset,
+    ) -> QueryResult<Self> {
+        diesel::update(member::table.find(id))
+            .set(changeset)
+            .get_result(conn)
     }
 
     pub fn find(conn: &mut PgConnection, id: uuid::Uuid) -> QueryResult<Self> {
