@@ -494,7 +494,10 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                     rel="noopener noreferrer"
                     target="_blank"
                   >
-                    <img src="/venmo.webp" className="size-6" />
+                    <img
+                      src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
+                      className="size-6"
+                    />
                   </a>
                 )}
               </div>
