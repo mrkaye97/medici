@@ -12,6 +12,7 @@ const router = createRouter({
   context: { queryClient },
   routeTree,
   defaultPreload: "intent",
+  basepath: import.meta.env.VITE_BASE_PATH || "/",
   defaultErrorComponent: DefaultCatchBoundary,
   defaultNotFoundComponent: () => <NotFound />,
   scrollRestoration: true,
@@ -30,6 +31,6 @@ if (!rootElement.innerHTML) {
   root.render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
 }
