@@ -24,6 +24,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { components } from "schema";
 import { usePool } from "@/hooks/use-pool";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -221,7 +227,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
+          maybeModifiedDefaultSplitPercentages
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -284,19 +290,34 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
               </div>
               <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
                 {details.role === "ADMIN" && member.member.id !== memberId && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                    disabled={
-                      mutations.isAddPending || mutations.isRemovePending
-                    }
-                    onClick={async () => {
-                      await mutations.removeFriend(member.member.id);
-                    }}
-                  >
-                    <UserMinus className="h-4 w-4" />
-                  </Button>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          disabled={
+                            mutations.isAddPending ||
+                            mutations.isRemovePending ||
+                            details.total_debt !== 0
+                          }
+                          onClick={async () => {
+                            await mutations.removeFriend(member.member.id);
+                          }}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          {details.total_debt !== 0
+                            ? "You must settle up before removing a member"
+                            : `Remove ${member.member.first_name} from pool`}
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 {details.role === "ADMIN" && (
                   <div className="flex flex-col items-start gap-1">
@@ -305,10 +326,10 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                     </Label>
                     <Input
                       type="number"
-                      className="max-w-16"
+                      className="max-w-20"
                       value={
                         maybeModifiedDefaultSplitPercentages.find(
-                          (m) => m.member_id === member.member.id,
+                          (m) => m.member_id === member.member.id
                         )?.split_percentage ||
                         member.pool_membership.default_split_percentage
                       }
