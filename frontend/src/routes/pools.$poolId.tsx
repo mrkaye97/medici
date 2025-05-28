@@ -1,6 +1,6 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
-import { AddExpenseModal } from "@/components/add-expense-modal";
+import { AddExpenseModal, round } from "@/components/add-expense-modal";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -490,7 +490,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                 </p>
                 {balance.venmoHandle && (
                   <a
-                    href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${balance.amount}&note=Settling up our pool on Medici`}
+                    href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${round(balance.amount)}&note=Settling up our pool on Medici`}
                     rel="noopener noreferrer"
                     target="_blank"
                   >

@@ -295,7 +295,7 @@ type SplitState = {
 
 type Pool = components["schemas"]["PoolDetails"];
 
-function round(num: number) {
+export function round(num: number) {
   return Number(num.toFixed(2));
 }
 
