@@ -310,7 +310,7 @@ export function AddExpenseModal({
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutate: addExpense } = apiClient.useMutation(
+  const { mutateAsync: addExpense, isPending } = apiClient.useMutation(
     "post",
     "/api/pools/{pool_id}/expenses",
   );
@@ -369,7 +369,7 @@ export function AddExpenseModal({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit((data) => {
+            onSubmit={form.handleSubmit(async (data) => {
               const memberLineItemAmounts = splitAmounts.splitAmounts.map(
                 (a) => {
                   const member = members.find(
@@ -423,7 +423,7 @@ export function AddExpenseModal({
                 return;
               }
 
-              addExpense(
+              await addExpense(
                 {
                   body: {
                     paid_by_member_id: data.paidByMemberId,
@@ -691,7 +691,9 @@ export function AddExpenseModal({
               )}
             />
 
-            <Button type="submit">Submit Expense</Button>
+            <Button type="submit" disabled={isPending}>
+              Submit Expense
+            </Button>
           </form>
         </Form>
       </DialogContent>
