@@ -181,7 +181,7 @@ BEGIN
       AND is_settled = NEW.is_settled;
 
     IF line_items_count > 0 THEN
-        IF line_items_sum <> NEW.amount THEN
+        IF ABS(line_items_sum - NEW.amount) > 0.05 THEN
             RAISE EXCEPTION 'Line items sum (%) does not match expense amount (%) for expense_id %',
                 line_items_sum, NEW.amount, NEW.id;
         END IF;
