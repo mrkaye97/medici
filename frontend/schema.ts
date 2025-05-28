@@ -174,7 +174,7 @@ export interface paths {
     get: operations["get_expense_handler"];
     put?: never;
     post?: never;
-    delete?: never;
+    delete: operations["delete_expense_handler"];
     options?: never;
     head?: never;
     patch?: never;
@@ -920,6 +920,40 @@ export interface operations {
     requestBody?: never;
     responses: {
       /** @description Get expenses */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Expense"];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  delete_expense_handler: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of the member to delete the expense for */
+        member_id: string;
+        /** @description ID of the pool to delete the expense for */
+        pool_id: string;
+        /** @description ID of the expense to delete */
+        expense_id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description The deleted expense */
       200: {
         headers: {
           [name: string]: unknown;

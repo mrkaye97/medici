@@ -689,6 +689,43 @@ pub async fn get_expense_handler(
 }
 
 #[utoipa::path(
+    delete,
+    path = "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to delete the expense for"),
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to delete the expense for"),
+        ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to delete")
+    ),
+    responses(
+        (status = 200, description = "The deleted expense", body = models::Expense),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn delete_expense_handler(
+    Path(path): Path<ExpensePath>,
+) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let expense = tokio::task::spawn_blocking(move || {
+        models::Expense::delete(&mut conn, path.expense_id, path.pool_id, false)
+    })
+    .await
+    .expect("Task panicked");
+
+    println!("[DEBUG] Deleting expense: {:?}", expense);
+
+    match expense {
+        Ok(e) => Ok(Json(e)),
+        Err(_) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Expense not found"})),
+        )),
+    }
+}
+
+#[utoipa::path(
     post,
     path = "/api/signup",
     request_body = SignupInput,
@@ -1216,6 +1253,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(get_pool_balances_for_member))
         .routes(routes!(settle_up_pool_handler))
         .routes(routes!(modify_default_splits_handler))
+        .routes(routes!(delete_expense_handler))
         .route_layer(middleware::from_fn(auth_middleware));
 
     public_routes.merge(protected_routes)

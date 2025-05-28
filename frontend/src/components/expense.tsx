@@ -3,6 +3,10 @@ import { cn } from "./lib/utils";
 import { ExpenseCategory, ExpenseIcon } from "@/components/add-expense-modal";
 import { components } from "schema";
 import { usePool } from "@/hooks/use-pool";
+import { Button } from "./ui/button";
+import { X } from "lucide-react";
+import { apiClient } from "@/api/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -22,8 +26,34 @@ export const formatCurrency = (amount: number) => {
 type Expense = components["schemas"]["RecentExpenseDetails"];
 
 export function Expense({ expense }: { expense: Expense }) {
-  const { memberId } = useAuth();
-  const { members, isMembersLoading } = usePool({ poolId: expense.pool_id });
+  const queryClient = useQueryClient();
+
+  const { memberId, createAuthHeader } = useAuth();
+  const { members, isMembersLoading, invalidate } = usePool({
+    poolId: expense.pool_id,
+  });
+  const { mutateAsync: deleteExpense, isPending } = apiClient.useMutation(
+    "delete",
+    "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/pools/{pool_id}/members/{member_id}/expenses",
+          ],
+        });
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/pools/{pool_id}/members/{member_id}/balances",
+          ],
+        });
+
+        await invalidate();
+      },
+    },
+  );
 
   if (!members || isMembersLoading || !memberId) {
     return (
@@ -58,15 +88,28 @@ export function Expense({ expense }: { expense: Expense }) {
               </div>
             </div>
           </div>
-          <span className="text-sm text-gray-600">
-            Paid by{" "}
-            <span className="font-medium">
-              {
-                members?.find((m) => m.member.id === expense.paid_by_member_id)
-                  ?.member.first_name
-              }
-            </span>
-          </span>
+          <div className="flex flex-col-reverse items-end gap-x-2">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+              onClick={async () => {
+                await deleteExpense({
+                  params: {
+                    path: {
+                      pool_id: expense.pool_id,
+                      member_id: memberId,
+                      expense_id: expense.id,
+                    },
+                  },
+                  headers: createAuthHeader(),
+                });
+              }}
+              disabled={isPending}
+            >
+              <X className="size-4" />
+            </Button>
+          </div>
         </div>
         {expense.description && (
           <div className="py-4">{expense.description}</div>
@@ -75,18 +118,30 @@ export function Expense({ expense }: { expense: Expense }) {
           <span className="text-lg font-semibold text-gray-900">
             {formatCurrency(expense.amount)}
           </span>
-          <div className="flex items-center">
+          <div className="flex flex-col justify-end items-end">
             <span className="text-sm text-gray-600">
-              {expense.line_amount < 0 ? "You get back" : "You owe"}{" "}
+              Paid by{" "}
+              <span className="font-medium">
+                {
+                  members?.find(
+                    (m) => m.member.id === expense.paid_by_member_id,
+                  )?.member.first_name
+                }
+              </span>
             </span>
-            <span
-              className={cn(
-                "ml-1 font-medium",
-                expense.line_amount < 0 ? "text-emerald-600" : "text-red-600",
-              )}
-            >
-              {formatCurrency(expense.line_amount)}
-            </span>
+            <div className="flex items-center">
+              <span className="text-sm text-gray-600">
+                {expense.line_amount < 0 ? "You get back" : "You owe"}{" "}
+              </span>
+              <span
+                className={cn(
+                  "ml-1 font-medium",
+                  expense.line_amount < 0 ? "text-emerald-600" : "text-red-600",
+                )}
+              >
+                {formatCurrency(expense.line_amount)}
+              </span>
+            </div>
           </div>
         </div>
       </div>

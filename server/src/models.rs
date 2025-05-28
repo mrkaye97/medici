@@ -278,12 +278,12 @@ impl Member {
 
     pub fn authenticate(
         conn: &mut PgConnection,
-        email_query: &str,
+        email: &str,
         password_hash: &str,
     ) -> QueryResult<(uuid::Uuid, bool)> {
         let result: QueryResult<(uuid::Uuid, String)> = member::table
             .inner_join(member_password::table.on(member::id.eq(member_password::member_id)))
-            .filter(member::email.eq(email_query))
+            .filter(member::email.eq(email))
             .select((member::id, member_password::password_hash))
             .first(conn);
 
@@ -547,7 +547,7 @@ impl Expense {
         expense_id: uuid::Uuid,
         member_id: uuid::Uuid,
         pool_id: uuid::Uuid,
-        is_settled_query: bool,
+        is_settled: bool,
     ) -> QueryResult<Self> {
         expense::table
             .filter(
@@ -555,9 +555,27 @@ impl Expense {
                     .eq(expense_id)
                     .and(expense::pool_id.eq(pool_id))
                     .and(expense::paid_by_member_id.eq(member_id))
-                    .and(expense::is_settled.eq(is_settled_query)),
+                    .and(expense::is_settled.eq(is_settled)),
             )
             .get_result(conn)
+    }
+
+    pub fn delete(
+        conn: &mut PgConnection,
+        expense_id: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        is_settled: bool,
+    ) -> QueryResult<Self> {
+        diesel::delete(
+            expense::table.filter(
+                expense::id
+                    .eq(expense_id)
+                    .and(expense::pool_id.eq(pool_id))
+                    .and(expense::is_settled.eq(is_settled)),
+            ),
+        )
+        .returning(expense::all_columns)
+        .get_result(conn)
     }
 
     pub fn get_recent_for_member_in_pool(
@@ -668,10 +686,10 @@ impl ExpenseLineItem {
 
     pub fn find_for_expense(
         conn: &mut PgConnection,
-        expense_id_query: uuid::Uuid,
+        expense_id: uuid::Uuid,
     ) -> QueryResult<Vec<Self>> {
         expense_line_item::table
-            .filter(expense_line_item::expense_id.eq(expense_id_query))
+            .filter(expense_line_item::expense_id.eq(expense_id))
             .get_results(conn)
     }
 }

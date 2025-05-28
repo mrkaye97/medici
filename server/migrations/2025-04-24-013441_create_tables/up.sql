@@ -87,7 +87,7 @@ CREATE TABLE expense_line_item (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   debtor_member_id UUID NOT NULL,
   PRIMARY KEY (id),
-  CONSTRAINT expense_line_item_expense_id_is_settled_fkey FOREIGN KEY (expense_id, is_settled) REFERENCES expense (id, is_settled),
+  CONSTRAINT expense_line_item_expense_id_is_settled_fkey FOREIGN KEY (expense_id, is_settled) REFERENCES expense (id, is_settled) ON UPDATE NO ACTION ON DELETE CASCADE,
   CONSTRAINT expense_line_item_debtor_member_id_fkey FOREIGN KEY (debtor_member_id) REFERENCES member (id) ON UPDATE NO ACTION ON DELETE CASCADE
 );
 
