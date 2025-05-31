@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 use std::time::{Duration as BuiltInDuration, SystemTime, UNIX_EPOCH};
 
-use axum::extract::Query;
+use axum::extract::{MatchedPath, Query};
 use axum::http::StatusCode;
 use axum::middleware;
 use axum::{Json, extract::Path};
@@ -197,7 +197,13 @@ pub async fn auth_middleware(
 
 pub async fn trace_middleware(request: Request, next: Next) -> Response {
     let tracer = get_tracer();
-    let path = request.uri().path().to_string();
+
+    let path = request
+        .extensions()
+        .get::<MatchedPath>()
+        .map(|matched_path| matched_path.as_str().to_string())
+        .unwrap_or_else(|| request.uri().path().to_string());
+
     let method = request.method().as_str().to_string();
 
     let mut span = tracer
