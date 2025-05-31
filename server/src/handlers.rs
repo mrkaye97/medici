@@ -1,4 +1,5 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::sync::OnceLock;
+use std::time::{Duration as BuiltInDuration, SystemTime, UNIX_EPOCH};
 
 use axum::extract::Query;
 use axum::http::StatusCode;
@@ -18,6 +19,13 @@ use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
+use opentelemetry::KeyValue;
+use opentelemetry::global::{self, BoxedTracer};
+use opentelemetry::trace::noop::NoopTracerProvider;
+use opentelemetry::trace::{Span, SpanKind, Tracer};
+use opentelemetry_otlp::{Protocol, WithExportConfig};
+use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracerProvider};
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
 use server::models::{
@@ -43,6 +51,63 @@ pub async fn get_db_connection() -> Result<PgPooledConnection, anyhow::Error> {
 }
 
 const PASSWORD_SALT: [u8; 16] = *b"MediciSalt123456";
+
+pub fn get_tracer() -> &'static BoxedTracer {
+    static TRACER: OnceLock<BoxedTracer> = OnceLock::new();
+    TRACER.get_or_init(|| global::tracer("medici-server"))
+}
+
+fn get_resource() -> Resource {
+    static RESOURCE: OnceLock<Resource> = OnceLock::new();
+    RESOURCE
+        .get_or_init(|| {
+            Resource::builder()
+                .with_service_name("medici-server")
+                .build()
+        })
+        .clone()
+}
+
+pub enum MaybeTracerProvider {
+    Sdk(SdkTracerProvider),
+    Noop(NoopTracerProvider),
+}
+
+pub fn init_tracer_provider()
+-> Result<MaybeTracerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or("".to_string());
+
+    if exporter_endpoint.is_empty() {
+        let no_op_provider = NoopTracerProvider::new();
+        return Ok(MaybeTracerProvider::Noop(no_op_provider));
+    }
+
+    let exporter_url = format!("{}/v1/traces", exporter_endpoint);
+
+    let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
+        .with_http()
+        .with_protocol(Protocol::HttpJson)
+        .with_endpoint(exporter_url)
+        .with_timeout(BuiltInDuration::from_secs(10))
+        .build()?;
+
+    let batch_config = BatchConfigBuilder::default()
+        .with_max_export_batch_size(512)
+        .with_scheduled_delay(BuiltInDuration::from_millis(5000))
+        .with_max_queue_size(2048)
+        .build();
+
+    let batch_processor = BatchSpanProcessor::new(otlp_exporter, batch_config);
+
+    let tracer_provider = SdkTracerProvider::builder()
+        .with_resource(get_resource())
+        .with_span_processor(batch_processor)
+        .build();
+
+    global::set_tracer_provider(tracer_provider.clone());
+
+    Ok(MaybeTracerProvider::Sdk(tracer_provider))
+}
 
 fn hash_password(password: &str) -> String {
     hash_with_salt(password, DEFAULT_COST, PASSWORD_SALT)
@@ -716,8 +781,6 @@ pub async fn delete_expense_handler(
     .await
     .expect("Task panicked");
 
-    println!("[DEBUG] Deleting expense: {:?}", expense);
-
     match expense {
         Ok(e) => Ok(Json(e)),
         Err(_) => Err((
@@ -884,8 +947,18 @@ pub struct PoolDetailsPath {
     )
 )]
 pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_expense_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let member_id = path.member_id;
     let pool_id = path.pool_id;
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -903,6 +976,8 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
         role: pool_details.1,
         total_debt: pool_details.2,
     };
+
+    span.end();
 
     Json(details)
 }

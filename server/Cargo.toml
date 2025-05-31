@@ -45,6 +45,16 @@ async-trait = "0.1.88"
 axum-extra = { version = "0.10.1", features = ["typed-header"] }
 petgraph = "0.8.1"
 
+opentelemetry-otlp = { version = "0.30", features = [
+    "http-proto",
+    "http-json",
+    "reqwest-blocking-client",
+    "logs",
+], default-features = false }
+opentelemetry = "0.30.0"
+opentelemetry_sdk = { version = "0.30.0", features = ["rt-tokio", "trace"] }
+opentelemetry-stdout = { version = "0.30.0", features = ["trace"] }
+
 [[bin]]
 name = "server"
 path = "src/main.rs"
