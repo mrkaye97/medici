@@ -258,6 +258,15 @@ pub async fn create_pool_handler(
     Path(member_id): Path<uuid::Uuid>,
     Json(pool_input): Json<PoolInput>,
 ) -> Json<models::Pool> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("create_pool_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -293,6 +302,8 @@ pub async fn create_pool_handler(
     .await
     .expect("Task panicked");
 
+    span.end();
+
     Json(pool)
 }
 
@@ -312,6 +323,16 @@ pub async fn add_friend_to_pool_handler(
     Path(pool_id): Path<uuid::Uuid>,
     Json(input): Json<PoolMembershipInput>,
 ) -> Json<PoolMembership> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("add_friend_to_pool_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", input.member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -322,6 +343,8 @@ pub async fn add_friend_to_pool_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(result)
 }
@@ -347,8 +370,18 @@ pub struct RemoveFriendFromPoolPath {
 pub async fn remove_friend_from_pool_handler(
     Path(path): Path<RemoveFriendFromPoolPath>,
 ) -> Json<serde_json::Value> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("remove_friend_from_pool_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let pool_id = path.pool_id;
     let member_id = path.member_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -360,6 +393,8 @@ pub async fn remove_friend_from_pool_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(serde_json::json!({"success": result > 0}))
 }
@@ -378,6 +413,15 @@ pub async fn remove_friend_from_pool_handler(
 pub async fn get_member_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Result<Json<Member>, (StatusCode, Json<serde_json::Value>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_member_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -385,6 +429,8 @@ pub async fn get_member_handler(
     let member = tokio::task::spawn_blocking(move || Member::find(&mut conn, member_id))
         .await
         .expect("Task panicked");
+
+    span.end();
 
     match member {
         Ok(m) => Ok(Json(m)),
@@ -408,6 +454,15 @@ pub async fn get_member_handler(
 pub async fn login_handler(
     Json(input): Json<LoginInput>,
 ) -> Result<Json<AuthResult>, (StatusCode, Json<AuthResult>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("login_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("email", input.email.clone()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -453,6 +508,8 @@ pub async fn login_handler(
     .await
     .expect("Task panicked");
 
+    span.end();
+
     match result {
         AuthResult::Authenticated { .. } => Ok(Json(result)),
         AuthResult::Unauthenticated { .. } => Err((StatusCode::BAD_REQUEST, Json(result))),
@@ -480,9 +537,18 @@ pub async fn authenticate_handler(
     Path(member_id): Path<uuid::Uuid>,
     Query(query): Query<AuthQuery>,
 ) -> Json<AuthResult> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("authenticate_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let token = query.token;
 
-    match verify_jwt(&token) {
+    let result = match verify_jwt(&token) {
         Ok(token_member_id) => {
             if token_member_id == member_id {
                 match generate_jwt(member_id) {
@@ -514,7 +580,10 @@ pub async fn authenticate_handler(
             is_authenticated: false,
             expires_at: None,
         }),
-    }
+    };
+
+    span.end();
+    result
 }
 
 #[utoipa::path(
@@ -529,6 +598,15 @@ pub async fn authenticate_handler(
     )
 )]
 pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec<Member>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_friends_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -538,6 +616,8 @@ pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(friends)
 }
@@ -569,6 +649,15 @@ pub struct FriendRequestsList {
 pub async fn list_inbound_friend_requests_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Json<Vec<FriendRequestsList>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_inbound_friend_requests_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -590,6 +679,8 @@ pub async fn list_inbound_friend_requests_handler(
     })
     .collect();
 
+    span.end();
+
     Json(requests)
 }
 
@@ -609,6 +700,16 @@ pub async fn create_friend_request_handler(
     Path(member_id): Path<uuid::Uuid>,
     Json(input): Json<FriendRequestInput>,
 ) -> Json<serde_json::Value> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("create_friend_request_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+    span.set_attribute(KeyValue::new("friend_email", input.friend_email.clone()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -621,6 +722,8 @@ pub async fn create_friend_request_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(serde_json::json!({"success": true, "request": result}))
 }
@@ -646,8 +749,24 @@ pub struct AcceptFriendRequestPath {
 pub async fn accept_friend_request_handler(
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("accept_friend_request_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let inviting_member_id = path.inviting_member_id;
     let invitee_member_id = path.invitee_member_id;
+
+    span.set_attribute(KeyValue::new(
+        "inviting_member_id",
+        inviting_member_id.to_string(),
+    ));
+    span.set_attribute(KeyValue::new(
+        "invitee_member_id",
+        invitee_member_id.to_string(),
+    ));
 
     let mut conn = get_db_connection()
         .await
@@ -663,6 +782,8 @@ pub async fn accept_friend_request_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(serde_json::json!({"success": true, "friendship": result}))
 }
@@ -682,8 +803,24 @@ pub async fn accept_friend_request_handler(
 pub async fn delete_friend_request(
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("delete_friend_request")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let inviting_member_id = path.inviting_member_id;
     let invitee_member_id = path.invitee_member_id;
+
+    span.set_attribute(KeyValue::new(
+        "inviting_member_id",
+        inviting_member_id.to_string(),
+    ));
+    span.set_attribute(KeyValue::new(
+        "invitee_member_id",
+        invitee_member_id.to_string(),
+    ));
 
     let mut conn = get_db_connection()
         .await
@@ -694,6 +831,8 @@ pub async fn delete_friend_request(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(serde_json::json!({"success": true, "friendship": result}))
 }
@@ -721,6 +860,17 @@ pub struct ExpensePath {
 pub async fn get_expense_handler(
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_expense_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
+    span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -745,6 +895,8 @@ pub async fn get_expense_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     match expense {
         Ok(e) => Ok(Json(e)),
@@ -771,6 +923,17 @@ pub async fn get_expense_handler(
 pub async fn delete_expense_handler(
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("delete_expense_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
+    span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -780,6 +943,8 @@ pub async fn delete_expense_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     match expense {
         Ok(e) => Ok(Json(e)),
@@ -802,6 +967,15 @@ pub async fn delete_expense_handler(
 pub async fn signup_handler(
     Json(input): Json<SignupInput>,
 ) -> Result<Json<AuthResult>, (StatusCode, Json<serde_json::Value>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("signup_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("email", input.email.clone()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -827,6 +1001,8 @@ pub async fn signup_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     match member {
         Ok(m) => match generate_jwt(m.id) {
@@ -861,6 +1037,20 @@ pub async fn signup_handler(
     )
 )]
 pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models::Expense> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("add_expense_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("pool_id", input.pool_id.to_string()));
+    span.set_attribute(KeyValue::new(
+        "paid_by_member_id",
+        input.paid_by_member_id.to_string(),
+    ));
+    span.set_attribute(KeyValue::new("amount", input.amount.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -917,6 +1107,8 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
     .await
     .expect("Task panicked");
 
+    span.end();
+
     Json(expense)
 }
 
@@ -950,7 +1142,7 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
     let tracer = get_tracer();
 
     let mut span = tracer
-        .span_builder("get_expense_handler")
+        .span_builder("get_pool_details_handler")
         .with_kind(SpanKind::Server)
         .start(tracer);
 
@@ -995,8 +1187,18 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
     )
 )]
 pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("settle_up_pool_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let member_id = path.member_id;
     let pool_id = path.pool_id;
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -1020,6 +1222,8 @@ pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<P
         role: pool_details.1,
         total_debt: pool_details.2,
     };
+
+    span.end();
 
     Json(details)
 }
@@ -1052,7 +1256,16 @@ pub async fn modify_default_splits_handler(
     Path(path): Path<PoolDetailsPath>,
     Json(input): Json<ModifyDefaultSplitInput>,
 ) -> Json<Vec<PoolMembershipWithMemberDetails>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("modify_default_splits_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let pool_id = path.pool_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -1075,6 +1288,8 @@ pub async fn modify_default_splits_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(
         members
@@ -1123,9 +1338,20 @@ pub async fn get_pool_recent_expenses_handler(
     Path(path): Path<RecentExpensesPath>,
     Query(query): Query<RecentExpensesQuery>,
 ) -> Json<Vec<RecentExpenseDetails>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_pool_recent_expenses_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let limit = query.limit;
     let pool_id = path.pool_id;
     let member_id = path.member_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+    span.set_attribute(KeyValue::new("limit", limit.unwrap_or(5).to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -1138,6 +1364,9 @@ pub async fn get_pool_recent_expenses_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
+
     Json(
         expenses
             .into_iter()
@@ -1170,8 +1399,18 @@ pub struct PoolBalancesForMemberPath {
 pub async fn get_pool_balances_for_member(
     Path(path): Path<PoolBalancesForMemberPath>,
 ) -> Json<Vec<models::Balance>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_pool_balances_for_member")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let pool_id = path.pool_id;
     let member_id = path.member_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -1183,6 +1422,8 @@ pub async fn get_pool_balances_for_member(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     return Json(compute_balances_for_member(member_id, expenses));
 }
@@ -1208,7 +1449,16 @@ pub struct MembersOfPoolPath {
 pub async fn list_members_of_pool_handler(
     Path(path): Path<MembersOfPoolPath>,
 ) -> Json<Vec<PoolMembershipWithMemberDetails>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_members_of_pool_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let pool_id = path.pool_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
     let mut conn = get_db_connection()
         .await
@@ -1219,6 +1469,8 @@ pub async fn list_members_of_pool_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(
         members
@@ -1247,6 +1499,15 @@ pub async fn list_members_of_pool_handler(
 pub async fn list_pools_for_member_handler(
     Path(member_id): Path<uuid::Uuid>,
 ) -> Json<Vec<models::Pool>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_pools_for_member_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -1257,6 +1518,8 @@ pub async fn list_pools_for_member_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(pools)
 }
@@ -1282,7 +1545,18 @@ pub async fn create_pool_membership_handler(
     Path(pool_id): Path<uuid::Uuid>,
     Query(query): Query<PoolMembershipQuery>,
 ) -> Json<PoolMembership> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("create_pool_membership_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
     let member_id = query.member_id;
+
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -1300,6 +1574,8 @@ pub async fn create_pool_membership_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(membership)
 }
@@ -1320,6 +1596,15 @@ pub async fn update_member_handler(
     Path(member_id): Path<uuid::Uuid>,
     Json(json): Json<MemberChangeset>,
 ) -> Json<Member> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("update_member_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
@@ -1329,6 +1614,8 @@ pub async fn update_member_handler(
     })
     .await
     .expect("Task panicked");
+
+    span.end();
 
     Json(membership)
 }
