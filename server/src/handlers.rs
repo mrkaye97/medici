@@ -22,7 +22,7 @@ use once_cell::sync::Lazy;
 use opentelemetry::KeyValue;
 use opentelemetry::global::{self, BoxedTracer};
 use opentelemetry::trace::noop::NoopTracerProvider;
-use opentelemetry::trace::{Span, SpanKind, Tracer};
+use opentelemetry::trace::{Span, SpanKind, Status, Tracer};
 use opentelemetry_otlp::{Protocol, WithExportConfig};
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracerProvider};
@@ -193,6 +193,46 @@ pub async fn auth_middleware(
         )
             .into_response(),
     }
+}
+
+pub async fn trace_middleware(request: Request, next: Next) -> Response {
+    let tracer = get_tracer();
+    let path = request.uri().path().to_string();
+    let method = request.method().as_str().to_string();
+
+    let mut span = tracer
+        .span_builder("http.request")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("http.method", method));
+    span.set_attribute(KeyValue::new("http.path", path));
+
+    let response = next.run(request).await;
+
+    span.set_attribute(KeyValue::new(
+        "http.status_code",
+        response.status().as_u16().to_string(),
+    ));
+
+    let status = if response.status().is_success() {
+        Status::Ok
+    } else {
+        Status::Error {
+            description: std::borrow::Cow::Borrowed(
+                response
+                    .status()
+                    .canonical_reason()
+                    .unwrap_or("Unknown error"),
+            ),
+        }
+    };
+
+    span.set_status(status);
+
+    span.end();
+
+    response.into_response()
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1648,7 +1688,8 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(modify_default_splits_handler))
         .routes(routes!(delete_expense_handler))
         .routes(routes!(update_member_handler))
-        .route_layer(middleware::from_fn(auth_middleware));
+        .route_layer(middleware::from_fn(auth_middleware))
+        .route_layer(middleware::from_fn(trace_middleware));
 
     public_routes.merge(protected_routes)
 }
