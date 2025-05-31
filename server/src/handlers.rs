@@ -22,7 +22,7 @@ use once_cell::sync::Lazy;
 use opentelemetry::KeyValue;
 use opentelemetry::global::{self, BoxedTracer};
 use opentelemetry::trace::noop::NoopTracerProvider;
-use opentelemetry::trace::{Span, SpanKind, Status, Tracer};
+use opentelemetry::trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer};
 use opentelemetry_otlp::{Protocol, WithExportConfig};
 use opentelemetry_sdk::Resource;
 use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracerProvider};
@@ -208,8 +208,13 @@ pub async fn trace_middleware(request: Request, next: Next) -> Response {
     span.set_attribute(KeyValue::new("http.method", method));
     span.set_attribute(KeyValue::new("http.path", path));
 
-    let response = next.run(request).await;
+    let cx = opentelemetry::Context::current().with_span(span);
 
+    let response = async move { next.run(request).await }
+        .with_context(cx.clone())
+        .await;
+
+    let span = cx.span();
     span.set_attribute(KeyValue::new(
         "http.status_code",
         response.status().as_u16().to_string(),
@@ -229,7 +234,6 @@ pub async fn trace_middleware(request: Request, next: Next) -> Response {
     };
 
     span.set_status(status);
-
     span.end();
 
     response.into_response()
