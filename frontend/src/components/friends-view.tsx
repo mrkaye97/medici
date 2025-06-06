@@ -16,7 +16,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, X, UserPlus, Clock, LogOut, Save } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "./ui/separator";
 import { useFriends } from "@/hooks/use-friends";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -44,12 +43,12 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const { mutateAsync: updateMember, isPending } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}"
+    "/api/members/{member_id}",
   );
 
   const email = member?.email;
@@ -65,10 +64,10 @@ export const FriendsView = () => {
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound"
+    (r) => r.direction === "inbound",
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound"
+    (r) => r.direction === "outbound",
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;
@@ -218,7 +217,7 @@ export const FriendsView = () => {
                               disabled={mutations.isDeleting}
                               onClick={async () => {
                                 await mutations.deleteFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                             >
@@ -229,7 +228,7 @@ export const FriendsView = () => {
                               className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white"
                               onClick={async () => {
                                 await mutations.acceptFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                               disabled={mutations.isAccepting}
@@ -278,7 +277,7 @@ export const FriendsView = () => {
                               className="h-8 w-8"
                               onClick={async () => {
                                 mutations.deleteFriendRequest(
-                                  request.member.id
+                                  request.member.id,
                                 );
                               }}
                             >

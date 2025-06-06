@@ -239,7 +239,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages
+          maybeModifiedDefaultSplitPercentages,
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -303,22 +303,18 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                     member.member.id !== memberId && (
                       <TooltipProvider>
                         <Tooltip>
-                          <TooltipTrigger>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                              disabled={
-                                mutations.isAddPending ||
-                                mutations.isRemovePending ||
-                                details.total_debt !== 0
-                              }
-                              onClick={async () => {
-                                await mutations.removeFriend(member.member.id);
-                              }}
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </Button>
+                          <TooltipTrigger
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:cursor-pointer"
+                            disabled={
+                              mutations.isAddPending ||
+                              mutations.isRemovePending ||
+                              details.total_debt !== 0
+                            }
+                            onClick={async () => {
+                              await mutations.removeFriend(member.member.id);
+                            }}
+                          >
+                            <UserMinus className="h-4 w-4" />
                           </TooltipTrigger>
                           <TooltipContent>
                             <p className="text-xs">
@@ -340,7 +336,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                         className="max-w-20"
                         value={
                           maybeModifiedDefaultSplitPercentages.find(
-                            (m) => m.member_id === member.member.id
+                            (m) => m.member_id === member.member.id,
                           )?.split_percentage ||
                           member.pool_membership.default_split_percentage
                         }
@@ -480,7 +476,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
             All settled up!
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Everyone's even - great teamwork!
+            Everyone&ampos;s even - great teamwork!
           </p>
         </div>
       ) : (

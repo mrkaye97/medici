@@ -52,7 +52,7 @@ export function Expense({ expense }: { expense: Expense }) {
 
         await invalidate();
       },
-    }
+    },
   );
 
   if (!members || isMembersLoading || !memberId) {
@@ -124,7 +124,7 @@ export function Expense({ expense }: { expense: Expense }) {
               <span className="font-medium">
                 {
                   members?.find(
-                    (m) => m.member.id === expense.paid_by_member_id
+                    (m) => m.member.id === expense.paid_by_member_id,
                   )?.member.first_name
                 }
               </span>
@@ -136,7 +136,7 @@ export function Expense({ expense }: { expense: Expense }) {
               <span
                 className={cn(
                   "ml-1 font-medium",
-                  expense.line_amount < 0 ? "text-primary" : "text-destructive"
+                  expense.line_amount < 0 ? "text-primary" : "text-destructive",
                 )}
               >
                 {formatCurrency(expense.line_amount)}

@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:is(.dark *));
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,38 +40,29 @@
 
 :root {
   --radius: 0.875rem;
-  /* Soft lavender background with matte finish */
   --background: oklch(0.96 0.015 310);
   --foreground: oklch(0.25 0.02 280);
-  /* Soft cream cards with subtle warmth */
   --card: oklch(0.98 0.01 50);
   --card-foreground: oklch(0.3 0.02 280);
   --popover: oklch(0.98 0.01 50);
   --popover-foreground: oklch(0.3 0.02 280);
-  /* Matte sage green primary */
   --primary: oklch(0.55 0.08 150);
   --primary-foreground: oklch(0.98 0.01 50);
-  /* Soft peachy secondary */
   --secondary: oklch(0.88 0.04 40);
   --secondary-foreground: oklch(0.35 0.03 280);
-  /* Muted lavender grays */
   --muted: oklch(0.92 0.02 290);
   --muted-foreground: oklch(0.5 0.03 280);
-  /* Soft mint accent */
   --accent: oklch(0.85 0.05 160);
   --accent-foreground: oklch(0.3 0.03 280);
-  /* Muted coral for destructive actions */
   --destructive: oklch(0.65 0.12 25);
-  /* Soft borders with subtle color */
   --border: oklch(0.88 0.02 290);
   --input: oklch(0.94 0.02 290);
   --ring: oklch(0.6 0.06 150);
-  /* Soft pastel chart colors */
-  --chart-1: oklch(0.75 0.08 330); /* Soft pink */
-  --chart-2: oklch(0.75 0.08 200); /* Soft blue */
-  --chart-3: oklch(0.75 0.08 120); /* Soft green */
-  --chart-4: oklch(0.75 0.08 60);  /* Soft yellow */
-  --chart-5: oklch(0.75 0.08 280); /* Soft purple */
+  --chart-1: oklch(0.75 0.08 330);
+  --chart-2: oklch(0.75 0.08 200);
+  --chart-3: oklch(0.75 0.08 120);
+  --chart-4: oklch(0.75 0.08 60);
+  --chart-5: oklch(0.75 0.08 280);
   --sidebar: oklch(0.94 0.02 320);
   --sidebar-foreground: oklch(0.3 0.02 280);
   --sidebar-primary: oklch(0.55 0.08 150);
@@ -84,49 +73,6 @@
   --sidebar-ring: oklch(0.6 0.06 150);
 }
 
-.dark {
-  /* Deep muted purple background */
-  --background: oklch(0.18 0.02 270);
-  --foreground: oklch(0.92 0.02 310);
-  /* Dark cards with subtle warmth */
-  --card: oklch(0.22 0.02 280);
-  --card-foreground: oklch(0.92 0.02 310);
-  --popover: oklch(0.22 0.02 280);
-  --popover-foreground: oklch(0.92 0.02 310);
-  /* Soft mint primary for dark mode */
-  --primary: oklch(0.7 0.1 160);
-  --primary-foreground: oklch(0.18 0.02 270);
-  /* Muted peach secondary */
-  --secondary: oklch(0.35 0.04 40);
-  --secondary-foreground: oklch(0.92 0.02 310);
-  /* Dark muted colors */
-  --muted: oklch(0.28 0.02 280);
-  --muted-foreground: oklch(0.7 0.03 310);
-  /* Soft purple accent */
-  --accent: oklch(0.4 0.06 280);
-  --accent-foreground: oklch(0.92 0.02 310);
-  /* Muted coral for destructive */
-  --destructive: oklch(0.6 0.1 25);
-  /* Subtle borders */
-  --border: oklch(0.3 0.02 280);
-  --input: oklch(0.25 0.02 280);
-  --ring: oklch(0.7 0.08 160);
-  /* Dark mode pastel charts */
-  --chart-1: oklch(0.65 0.1 330); /* Soft pink */
-  --chart-2: oklch(0.65 0.1 200); /* Soft blue */
-  --chart-3: oklch(0.65 0.1 120); /* Soft green */
-  --chart-4: oklch(0.65 0.1 60);  /* Soft yellow */
-  --chart-5: oklch(0.65 0.1 280); /* Soft purple */
-  --sidebar: oklch(0.2 0.02 280);
-  --sidebar-foreground: oklch(0.92 0.02 310);
-  --sidebar-primary: oklch(0.7 0.1 160);
-  --sidebar-primary-foreground: oklch(0.18 0.02 270);
-  --sidebar-accent: oklch(0.35 0.04 280);
-  --sidebar-accent-foreground: oklch(0.92 0.02 310);
-  --sidebar-border: oklch(0.3 0.02 280);
-  --sidebar-ring: oklch(0.7 0.08 160);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -135,7 +81,6 @@
     @apply bg-background text-foreground;
   }
 
-  /* Simple scrollbar styling */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -155,9 +100,10 @@
     background: var(--border);
   }
 
-  /* Smooth transitions */
   * {
-    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+    transition-property:
+      color, background-color, border-color, text-decoration-color, fill,
+      stroke, opacity, box-shadow;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 200ms;
   }
