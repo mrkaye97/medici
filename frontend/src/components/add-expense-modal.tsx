@@ -596,7 +596,7 @@ export function AddExpenseModal({
                 <FormItem>
                   <FormLabel>Split Method</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
                       <div className="flex flex-col gap-y-2">
                         <SplitMethod
                           value={field.value}
@@ -626,69 +626,62 @@ export function AddExpenseModal({
                           }}
                         />
                       </div>
-                      {form.getValues("splitMethod") !==
-                        SplitMethodType.Default && (
-                        <div className="flex flex-col gap-y-2 border border-border p-4 rounded-lg">
-                          {members
-                            .sort((a, b) =>
-                              a.member.first_name
-                                .toLowerCase()
-                                .localeCompare(
-                                  b.member.first_name.toLowerCase()
-                                )
-                            )
-                            .map((m, ix) => (
+                      <div className="flex flex-col gap-y-2 border border-border p-4 rounded-lg max-h-40 overflow-y-auto">
+                        {members
+                          .sort((a, b) =>
+                            a.member.first_name
+                              .toLowerCase()
+                              .localeCompare(b.member.first_name.toLowerCase())
+                          )
+                          .map((m, ix) => (
+                            <div className="flex flex-col" key={m.member.email}>
                               <div
-                                className="flex flex-col"
-                                key={m.member.email}
+                                key={m.member.id}
+                                className="flex flex-row gap-y-2 justify-between items-center"
                               >
-                                <div
-                                  key={m.member.id}
-                                  className="flex flex-row gap-y-2 justify-between items-center"
+                                <Label
+                                  htmlFor={m.member.id}
+                                  className="flex flex-row items-center gap-x-2"
                                 >
-                                  <Label
-                                    htmlFor={m.member.id}
-                                    className="flex flex-row items-center gap-x-2"
-                                  >
-                                    {`${m.member.first_name} ${m.member.last_name} ${m.member.id === memberId ? "(Me)" : ""}`}
-                                  </Label>
-                                  <Input
-                                    type="number"
-                                    value={
-                                      splitAmounts.splitAmounts.find(
-                                        (a) => a.memberId == m.member.id
-                                      )?.amount
-                                    }
-                                    onChange={(e) => {
-                                      const memberId = m.member.id;
+                                  {`${m.member.first_name} ${m.member.last_name} ${m.member.id === memberId ? "(Me)" : ""}`}
+                                </Label>
+                                <Input
+                                  type="number"
+                                  value={
+                                    splitAmounts.splitAmounts.find(
+                                      (a) => a.memberId == m.member.id
+                                    )?.amount
+                                  }
+                                  onChange={(e) => {
+                                    const memberId = m.member.id;
 
-                                      setSplitAmounts((prev) => {
-                                        const newAmounts =
-                                          prev.splitAmounts.map((a) => {
-                                            if (a.memberId === memberId) {
-                                              return {
-                                                ...a,
-                                                amount: round(
-                                                  parseFloat(e.target.value)
-                                                ),
-                                              };
-                                            }
-                                            return a;
-                                          });
+                                    setSplitAmounts((prev) => {
+                                      const newAmounts = prev.splitAmounts.map(
+                                        (a) => {
+                                          if (a.memberId === memberId) {
+                                            return {
+                                              ...a,
+                                              amount: round(
+                                                parseFloat(e.target.value)
+                                              ),
+                                            };
+                                          }
+                                          return a;
+                                        }
+                                      );
 
-                                        return {
-                                          ...prev,
-                                          splitAmounts: newAmounts,
-                                        };
-                                      });
-                                    }}
-                                    className="w-32"
-                                  />
-                                </div>
+                                      return {
+                                        ...prev,
+                                        splitAmounts: newAmounts,
+                                      };
+                                    });
+                                  }}
+                                  className="w-32"
+                                />
                               </div>
-                            ))}
-                        </div>
-                      )}
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   </FormControl>
                   <FormMessage />
