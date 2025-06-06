@@ -78,7 +78,7 @@ function Home() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCreatePoolOpen(true)}
-                className="flex items-center gap-2 bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
+                className="flex items-center gap-2 bg-background border-border text-foreground font-medium rounded-lg"
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>New Pool</span>

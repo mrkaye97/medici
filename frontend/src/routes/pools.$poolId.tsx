@@ -154,7 +154,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </Badge>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+        <CardContent className="px-0 py-4 flex-1 overflow-hidden flex flex-col">
           {expenses.length === 0 ? (
             <div className="text-center py-20 px-4">
               <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-8">
