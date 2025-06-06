@@ -236,7 +236,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages
+          maybeModifiedDefaultSplitPercentages,
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -333,7 +333,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                         className="max-w-20"
                         value={
                           maybeModifiedDefaultSplitPercentages.find(
-                            (m) => m.member_id === member.member.id
+                            (m) => m.member_id === member.member.id,
                           )?.split_percentage ||
                           member.pool_membership.default_split_percentage
                         }
