@@ -493,57 +493,62 @@ export function AddExpenseModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Total Amount</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Total Amount</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.01" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Expense Category</FormLabel>
-                  <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {expenseCategories
-                            .sort((a, b) => a.localeCompare(b))
-                            .map((c) => (
-                              <SelectItem
-                                key={c}
-                                value={c}
-                                className="flex items-center gap-x-2"
-                              >
-                                <div className="flex items-center gap-x-2">
-                                  <ExpenseIcon category={c} />
-                                  <span>
-                                    {categoryToDisplayName({ category: c })}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Expense Category</FormLabel>
+                    <FormControl>
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {expenseCategories
+                              .sort((a, b) => a.localeCompare(b))
+                              .map((c) => (
+                                <SelectItem
+                                  key={c}
+                                  value={c}
+                                  className="flex items-center gap-x-2"
+                                >
+                                  <div className="flex items-center gap-x-2">
+                                    <ExpenseIcon category={c} />
+                                    <span>
+                                      {categoryToDisplayName({ category: c })}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <FormField
               control={form.control}
@@ -591,36 +596,39 @@ export function AddExpenseModal({
                 <FormItem>
                   <FormLabel>Split Method</FormLabel>
                   <FormControl>
-                    <div className="flex flex-col gap-y-2">
-                      <SplitMethod
-                        value={field.value}
-                        setValue={(value) => {
-                          field.onChange(value);
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="flex flex-col gap-y-2">
+                        <SplitMethod
+                          value={field.value}
+                          setValue={(value) => {
+                            field.onChange(value);
 
-                          setSplitAmounts(() => {
-                            const newAmounts =
-                              value === SplitMethodType.Percentage
-                                ? members.map((member) => ({
-                                    memberId: member.member.id,
-                                    amount: round(100 / members.length),
-                                  }))
-                                : members.map((member) => ({
-                                    memberId: member.member.id,
-                                    amount: round(
-                                      form.getValues("amount") / members.length
-                                    ),
-                                  }));
+                            setSplitAmounts(() => {
+                              const newAmounts =
+                                value === SplitMethodType.Percentage
+                                  ? members.map((member) => ({
+                                      memberId: member.member.id,
+                                      amount: round(100 / members.length),
+                                    }))
+                                  : members.map((member) => ({
+                                      memberId: member.member.id,
+                                      amount: round(
+                                        form.getValues("amount") /
+                                          members.length
+                                      ),
+                                    }));
 
-                            return {
-                              splitMethod: value,
-                              splitAmounts: newAmounts,
-                            };
-                          });
-                        }}
-                      />
+                              return {
+                                splitMethod: value,
+                                splitAmounts: newAmounts,
+                              };
+                            });
+                          }}
+                        />
+                      </div>
                       {form.getValues("splitMethod") !==
                         SplitMethodType.Default && (
-                        <div className="flex flex-col gap-y-2 border border-border p-4 rounded-lg mt-4">
+                        <div className="flex flex-col gap-y-2 border border-border p-4 rounded-lg">
                           {members
                             .sort((a, b) =>
                               a.member.first_name
@@ -677,9 +685,6 @@ export function AddExpenseModal({
                                     className="w-32"
                                   />
                                 </div>
-                                {ix !== members.length - 1 && (
-                                  <Separator className="my-4" />
-                                )}
                               </div>
                             ))}
                         </div>

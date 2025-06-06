@@ -177,7 +177,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                 {expenses.map((expense) => (
                   <div
                     key={expense.id}
-                    className="p-4 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0"
+                    className="p-4 hover:bg-muted/30 transition-colors"
                   >
                     <Expense expense={expense} />
                   </div>
