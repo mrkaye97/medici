@@ -47,9 +47,9 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         isOpen={isSettleUpModalOpen}
         setIsOpen={setIsSettleUpModalOpen}
       />
-      <Card key={poolId} className="overflow-hidden border border-gray-200">
+      <Card key={poolId} className="overflow-hidden border">
         <Link to="/pools/$poolId" params={{ poolId }}>
-          <CardHeader className="bg-gray-50 pb-2 hover:bg-gray-100">
+          <CardHeader className="bg-muted/30 pb-2 hover:bg-muted/50 transition-colors">
             <div className="flex justify-between items-start">
               <div>
                 <CardTitle className="text-lg">{details.name}</CardTitle>
@@ -61,13 +61,13 @@ export function PoolSummary({ poolId }: { poolId: string }) {
               </div>
               {details.total_debt === 0 ? (
                 <Badge
-                  className={`ml-2 py-2 bg-white text-black hover:bg-white`}
+                  className={`ml-2 py-2 bg-muted text-muted-foreground hover:bg-muted/80`}
                 >
                   <p className="text-base font-light">All settled up!</p>
                 </Badge>
               ) : (
                 <Badge
-                  className={`ml-2 py-2 ${details.total_debt <= 0 ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}`}
+                  className={`ml-2 py-2 ${details.total_debt <= 0 ? "bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/20 dark:text-green-400 dark:hover:bg-green-900/30" : "bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"}`}
                 >
                   <p className="text-base font-light">
                     {formatCurrency(details.total_debt)}
@@ -79,7 +79,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </Link>
 
         <CardContent className="pt-4">
-          <div className="flex items-center text-sm text-gray-500 mb-2">
+          <div className="flex items-center text-sm text-muted-foreground mb-2">
             <Calendar className="w-4 h-4 mr-1" />
             <span>Created {formatDate(new Date(details.inserted_at))}</span>
             <span className="mx-2">•</span>
@@ -118,7 +118,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           )}
         </CardContent>
 
-        <CardFooter className="bg-gray-50 flex justify-end gap-2 py-2">
+        <CardFooter className="bg-muted/30 flex justify-end gap-2 py-2">
           <Button
             variant="outline"
             size="sm"

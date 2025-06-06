@@ -166,10 +166,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Start tracking your shared expenses by adding your first one.
               </p>
-              <Button
-                onClick={() => setIsAddExpenseModalOpen(true)}
-                size="lg"
-              >
+              <Button onClick={() => setIsAddExpenseModalOpen(true)} size="lg">
                 <PlusCircleIcon className="h-5 w-5 mr-2" />
                 Add First Expense
               </Button>
@@ -278,10 +275,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
           </p>
         ) : (
           members.map((member) => (
-            <Card
-              key={member.member.id}
-              className="p-3"
-            >
+            <Card key={member.member.id} className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -305,36 +299,37 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                   </div>
                 </div>
                 <div className="flex flex-row items-center justify-end gap-x-2 w-48">
-                  {details.role === "ADMIN" && member.member.id !== memberId && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                            disabled={
-                              mutations.isAddPending ||
-                              mutations.isRemovePending ||
-                              details.total_debt !== 0
-                            }
-                            onClick={async () => {
-                              await mutations.removeFriend(member.member.id);
-                            }}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">
-                            {details.total_debt !== 0
-                              ? "You must settle up before removing a member"
-                              : `Remove ${member.member.first_name} from pool`}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
+                  {details.role === "ADMIN" &&
+                    member.member.id !== memberId && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                              disabled={
+                                mutations.isAddPending ||
+                                mutations.isRemovePending ||
+                                details.total_debt !== 0
+                              }
+                              onClick={async () => {
+                                await mutations.removeFriend(member.member.id);
+                              }}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">
+                              {details.total_debt !== 0
+                                ? "You must settle up before removing a member"
+                                : `Remove ${member.member.first_name} from pool`}
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   {details.role === "ADMIN" && (
                     <div className="flex flex-col items-start gap-1">
                       <Label htmlFor="email" className="text-xs">
@@ -392,10 +387,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
             </h4>
             <div className="space-y-2">
               {friendsEligibleToAdd.map((friend) => (
-                <Card
-                  key={friend.id}
-                  className="p-3"
-                >
+                <Card key={friend.id} className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">
@@ -494,10 +486,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
       ) : (
         <div className="space-y-3">
           {balances.map((balance, index) => (
-            <Card
-              key={index}
-              className="p-4"
-            >
+            <Card key={index} className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="font-medium text-base">{balance.name}</p>

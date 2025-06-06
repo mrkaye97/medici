@@ -85,9 +85,7 @@ export const FriendsView = () => {
     <Card className="shadow-sm">
       <CardHeader className="pb-6">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-2xl font-semibold">
-            Social
-          </CardTitle>
+          <CardTitle className="text-2xl font-semibold">Social</CardTitle>
           <Button
             variant="outline"
             size="sm"
@@ -98,9 +96,7 @@ export const FriendsView = () => {
             <span>Add Friend</span>
           </Button>
         </div>
-        <CardDescription>
-          Manage your friends and requests
-        </CardDescription>
+        <CardDescription>Manage your friends and requests</CardDescription>
       </CardHeader>
 
       <Tabs
@@ -125,9 +121,7 @@ export const FriendsView = () => {
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="me">
-              Profile
-            </TabsTrigger>
+            <TabsTrigger value="me">Profile</TabsTrigger>
           </TabsList>
         </div>
 
@@ -314,9 +308,7 @@ export const FriendsView = () => {
                   </span>
                 </div>
                 <div>
-                  <p className="font-semibold text-lg">
-                    {name}
-                  </p>
+                  <p className="font-semibold text-lg">{name}</p>
                   <p className="text-muted-foreground text-sm">{email}</p>
                 </div>
               </div>
@@ -324,9 +316,7 @@ export const FriendsView = () => {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Venmo Handle
-                </Label>
+                <Label className="text-sm font-medium">Venmo Handle</Label>
                 <div className="flex gap-2">
                   <Input
                     placeholder="@my-venmo-handle"

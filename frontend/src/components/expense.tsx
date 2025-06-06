@@ -52,7 +52,7 @@ export function Expense({ expense }: { expense: Expense }) {
 
         await invalidate();
       },
-    },
+    }
   );
 
   if (!members || isMembersLoading || !memberId) {
@@ -66,19 +66,19 @@ export function Expense({ expense }: { expense: Expense }) {
   }
 
   return (
-    <div className="p-4 hover:bg-gray-50 rounded-lg border">
+    <div className="p-4 rounded-lg border hover:bg-accent/50 transition-colors">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
             <div className="flex flex-row items-center gap-x-3">
-              <div className="p-2.5 border border-black bg-sky-200 rounded-lg">
+              <div className="p-2.5 border bg-primary/10 text-primary rounded-lg">
                 <ExpenseIcon category={expense.category as ExpenseCategory} />
               </div>
               <div className="flex flex-col ">
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-foreground">
                   {expense.name}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-muted-foreground">
                   {new Date(expense.inserted_at).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -115,28 +115,30 @@ export function Expense({ expense }: { expense: Expense }) {
           <div className="py-4">{expense.description}</div>
         )}
         <div className="flex justify-between items-center mt-1">
-          <span className="text-lg font-semibold text-gray-900">
+          <span className="text-lg font-semibold text-foreground">
             {formatCurrency(expense.amount)}
           </span>
           <div className="flex flex-col justify-end items-end">
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-muted-foreground">
               Paid by{" "}
               <span className="font-medium">
                 {
                   members?.find(
-                    (m) => m.member.id === expense.paid_by_member_id,
+                    (m) => m.member.id === expense.paid_by_member_id
                   )?.member.first_name
                 }
               </span>
             </span>
             <div className="flex items-center">
-              <span className="text-sm text-gray-600">
+              <span className="text-sm text-muted-foreground">
                 {expense.line_amount < 0 ? "You get back" : "You owe"}{" "}
               </span>
               <span
                 className={cn(
                   "ml-1 font-medium",
-                  expense.line_amount < 0 ? "text-emerald-600" : "text-red-600",
+                  expense.line_amount < 0
+                    ? "text-green-600"
+                    : "text-destructive"
                 )}
               >
                 {formatCurrency(expense.line_amount)}
