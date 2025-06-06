@@ -14,7 +14,7 @@ const queryClient = new QueryClient({
     queries: {
       retry: (failureCount, error: FetchError) => {
         if (error?.status === 401 || error?.status === 403) {
-          window.location.href = `${basePath}login`;
+          window.location.href = `${basePath}/login`;
           return false;
         }
         return failureCount < 3;
