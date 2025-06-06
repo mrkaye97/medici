@@ -91,7 +91,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded((prev) => !prev)}
-              className="flex items-center p-0 h-auto hover:bg-transparent"
+              className="flex items-center p-2 h-auto hover:bg-transparent"
             >
               {isExpanded ? (
                 <ChevronDown className="w-4 h-4 mr-1" />
