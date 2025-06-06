@@ -271,104 +271,111 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
             No members yet
           </p>
         ) : (
-          members.map((member) => (
-            <Card key={member.member.id} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-xs font-medium">
-                      {member.member.first_name[0]}
-                      {member.member.last_name[0]}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="font-medium text-sm">
-                      {member.member.first_name} {member.member.last_name}
-                      {member.member.id === memberId && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          You
-                        </Badge>
-                      )}
+          members
+            .sort((a, b) =>
+              a.member.first_name.localeCompare(b.member.first_name),
+            )
+            .map((member) => (
+              <Card key={member.member.id} className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-xs font-medium">
+                        {member.member.first_name[0]}
+                        {member.member.last_name[0]}
+                      </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {member.member.email}
-                    </p>
+                    <div>
+                      <div className="font-medium text-sm">
+                        {member.member.first_name} {member.member.last_name}
+                        {member.member.id === memberId && (
+                          <Badge variant="secondary" className="ml-2 text-xs">
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {member.member.email}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-row items-center justify-end gap-x-2 w-48">
-                  {details.role === "ADMIN" &&
-                    member.member.id !== memberId && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger
-                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:cursor-pointer"
-                            disabled={
-                              mutations.isAddPending ||
-                              mutations.isRemovePending ||
-                              details.total_debt !== 0
-                            }
-                            onClick={async () => {
-                              await mutations.removeFriend(member.member.id);
-                            }}
-                          >
-                            <UserMinus className="h-4 w-4" />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">
-                              {details.total_debt !== 0
-                                ? "You must settle up before removing a member"
-                                : `Remove ${member.member.first_name} from pool`}
-                            </p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  {details.role === "ADMIN" && (
-                    <div className="flex flex-col items-start gap-1">
-                      <Label htmlFor="email" className="text-xs">
-                        Split %
-                      </Label>
-                      <Input
-                        type="number"
-                        className="max-w-20"
-                        value={
-                          maybeModifiedDefaultSplitPercentages.find(
-                            (m) => m.member_id === member.member.id,
-                          )?.split_percentage ||
-                          member.pool_membership.default_split_percentage
-                        }
-                        onChange={async (e) => {
-                          setMaybeModifiedDefaultSplitPercentages((prev) => {
-                            const iter = prev.length
-                              ? prev
-                              : members.map((m) => ({
-                                  member_id: m.member.id,
-                                  split_percentage:
-                                    m.pool_membership.default_split_percentage,
-                                }));
-
-                            return iter.map((f) => {
-                              if (f.member_id === member.member.id) {
-                                return {
-                                  member_id: f.member_id,
-                                  split_percentage: parseFloat(e.target.value),
-                                };
-                              } else {
-                                return {
-                                  member_id: f.member_id,
-                                  split_percentage: f.split_percentage,
-                                };
+                  <div className="flex flex-row items-center justify-end gap-x-2 w-48">
+                    {details.role === "ADMIN" &&
+                      member.member.id !== memberId && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger
+                              className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:cursor-pointer"
+                              disabled={
+                                mutations.isAddPending ||
+                                mutations.isRemovePending ||
+                                details.total_debt !== 0
                               }
+                              onClick={async () => {
+                                await mutations.removeFriend(member.member.id);
+                              }}
+                            >
+                              <UserMinus className="h-4 w-4" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">
+                                {details.total_debt !== 0
+                                  ? "You must settle up before removing a member"
+                                  : `Remove ${member.member.first_name} from pool`}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                    {details.role === "ADMIN" && (
+                      <div className="flex flex-col items-start gap-1">
+                        <Label htmlFor="email" className="text-xs">
+                          Split %
+                        </Label>
+                        <Input
+                          type="number"
+                          className="max-w-20"
+                          value={
+                            maybeModifiedDefaultSplitPercentages.find(
+                              (m) => m.member_id === member.member.id,
+                            )?.split_percentage ||
+                            member.pool_membership.default_split_percentage
+                          }
+                          onChange={async (e) => {
+                            setMaybeModifiedDefaultSplitPercentages((prev) => {
+                              const iter = prev.length
+                                ? prev
+                                : members.map((m) => ({
+                                    member_id: m.member.id,
+                                    split_percentage:
+                                      m.pool_membership
+                                        .default_split_percentage,
+                                  }));
+
+                              return iter.map((f) => {
+                                if (f.member_id === member.member.id) {
+                                  return {
+                                    member_id: f.member_id,
+                                    split_percentage: parseFloat(
+                                      e.target.value,
+                                    ),
+                                  };
+                                } else {
+                                  return {
+                                    member_id: f.member_id,
+                                    split_percentage: f.split_percentage,
+                                  };
+                                }
+                              });
                             });
-                          });
-                        }}
-                      />
-                    </div>
-                  )}
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))
+              </Card>
+            ))
         )}
       </div>
 

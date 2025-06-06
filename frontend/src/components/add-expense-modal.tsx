@@ -346,27 +346,73 @@ export function AddExpenseModal({
     },
   });
 
+  const handleUpdateSplitAmounts = useCallback(
+    ({
+      splitMethod,
+      total,
+    }: {
+      splitMethod: SplitMethodType;
+      total: number;
+    }) => {
+      if (splitMethod === SplitMethodType.Percentage) {
+        setSplitAmounts(() => {
+          const newAmounts = members.map((member) => ({
+            memberId: member.member.id,
+            amount: round(100 / members.length),
+          }));
+
+          return {
+            splitMethod,
+            splitAmounts: newAmounts,
+          };
+        });
+      }
+
+      if (splitMethod === SplitMethodType.Amount) {
+        setSplitAmounts(() => {
+          const newAmounts = members.map((member) => ({
+            memberId: member.member.id,
+            amount: round(total / members.length),
+          }));
+
+          return {
+            splitMethod,
+            splitAmounts: newAmounts,
+          };
+        });
+      }
+
+      if (splitMethod === SplitMethodType.Default) {
+        setSplitAmounts(() => {
+          const newAmounts = members.map((member) => {
+            const splitPct = member.pool_membership.default_split_percentage;
+
+            return {
+              memberId: member.member.id,
+              amount: round(splitPct * (total / 100)),
+            };
+          });
+
+          return {
+            splitMethod,
+            splitAmounts: newAmounts,
+          };
+        });
+      }
+    },
+    [members],
+  );
+
   const watchedAmount = form.watch("amount");
 
   useEffect(() => {
     const splitMethod = form.getValues("splitMethod");
 
-    if (splitMethod === SplitMethodType.Percentage) {
-      return;
-    }
-
-    setSplitAmounts(() => {
-      const newAmounts = members.map((member) => ({
-        memberId: member.member.id,
-        amount: round(watchedAmount / members.length),
-      }));
-
-      return {
-        splitMethod,
-        splitAmounts: newAmounts,
-      };
+    handleUpdateSplitAmounts({
+      splitMethod,
+      total: watchedAmount,
     });
-  }, [watchedAmount, form, members]);
+  }, [watchedAmount, form, handleUpdateSplitAmounts]);
 
   if (!members.length || isLoading) {
     return null;
@@ -624,25 +670,9 @@ export function AddExpenseModal({
                           setValue={(value) => {
                             field.onChange(value);
 
-                            setSplitAmounts(() => {
-                              const newAmounts =
-                                value === SplitMethodType.Percentage
-                                  ? members.map((member) => ({
-                                      memberId: member.member.id,
-                                      amount: round(100 / members.length),
-                                    }))
-                                  : members.map((member) => ({
-                                      memberId: member.member.id,
-                                      amount: round(
-                                        form.getValues("amount") /
-                                          members.length,
-                                      ),
-                                    }));
-
-                              return {
-                                splitMethod: value,
-                                splitAmounts: newAmounts,
-                              };
+                            handleUpdateSplitAmounts({
+                              splitMethod: value,
+                              total: form.getValues("amount"),
                             });
                           }}
                         />
@@ -674,27 +704,9 @@ export function AddExpenseModal({
                                     )?.amount
                                   }
                                   onChange={(e) => {
-                                    const memberId = m.member.id;
-
-                                    setSplitAmounts((prev) => {
-                                      const newAmounts = prev.splitAmounts.map(
-                                        (a) => {
-                                          if (a.memberId === memberId) {
-                                            return {
-                                              ...a,
-                                              amount: round(
-                                                parseFloat(e.target.value),
-                                              ),
-                                            };
-                                          }
-                                          return a;
-                                        },
-                                      );
-
-                                      return {
-                                        ...prev,
-                                        splitAmounts: newAmounts,
-                                      };
+                                    handleUpdateSplitAmounts({
+                                      splitMethod: splitAmounts.splitMethod,
+                                      total: parseFloat(e.target.value),
                                     });
                                   }}
                                   className="w-32"
