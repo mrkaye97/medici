@@ -114,7 +114,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
         pool={details}
       />
       <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm border border-border rounded-lg">
-        <CardHeader className="pb-4 flex-shrink-0 bg-muted/30 rounded-t-lg">
+        <CardHeader className="pb-4 flex-shrink-0 bg-card rounded-t-lg">
           <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
             <div>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground">
@@ -145,7 +145,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
 
           <CardTitle className="text-2xl font-semibold flex flex-row items-center gap-2 text-foreground">
             <BanknoteIcon className="h-6 w-6 text-primary" />
-            Recent Expenses
+            <span>Recent Expenses</span>
             <Badge
               variant="secondary"
               className="ml-2 bg-secondary text-secondary-foreground"
@@ -173,12 +173,9 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </div>
           ) : (
             <div className="flex-1 overflow-auto">
-              <div className="space-y-1">
+              <div className="space-y-2">
                 {expenses.map((expense) => (
-                  <div
-                    key={expense.id}
-                    className="p-4 hover:bg-muted/30 transition-colors"
-                  >
+                  <div key={expense.id} className="px-2 transition-colors">
                     <Expense expense={expense} />
                   </div>
                 ))}
@@ -239,7 +236,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
+          maybeModifiedDefaultSplitPercentages
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -336,7 +333,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                         className="max-w-20"
                         value={
                           maybeModifiedDefaultSplitPercentages.find(
-                            (m) => m.member_id === member.member.id,
+                            (m) => m.member_id === member.member.id
                           )?.split_percentage ||
                           member.pool_membership.default_split_percentage
                         }

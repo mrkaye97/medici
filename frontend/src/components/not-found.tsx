@@ -13,7 +13,7 @@ export function NotFound(
       <p className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => window.history.back()}
-          className="rounded bg-emerald-500 px-2 py-1 text-sm font-black uppercase text-white"
+          className="rounded bg-primary px-2 py-1 text-sm font-black uppercase text-primary-foreground"
         >
           Go back
         </button>

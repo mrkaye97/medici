@@ -225,7 +225,7 @@ export const FriendsView = () => {
                             </Button>
                             <Button
                               size="icon"
-                              className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white"
+                              className="h-8 w-8 bg-primary hover:bg-primary/90 text-primary-foreground"
                               onClick={async () => {
                                 await mutations.acceptFriendRequest(
                                   request.member.id,

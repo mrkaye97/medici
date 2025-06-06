@@ -67,7 +67,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
                 </Badge>
               ) : (
                 <Badge
-                  className={`ml-2 py-2 ${details.total_debt <= 0 ? "bg-green-100 text-green-700 hover:bg-green-200 " : "bg-red-100 text-red-700 hover:bg-red-200 "}`}
+                  className={`ml-2 py-2 ${details.total_debt <= 0 ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}
                 >
                   <p className="text-base font-light">
                     {formatCurrency(details.total_debt)}
@@ -108,11 +108,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           {isExpanded && (
             <div className="mt-3 px-4 rounded-md gap-y-2 flex flex-col max-h-96 overflow-y-auto">
               {expenses.map((expense, index) => {
-                return (
-                  <>
-                    <Expense key={index} expense={expense} />
-                  </>
-                );
+                return <Expense key={index} expense={expense} />;
               })}
             </div>
           )}

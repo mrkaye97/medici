@@ -66,7 +66,7 @@ export function Expense({ expense }: { expense: Expense }) {
   }
 
   return (
-    <div className="p-4 rounded-lg border hover:bg-accent/50 transition-colors">
+    <div className="p-4 rounded-lg border hover:bg-muted/30 transition-colors">
       <div className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <div className="flex flex-col">
