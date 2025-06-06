@@ -6,7 +6,6 @@ use diesel::sql_types::{Double, Uuid as SqlUuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
-use crate::schema::expense::category;
 use crate::schema::{
     expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
 };
