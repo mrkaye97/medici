@@ -1,7 +1,13 @@
 import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/hooks/use-auth";
-import { AddExpenseModal, round } from "@/components/add-expense-modal";
-import { useEffect, useState } from "react";
+import {
+  AddExpenseModal,
+  categoryToDisplayName,
+  expenseCategories,
+  ExpenseCategory,
+  round,
+} from "@/components/add-expense-modal";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,10 +21,11 @@ import {
   ArrowUpDown,
   CheckCircle,
   Clock,
+  Search,
 } from "lucide-react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Expense } from "@/components/expense";
+import { Expense, formatCurrency } from "@/components/expense";
 import { SettleUpModal } from "@/components/settle-up-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +37,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import MiniSearch from "minisearch";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -82,6 +97,15 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
 
 const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const expenseOptions = useMemo(
+    () => ({
+      category: selectedCategory,
+    }),
+    [selectedCategory]
+  );
 
   const {
     members,
@@ -91,12 +115,51 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
     isDetailsLoading,
     isMembersLoading,
     isExpensesLoading,
+    isExpensesRefetching,
     totalExpenses,
   } = usePool({
     poolId,
+    expenseOptions,
   });
 
-  const isLoading = isMembersLoading || isExpensesLoading || isDetailsLoading;
+  const miniSearch = useMemo(() => {
+    const m = new MiniSearch({
+      fields: ["id", "name", "description", "notes"],
+      storeFields: ["id", "name", "description", "notes"],
+    });
+
+    m.addAllAsync(
+      expenses.map((expense) => ({
+        id: expense.id,
+        name: expense.name,
+        description: expense.description || "",
+        notes: expense.notes || "",
+      }))
+    );
+
+    return m;
+  }, [expenses]);
+
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return expenses;
+    }
+
+    const results = miniSearch.search(searchQuery, {
+      fuzzy: 0.2,
+      prefix: true,
+      boost: { name: 2, description: 1, notes: 1 },
+    });
+
+    return results
+      .map((result) => expenses.find((e) => e.id === result.id))
+      .filter((e) => e !== undefined);
+  }, [searchQuery, expenses, miniSearch]);
+
+  const isLoading =
+    isMembersLoading ||
+    (isExpensesLoading && !isExpensesRefetching) ||
+    isDetailsLoading;
 
   if (isLoading || isMembersLoading || !details || isBalancesLoading) {
     return (
@@ -143,18 +206,80 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </Button>
           </div>
 
-          <CardTitle className="text-2xl font-semibold flex flex-row items-center gap-2 text-foreground">
-            <BanknoteIcon className="h-6 w-6 text-primary" />
-            <span>Recent Expenses</span>
+          <CardTitle className="text-2xl font-semibold flex flex-row items-center gap-3 text-foreground mb-6">
+            <BanknoteIcon className="h-6 w-6 text-primary flex-shrink-0" />
+            <span className="flex items-center">Recent Expenses</span>
             <Badge
               variant="secondary"
-              className="ml-2 bg-secondary text-secondary-foreground"
+              className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
             >
-              ${totalExpenses.toFixed(2)} total
+              {formatCurrency(totalExpenses)} total
             </Badge>
           </CardTitle>
+
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <Input
+                  placeholder="Search expenses..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                  }}
+                  className="pl-10 bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-200 h-full"
+                />
+              </div>
+
+              <Select
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    setSelectedCategory(undefined);
+                    return;
+                  }
+                  setSelectedCategory(value as ExpenseCategory);
+                }}
+                defaultValue="all"
+              >
+                <SelectTrigger className="w-full md:w-[200px] bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-200 h-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border/50">
+                  <SelectItem
+                    key="all"
+                    value="all"
+                    className="focus:bg-primary/10"
+                  >
+                    <div className="flex items-center gap-2">
+                      {selectedCategory === undefined && (
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-primary/60"></div>
+                      )}
+                      <span className="font-medium">All Categories</span>
+                    </div>
+                  </SelectItem>
+                  {expenseCategories
+                    .sort((a, b) => a.localeCompare(b))
+                    .map((category) => (
+                      <SelectItem
+                        key={category}
+                        value={category}
+                        className="capitalize focus:bg-primary/10"
+                      >
+                        {selectedCategory === category && (
+                          <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-primary/60"></div>
+                        )}
+
+                        <span>{categoryToDisplayName({ category })}</span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="px-0 py-4 flex-1 overflow-hidden flex flex-col">
+        <CardContent className="px-4 pb-4 flex-1 overflow-hidden flex flex-col">
           {expenses.length === 0 ? (
             <div className="text-center py-20 px-4">
               <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-8">
@@ -174,7 +299,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
           ) : (
             <div className="flex-1 overflow-auto">
               <div className="space-y-2">
-                {expenses.map((expense) => (
+                {searchResults.map((expense) => (
                   <div key={expense.id} className="px-2 transition-colors">
                     <Expense expense={expense} />
                   </div>
@@ -236,7 +361,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
+          maybeModifiedDefaultSplitPercentages
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -273,7 +398,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
         ) : (
           members
             .sort((a, b) =>
-              a.member.first_name.localeCompare(b.member.first_name),
+              a.member.first_name.localeCompare(b.member.first_name)
             )
             .map((member) => (
               <Card key={member.member.id} className="p-3">
@@ -337,7 +462,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                           className="max-w-20"
                           value={
                             maybeModifiedDefaultSplitPercentages.find(
-                              (m) => m.member_id === member.member.id,
+                              (m) => m.member_id === member.member.id
                             )?.split_percentage ||
                             member.pool_membership.default_split_percentage
                           }
@@ -357,7 +482,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                                   return {
                                     member_id: f.member_id,
                                     split_percentage: parseFloat(
-                                      e.target.value,
+                                      e.target.value
                                     ),
                                   };
                                 } else {
@@ -502,7 +627,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                         : "text-destructive"
                     }`}
                   >
-                    ${balance.amount.toFixed(2)}
+                    {formatCurrency(balance.amount)}
                   </p>
                   {balance.venmoHandle && (
                     <a

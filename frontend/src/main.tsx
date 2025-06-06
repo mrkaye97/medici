@@ -5,8 +5,21 @@ import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DefaultCatchBoundary } from "./components/error-boundary";
 import { NotFound } from "./components/not-found";
+import { FetchError } from "./api/client";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error: FetchError) => {
+        if (error?.status === 401 || error?.status === 403) {
+          window.location.href = "/login";
+          return false;
+        }
+        return failureCount < 3;
+      },
+    },
+  },
+});
 
 const router = createRouter({
   context: { queryClient },

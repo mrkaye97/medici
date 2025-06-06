@@ -29,6 +29,11 @@ import {
   HelpingHand,
   Ellipsis,
   Pin,
+  Baby,
+  HousePlus,
+  Dog,
+  Scale,
+  FileChartLine,
 } from "lucide-react";
 import { Input } from "./ui/input";
 import { z } from "zod";
@@ -83,6 +88,11 @@ export const expenseCategories: ExpenseCategory[] = [
   "Gifts",
   "Charity",
   "Miscellaneous",
+  "HomeHouseholdSupplies",
+  "Childcare",
+  "Pets",
+  "ProfessionalServices",
+  "Taxes",
 ];
 
 export const categoryToIcon = ({
@@ -133,6 +143,16 @@ export const categoryToIcon = ({
       return <HelpingHand className={`size-${size}`} />;
     case "Miscellaneous":
       return <Ellipsis className={`size-${size}`} />;
+    case "HomeHouseholdSupplies":
+      return <HousePlus className={`size-${size}`} />;
+    case "Childcare":
+      return <Baby className={`size-${size}`} />;
+    case "Pets":
+      return <Dog className={`size-${size}`} />;
+    case "ProfessionalServices":
+      return <Scale className={`size-${size}`} />;
+    case "Taxes":
+      return <FileChartLine className={`size-${size}`} />;
     default:
       const exhaustiveCheck: never = category;
       throw new Error(`Unhandled category: ${exhaustiveCheck}`);
@@ -185,6 +205,16 @@ export const categoryToDisplayName = ({
       return "Charity";
     case "Miscellaneous":
       return "Miscellaneous";
+    case "Childcare":
+      return "Childcare";
+    case "HomeHouseholdSupplies":
+      return "Home & Household Supplies";
+    case "Pets":
+      return "Pets";
+    case "ProfessionalServices":
+      return "Professional Services";
+    case "Taxes":
+      return "Taxes";
     default:
       const exhaustiveCheck: never = category;
       throw new Error(`Unhandled category: ${exhaustiveCheck}`);

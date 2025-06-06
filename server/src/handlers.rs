@@ -29,7 +29,8 @@ use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracer
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
 use server::models::{
-    self, Expense, Friendship, Member, MemberChangeset, MemberPassword, NewPool, PoolMembership,
+    self, Expense, ExpenseCategory, Friendship, Member, MemberChangeset, MemberPassword, NewPool,
+    PoolMembership,
 };
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
@@ -529,7 +530,7 @@ pub async fn login_handler(
                             id,
                             token,
                             is_authenticated: true,
-                            expires_at: Utc::now() + Duration::days(7),
+                            expires_at: Utc::now() + Duration::days(28),
                         },
                         Err(_) => AuthResult::Unauthenticated {
                             id: None,
@@ -606,7 +607,7 @@ pub async fn authenticate_handler(
                         id: member_id,
                         token: new_token,
                         is_authenticated: true,
-                        expires_at: Utc::now() + Duration::days(7),
+                        expires_at: Utc::now() + Duration::days(28),
                     }),
                     Err(_) => Json(AuthResult::Unauthenticated {
                         id: None,
@@ -1060,7 +1061,7 @@ pub async fn signup_handler(
                 id: m.id,
                 token,
                 is_authenticated: true,
-                expires_at: Utc::now() + Duration::days(7),
+                expires_at: Utc::now() + Duration::days(28),
             })),
             Err(_) => Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -1133,6 +1134,11 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
             "Insurance" => models::ExpenseCategory::Insurance,
             "Gifts" => models::ExpenseCategory::Gifts,
             "Charity" => models::ExpenseCategory::Charity,
+            "HomeHouseholdSupplies" => models::ExpenseCategory::HomeHouseholdSupplies,
+            "Pets" => models::ExpenseCategory::Pets,
+            "Taxes" => models::ExpenseCategory::Taxes,
+            "Childcare" => models::ExpenseCategory::Childcare,
+            "ProfessionalServices" => models::ExpenseCategory::ProfessionalServices,
             _ => models::ExpenseCategory::Miscellaneous,
         },
     };
@@ -1363,6 +1369,7 @@ pub struct RecentExpenseDetails {
 #[derive(Deserialize, ToSchema)]
 pub struct RecentExpensesQuery {
     limit: Option<i64>,
+    category: Option<ExpenseCategory>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1377,6 +1384,7 @@ pub struct RecentExpensesPath {
     params(
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
+        ("category" = Option<ExpenseCategory>, Query, description = "Filter expenses by category"),
         ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned")
     ),
     responses(
@@ -1396,6 +1404,7 @@ pub async fn get_pool_recent_expenses_handler(
         .start(tracer);
 
     let limit = query.limit;
+    let category = query.category;
     let pool_id = path.pool_id;
     let member_id = path.member_id;
 
@@ -1406,11 +1415,14 @@ pub async fn get_pool_recent_expenses_handler(
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
+
     let limit = limit.unwrap_or(5);
 
     let expenses = tokio::task::spawn_blocking(move || {
-        models::Expense::get_recent_for_member_in_pool(&mut conn, pool_id, member_id, limit)
-            .expect("Failed to get recent expenses")
+        models::Expense::get_recent_for_member_in_pool(
+            &mut conn, pool_id, member_id, limit, category,
+        )
+        .expect("Failed to get recent expenses")
     })
     .await
     .expect("Task panicked");

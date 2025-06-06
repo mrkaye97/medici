@@ -6,6 +6,7 @@ use diesel::sql_types::{Double, Uuid as SqlUuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::schema::expense::category;
 use crate::schema::{
     expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
 };
@@ -62,6 +63,11 @@ pub enum ExpenseCategory {
     Gifts,
     Charity,
     Miscellaneous,
+    HomeHouseholdSupplies,
+    Pets,
+    Taxes,
+    Childcare,
+    ProfessionalServices,
 }
 
 #[derive(Debug, Queryable, Identifiable, Serialize, Deserialize, ToSchema)]
@@ -595,8 +601,9 @@ impl Expense {
         pool_id: uuid::Uuid,
         member_id: uuid::Uuid,
         limit: i64,
+        expense_category: Option<ExpenseCategory>,
     ) -> QueryResult<Vec<(Self, f64)>> {
-        let results = expense::table
+        let mut query = expense::table
             .inner_join(
                 expense_line_item::table.on(expense::id
                     .eq(expense_line_item::expense_id)
@@ -605,6 +612,13 @@ impl Expense {
             )
             .filter(expense::pool_id.eq(pool_id))
             .filter(expense::is_settled.eq(false))
+            .into_boxed();
+
+        if let Some(value) = expense_category {
+            query = query.filter(expense::category.eq(value));
+        }
+
+        let results = query
             .order_by(expense::inserted_at.desc())
             .limit(limit)
             .select((

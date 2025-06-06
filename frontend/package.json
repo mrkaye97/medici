@@ -36,6 +36,7 @@
     "date-fns": "^4.1.0",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.488.0",
+    "minisearch": "^7.1.2",
     "motion": "^12.9.4",
     "openapi-fetch": "^0.13.5",
     "openapi-react-query": "^0.3.1",

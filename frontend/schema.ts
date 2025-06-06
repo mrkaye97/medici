@@ -392,7 +392,12 @@ export interface components {
       | "Insurance"
       | "Gifts"
       | "Charity"
-      | "Miscellaneous";
+      | "Miscellaneous"
+      | "HomeHouseholdSupplies"
+      | "Pets"
+      | "Taxes"
+      | "Childcare"
+      | "ProfessionalServices";
     ExpenseInput: {
       /** Format: double */
       amount: number;
@@ -1212,6 +1217,8 @@ export interface operations {
   get_pool_recent_expenses_handler: {
     parameters: {
       query?: {
+        /** @description Filter expenses by category */
+        category?: components["schemas"]["ExpenseCategory"];
         /** @description Limit the number of expenses returned */
         limit?: number;
       };

@@ -4,13 +4,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useFriends } from "./use-friends";
 import { useCallback, useMemo } from "react";
 import { components } from "schema";
+import { ExpenseCategory } from "@/components/add-expense-modal";
+
+type ExpensesListProps = {
+  limit?: number;
+  category?: ExpenseCategory;
+};
 
 export const usePool = ({
   poolId,
-  expensesLimit,
+  expenseOptions,
 }: {
   poolId: string;
-  expensesLimit?: number;
+  expenseOptions?: ExpensesListProps;
 }) => {
   const { memberId, createAuthHeader } = useAuth();
   const queryClient = useQueryClient();
@@ -48,7 +54,11 @@ export const usePool = ({
     },
   );
 
-  const { data: expenses, isLoading: isExpensesLoading } = apiClient.useQuery(
+  const {
+    data: expenses,
+    isLoading: isExpensesLoading,
+    isRefetching: isExpensesRefetching,
+  } = apiClient.useQuery(
     "get",
     "/api/pools/{pool_id}/members/{member_id}/expenses",
     {
@@ -58,10 +68,14 @@ export const usePool = ({
           member_id: memberId || "",
         },
         query: {
-          limit: expensesLimit ?? 100,
+          limit: expenseOptions?.limit ?? 100,
+          category: expenseOptions?.category,
         },
       },
       headers: createAuthHeader(),
+    },
+    {
+      placeholderData: (prev) => prev,
     },
   );
 
@@ -200,6 +214,7 @@ export const usePool = ({
     totalExpenses,
     isBalancesLoading,
     isExpensesLoading,
+    isExpensesRefetching,
     isMembersLoading,
     isDetailsLoading,
     invalidate,
