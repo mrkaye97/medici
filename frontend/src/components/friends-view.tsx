@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "./ui/separator";
 import { useFriends } from "@/hooks/use-friends";
 import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const FriendsView = () => {
@@ -43,12 +44,12 @@ export const FriendsView = () => {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const { mutateAsync: updateMember, isPending } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}",
+    "/api/members/{member_id}"
   );
 
   const email = member?.email;
@@ -64,10 +65,10 @@ export const FriendsView = () => {
   const isLoading = isFriendsLoading || isFriendRequestsLoading;
 
   const inboundRequests = friendRequests.filter(
-    (r) => r.direction === "inbound",
+    (r) => r.direction === "inbound"
   );
   const outboundRequests = friendRequests.filter(
-    (r) => r.direction === "outbound",
+    (r) => r.direction === "outbound"
   );
   const pendingCount = inboundRequests.length;
   const waitingOutboundCount = outboundRequests.length;
@@ -81,21 +82,23 @@ export const FriendsView = () => {
   }
 
   return (
-    <Card className="shadow-sm bg-white border rounded-lg">
-      <CardHeader className="pb-2">
+    <Card className="shadow-sm">
+      <CardHeader className="pb-6">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-xl font-semibold">Social</CardTitle>
+          <CardTitle className="text-2xl font-semibold">
+            Social
+          </CardTitle>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2"
           >
             <UserPlus className="h-4 w-4" />
             <span>Add Friend</span>
           </Button>
         </div>
-        <CardDescription className="text-muted-foreground">
+        <CardDescription>
           Manage your friends and requests
         </CardDescription>
       </CardHeader>
@@ -107,22 +110,33 @@ export const FriendsView = () => {
         onValueChange={setActiveTab}
       >
         <div className="px-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="friends">
+          <TabsList className="grid w-full grid-cols-3 bg-muted rounded-lg">
+            <TabsTrigger
+              value="friends"
+              className="rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
               Friends ({friends.length})
             </TabsTrigger>
-            <TabsTrigger value="requests" className="relative">
+            <TabsTrigger
+              value="requests"
+              className="relative rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
               Requests
               {pendingCount > 0 && (
                 <Badge
                   variant="default"
-                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1 bg-red-400"
+                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1 bg-primary text-primary-foreground border-0"
                 >
                   {pendingCount}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger value="me">Me</TabsTrigger>{" "}
+            <TabsTrigger
+              value="me"
+              className="rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
+            >
+              Profile
+            </TabsTrigger>
           </TabsList>
         </div>
 
@@ -170,12 +184,15 @@ export const FriendsView = () => {
         <TabsContent value="requests" className="mt-0 pt-2">
           <CardContent className="space-y-4 pb-2">
             {friendRequests.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="bg-muted rounded-full p-3 mb-3">
-                  <Clock className="h-8 w-8 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="bg-muted rounded-full p-4 mb-4">
+                  <Clock className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-lg font-medium text-muted-foreground">
                   No pending friend requests
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  All caught up!
                 </p>
               </div>
             ) : (
@@ -216,7 +233,7 @@ export const FriendsView = () => {
                               disabled={mutations.isDeleting}
                               onClick={async () => {
                                 await mutations.deleteFriendRequest(
-                                  request.member.id,
+                                  request.member.id
                                 );
                               }}
                             >
@@ -227,7 +244,7 @@ export const FriendsView = () => {
                               className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
                               onClick={async () => {
                                 await mutations.acceptFriendRequest(
-                                  request.member.id,
+                                  request.member.id
                                 );
                               }}
                               disabled={mutations.isAccepting}
@@ -276,7 +293,7 @@ export const FriendsView = () => {
                               className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={async () => {
                                 mutations.deleteFriendRequest(
-                                  request.member.id,
+                                  request.member.id
                                 );
                               }}
                             >
@@ -294,80 +311,102 @@ export const FriendsView = () => {
         </TabsContent>
 
         <TabsContent value="me" className="mt-0 pt-2">
-          <CardContent className="pb-2 flex flex-col">
-            <div className="flex flex-row items-center h-12 flex-shrink-0">
-              <p>{name}</p>
-              <Separator orientation="vertical" className="mx-2 h-6" />
-              <p>{email}</p>
+          <CardContent className="pb-2 flex flex-col space-y-4">
+            <div className="bg-muted/50 p-4 rounded-lg border border-border">
+              <div className="flex flex-row items-center justify-center mb-2">
+                <div className="bg-primary rounded-full p-3 mr-3">
+                  <span className="text-primary-foreground font-bold text-lg">
+                    {name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
+                  </span>
+                </div>
+                <div className="text-center">
+                  <p className="font-semibold text-lg text-foreground">
+                    {name}
+                  </p>
+                  <p className="text-muted-foreground text-sm">{email}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-row gap-x-2 items-center h-12 max-w-64">
-              <Input
-                placeholder="my-venmo-handle"
-                value={venmoHandle || ""}
-                onChange={(event) => {
-                  setVenmoHandle(event.target.value);
-                }}
-              />
-              <Button
-                variant={"outline"}
-                onClick={async () => {
-                  if (memberId) {
-                    await updateMember({
-                      params: {
-                        path: { member_id: memberId },
-                      },
-                      body: {
-                        venmo_handle: venmoHandle || null,
-                      },
-                      headers: createAuthHeader(),
-                    });
 
-                    await queryClient.invalidateQueries({
-                      queryKey: ["get", "/api/members/{member_id}"],
-                    });
-                  }
-                }}
-                disabled={isPending}
-              >
-                <Save className="size-4" />
-              </Button>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium text-foreground">
+                Venmo Handle
+              </Label>
+              <div className="flex flex-row gap-x-2 items-center">
+                <Input
+                  placeholder="@my-venmo-handle"
+                  value={venmoHandle || ""}
+                  onChange={(event) => {
+                    setVenmoHandle(event.target.value);
+                  }}
+                  className="flex-1 rounded-lg"
+                />
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (memberId) {
+                      await updateMember({
+                        params: {
+                          path: { member_id: memberId },
+                        },
+                        body: {
+                          venmo_handle: venmoHandle || null,
+                        },
+                        headers: createAuthHeader(),
+                      });
+
+                      await queryClient.invalidateQueries({
+                        queryKey: ["get", "/api/members/{member_id}"],
+                      });
+                    }
+                  }}
+                  disabled={isPending}
+                  className="rounded-lg"
+                >
+                  <Save className="size-4" />
+                </Button>
+              </div>
             </div>
+
             <Button
               variant="outline"
               onClick={() => {
                 logout();
               }}
-              className="justify-center py-0 flex-shrink-0"
+              className="justify-center py-3 border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg font-medium"
             >
+              <LogOut className="size-4 mr-2" />
               Log Out
-              <LogOut className="size-4" />
             </Button>
           </CardContent>
         </TabsContent>
       </Tabs>
 
-      <CardFooter className="pt-1 pb-3 px-6 flex justify-between">
-        <div className="text-xs text-muted-foreground">
+      <CardFooter className="pt-4 border-t border-border">
+        <div className="text-sm text-muted-foreground">
           {friends.length} {friends.length === 1 ? "friend" : "friends"}
           {pendingCount > 0 ? (
             <>
               {" • "}
-              <span className="text-amber-600 font-medium">
+              <span className="text-primary font-medium">
                 {pendingCount} pending
               </span>
             </>
           ) : (
-            " 0 pending"
+            " • 0 pending"
           )}
           {waitingOutboundCount > 0 ? (
             <>
               {" • "}
-              <span className="text-cyan-600 font-medium">
+              <span className="text-muted-foreground font-medium">
                 {waitingOutboundCount} waiting for reply
               </span>
             </>
           ) : (
-            " 0 waiting"
+            " • 0 waiting"
           )}
         </div>
       </CardFooter>

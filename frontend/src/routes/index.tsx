@@ -43,7 +43,7 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    },
+    }
   );
 
   const pools = data || [];
@@ -62,21 +62,23 @@ function Home() {
   }
 
   return (
-    <div className="h-dvh flex flex-col p-6">
+    <div className="min-h-dvh bg-background p-6">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
-      />{" "}
+      />
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-        <Card className="shadow-sm bg-white border rounded-lg flex flex-col">
-          <CardHeader className="pb-2">
+        <Card className="shadow-sm hover:shadow-md transition-shadow duration-200 bg-card border border-border rounded-lg flex flex-col">
+          <CardHeader className="pb-4">
             <div className="flex justify-between items-center">
-              <CardTitle className="text-xl font-semibold">Pools</CardTitle>
+              <CardTitle className="text-2xl font-semibold text-foreground">
+                Pools
+              </CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCreatePoolOpen(true)}
-                className="flex items-center gap-1"
+                className="flex items-center gap-2 bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>New Pool</span>
@@ -90,26 +92,27 @@ function Home() {
           <CardContent className="flex-1 overflow-hidden">
             <ScrollArea className="h-[calc(100vh-18rem)]">
               {pools.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-center">
-                  <div className="bg-muted rounded-full p-3 mb-3">
-                    <Wallet className="h-8 w-8 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="bg-primary/10 rounded-full p-4 mb-4">
+                    <Wallet className="h-10 w-10 text-primary" />
                   </div>
-                  <p className="text-muted-foreground mb-3">
+                  <p className="text-muted-foreground mb-4 text-lg">
                     No pools created yet
                   </p>
                   <Button
                     variant="outline"
                     onClick={() => setIsCreatePoolOpen(true)}
+                    className="bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
                   >
                     Create your first pool
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {pools.map((pool) => (
                     <div
                       key={pool.id}
-                      className="transition-all hover:bg-muted/50 rounded-lg overflow-hidden"
+                      className="transition-colors duration-200 hover:bg-accent/50 rounded-lg overflow-hidden"
                     >
                       <PoolSummary poolId={pool.id} />
                     </div>
@@ -119,8 +122,8 @@ function Home() {
             </ScrollArea>
           </CardContent>
 
-          <CardFooter className="pt-1 pb-3 px-6">
-            <div className="text-xs text-muted-foreground">
+          <CardFooter className="pt-4 border-t border-border">
+            <div className="text-sm text-muted-foreground">
               {pools.length}{" "}
               {pools.length === 1 ? "active pool" : "active pools"}
             </div>

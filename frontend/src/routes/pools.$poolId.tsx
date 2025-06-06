@@ -44,7 +44,7 @@ function Pool() {
   }
 
   return (
-    <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh">
+    <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh bg-background">
       <ExpensesPane poolId={poolId} />
       <PoolDetailsPane memberId={memberId} poolId={poolId} />
     </div>
@@ -58,13 +58,13 @@ type PoolPaneProps = {
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   return (
-    <div className="md:w-[500px] bg-muted/5 flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 ">
-      <div className="p-6 border-b bg-background">
-        <h2 className="text-lg font-semibold flex items-center gap-2">
-          <DollarSign className="h-5 w-5" />
+    <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 border-l border-border">
+      <div className="p-6 border-b border-border bg-muted/30 rounded-lg mx-4 mb-4">
+        <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
+          <DollarSign className="h-6 w-6 text-primary" />
           Pool Details
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1">
           Balances and member management
         </p>
       </div>
@@ -113,18 +113,21 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
         setIsOpen={setIsAddExpenseModalOpen}
         pool={details}
       />
-      <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col">
-        <CardHeader className="pb-4 flex-shrink-0">
+      <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200 bg-card border border-border rounded-lg">
+        <CardHeader className="pb-4 flex-shrink-0 bg-muted/30 rounded-t-lg">
           <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight">
+              <h1 className="text-4xl font-semibold tracking-tight text-foreground">
                 {details.name}
               </h1>
-              <div className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
-                <UsersRound className="h-4 w-4" />
-                <span>{members.length} members</span>
+              <div className="text-muted-foreground mt-2 flex items-center gap-2">
+                <UsersRound className="h-5 w-5 text-primary" />
+                <span className="font-medium">{members.length} members</span>
                 {details.role === "ADMIN" && (
-                  <Badge variant="outline" className="ml-2">
+                  <Badge
+                    variant="outline"
+                    className="ml-2 bg-primary/10 border-primary text-primary"
+                  >
                     Admin
                   </Badge>
                 )}
@@ -132,7 +135,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </div>
             <Button
               onClick={() => setIsAddExpenseModalOpen(true)}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
               size="lg"
             >
               <PlusCircleIcon className="h-5 w-5" />
@@ -140,28 +143,36 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </Button>
           </div>
 
-          <CardTitle className="text-xl font-semibold flex flex-row items-center gap-2">
-            <BanknoteIcon className="h-5 w-5 text-muted-foreground" />
+          <CardTitle className="text-2xl font-semibold flex flex-row items-center gap-2 text-foreground">
+            <BanknoteIcon className="h-6 w-6 text-primary" />
             Recent Expenses
-            <Badge variant="secondary" className="ml-2">
+            <Badge
+              variant="secondary"
+              className="ml-2 bg-secondary text-secondary-foreground"
+            >
               ${totalExpenses.toFixed(2)} total
             </Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
           {expenses.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <div className="mx-auto h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-6">
-                <BanknoteIcon className="h-8 w-8 text-muted-foreground" />
+            <div className="text-center py-20 px-4">
+              <div className="mx-auto h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mb-8">
+                <BanknoteIcon className="h-12 w-12 text-primary" />
               </div>
-              <h3 className="font-semibold text-xl mb-2">No expenses yet</h3>
+              <h3 className="text-2xl font-semibold text-muted-foreground mb-4">
+                No expenses yet!
+              </h3>
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                Start tracking shared expenses by adding your first expense to
-                this pool
+                Start tracking your shared expenses by adding your first one.
               </p>
-              <Button onClick={() => setIsAddExpenseModalOpen(true)} size="lg">
+              <Button
+                onClick={() => setIsAddExpenseModalOpen(true)}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
+                size="lg"
+              >
                 <PlusCircleIcon className="h-5 w-5 mr-2" />
-                Add your first expense
+                Add First Expense
               </Button>
             </div>
           ) : (
@@ -192,15 +203,21 @@ const PoolStatistics = ({ poolId }: { poolId: string }) => {
 
   return (
     <div className="space-y-4">
-      <h3 className="font-medium">Pool Statistics</h3>
+      <h3 className="font-semibold flex items-center gap-2 text-foreground">
+        Pool Statistics
+      </h3>
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-background p-3 rounded-lg border text-center">
-          <p className="text-2xl font-bold">{expenses.length}</p>
-          <p className="text-xs text-muted-foreground">Expenses</p>
+        <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
+          <p className="text-3xl font-semibold text-primary">
+            {expenses.length}
+          </p>
+          <p className="text-sm text-muted-foreground">Expenses</p>
         </div>
-        <div className="bg-background p-3 rounded-lg border text-center">
-          <p className="text-2xl font-bold">{members.length}</p>
-          <p className="text-xs text-muted-foreground">Members</p>
+        <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
+          <p className="text-3xl font-semibold text-primary">
+            {members.length}
+          </p>
+          <p className="text-sm text-muted-foreground">Members</p>
         </div>
       </div>
     </div>
@@ -227,7 +244,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
+          maybeModifiedDefaultSplitPercentages
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -329,7 +346,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                       className="max-w-20"
                       value={
                         maybeModifiedDefaultSplitPercentages.find(
-                          (m) => m.member_id === member.member.id,
+                          (m) => m.member_id === member.member.id
                         )?.split_percentage ||
                         member.pool_membership.default_split_percentage
                       }
@@ -446,14 +463,15 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
         poolId={poolId}
       />
       <div className="flex items-center justify-between">
-        <h3 className="font-medium flex items-center gap-2">
-          <ArrowUpDown className="h-4 w-4" />
+        <h3 className="font-semibold flex items-center gap-2 text-foreground">
+          <ArrowUpDown className="h-5 w-5 text-primary" />
           Balances
         </h3>
         <Button
           size="sm"
           variant="outline"
           onClick={() => setIsSettleUpModalOpen(true)}
+          className="bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
         >
           <CheckCircle className="h-4 w-4 mr-1" />
           Settle Up
@@ -461,29 +479,36 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
       </div>
 
       {balances.length === 0 ? (
-        <div className="text-center py-6">
-          <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">All settled up!</p>
+        <div className="text-center py-8">
+          <div className="bg-primary/10 rounded-full p-4 w-16 h-16 mx-auto mb-4">
+            <Clock className="h-8 w-8 text-primary mx-auto" />
+          </div>
+          <p className="text-lg font-medium text-muted-foreground">
+            All settled up!
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Everyone's even - great teamwork!
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           {balances.map((balance, index) => (
             <div
               key={index}
-              className="flex items-center justify-between p-3 rounded-lg bg-background border"
+              className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
             >
               <div>
-                <p className="font-medium text-sm">{balance.name}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="font-medium text-base">{balance.name}</p>
+                <p className="text-sm text-muted-foreground">
                   {balance.type === "inbound" ? "Owes you" : "You owe"}
                 </p>
               </div>
-              <div className="text-right flex flex-row gap-x-2 items-center">
+              <div className="text-right flex flex-row gap-x-3 items-center">
                 <p
-                  className={`font-semibold text-sm ${
+                  className={`font-semibold text-lg ${
                     balance.type === "inbound"
-                      ? "text-green-600"
-                      : "text-red-600"
+                      ? "text-primary"
+                      : "text-destructive"
                   }`}
                 >
                   ${balance.amount.toFixed(2)}
@@ -493,10 +518,12 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                     href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${round(balance.amount)}&note=Settling up our pool on Medici`}
                     rel="noopener noreferrer"
                     target="_blank"
+                    className="hover:opacity-80 transition-opacity duration-200"
                   >
                     <img
                       src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
-                      className="size-6"
+                      className="size-8 rounded-lg"
+                      alt="Pay with Venmo"
                     />
                   </a>
                 )}
