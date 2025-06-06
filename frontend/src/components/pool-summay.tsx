@@ -106,7 +106,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           )}
 
           {isExpanded && (
-            <div className="mt-3 px-4 rounded-md gap-y-2 flex flex-col">
+            <div className="mt-3 px-4 rounded-md gap-y-2 flex flex-col max-h-96 overflow-y-auto">
               {expenses.map((expense, index) => {
                 return (
                   <>

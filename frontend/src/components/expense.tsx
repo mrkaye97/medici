@@ -136,9 +136,7 @@ export function Expense({ expense }: { expense: Expense }) {
               <span
                 className={cn(
                   "ml-1 font-medium",
-                  expense.line_amount < 0
-                    ? "text-green-600"
-                    : "text-destructive"
+                  expense.line_amount < 0 ? "text-primary" : "text-destructive"
                 )}
               >
                 {formatCurrency(expense.line_amount)}

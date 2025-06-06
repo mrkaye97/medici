@@ -34,7 +34,7 @@ export function CreatePoolModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createPool } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/pools",
+    "/api/members/{member_id}/pools"
   );
 
   const form = useForm<PoolFormValues>({
@@ -87,7 +87,7 @@ export function CreatePoolModal({
               setIsOpen(false);
               form.reset();
             })}
-            className="space-y-4"
+            className="space-y-6"
           >
             <FormField
               control={form.control}

@@ -33,7 +33,7 @@ export function AddFriendModal({
   const { memberId, createAuthHeader } = useAuth();
   const { mutateAsync: createFriendRequest } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests",
+    "/api/members/{member_id}/friend-requests"
   );
 
   const form = useForm<FriendRequestFormValues>({
@@ -57,7 +57,7 @@ export function AddFriendModal({
         }
       }}
     >
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add a friend</DialogTitle>
         </DialogHeader>
@@ -84,19 +84,19 @@ export function AddFriendModal({
               setIsOpen(false);
               form.reset();
             })}
-            className="space-y-4"
+            className="space-y-6"
           >
             <FormField
               control={form.control}
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Friend email</FormLabel>
+                  <FormLabel>Friend's email address</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="anna@thekarenin.as"
+                      placeholder="anna@example.com"
                       {...field}
-                      type="text"
+                      type="email"
                     />
                   </FormControl>
                   <FormMessage />
@@ -104,7 +104,9 @@ export function AddFriendModal({
               )}
             />
 
-            <Button type="submit">Send friend request</Button>
+            <Button type="submit" className="w-full">
+              Send friend request
+            </Button>
           </form>
         </Form>
       </DialogContent>

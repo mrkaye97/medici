@@ -22,7 +22,7 @@ type LoginFormProps = {
       password: string;
       firstName?: string | null;
       lastName?: string | null;
-    },
+    }
   ) => void;
   formType: "login" | "signup";
   hasError?: boolean;
@@ -48,12 +48,12 @@ export function LoginForm({
         onSubmit(e, { email, password, firstName, lastName });
       }
     },
-    [onSubmit],
+    [onSubmit]
   );
 
   return (
     <div className={cn("flex flex-col gap-6", className)}>
-      <Card className="min-w-[500px]">
+      <Card className="w-full max-w-md sm:min-w-[500px]">
         <CardHeader>
           <CardTitle className="text-2xl">
             {formType === "login" ? "Log In" : "Sign Up"}
