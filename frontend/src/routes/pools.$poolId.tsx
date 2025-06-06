@@ -58,8 +58,8 @@ type PoolPaneProps = {
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   return (
-    <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-2 border-l border-border">
-      <div className="p-6 border-b border-border bg-muted/30 rounded-lg mx-4 mb-4">
+    <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-6 border-l border-border">
+      <div className="mb-6">
         <h2 className="text-xl font-semibold flex items-center gap-2 text-foreground">
           <DollarSign className="h-6 w-6 text-primary" />
           Pool Details
@@ -69,7 +69,7 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
         </p>
       </div>
 
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <PoolBalancesPane poolId={poolId} />
         <Separator />
         <PoolStatistics poolId={poolId} />
@@ -107,13 +107,13 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   }
 
   return (
-    <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-2 md:px-0 md:pl-6">
+    <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-6">
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
         pool={details}
       />
-      <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200 bg-card border border-border rounded-lg">
+      <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm border border-border rounded-lg">
         <CardHeader className="pb-4 flex-shrink-0 bg-muted/30 rounded-t-lg">
           <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
             <div>
@@ -135,7 +135,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </div>
             <Button
               onClick={() => setIsAddExpenseModalOpen(true)}
-              className="flex items-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
+              className="flex items-center gap-2"
               size="lg"
             >
               <PlusCircleIcon className="h-5 w-5" />
@@ -168,7 +168,6 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
               </p>
               <Button
                 onClick={() => setIsAddExpenseModalOpen(true)}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg"
                 size="lg"
               >
                 <PlusCircleIcon className="h-5 w-5 mr-2" />
@@ -177,12 +176,11 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </div>
           ) : (
             <div className="flex-1 overflow-auto">
-              <div className="divide-y">
-                {" "}
+              <div className="space-y-1">
                 {expenses.map((expense) => (
                   <div
                     key={expense.id}
-                    className="p-4 hover:bg-muted/30 transition-colors"
+                    className="p-4 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0"
                   >
                     <Expense expense={expense} />
                   </div>
@@ -207,18 +205,18 @@ const PoolStatistics = ({ poolId }: { poolId: string }) => {
         Pool Statistics
       </h3>
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
+        <Card className="p-4 text-center">
           <p className="text-3xl font-semibold text-primary">
             {expenses.length}
           </p>
           <p className="text-sm text-muted-foreground">Expenses</p>
-        </div>
-        <div className="bg-muted/50 p-4 rounded-lg border border-border text-center">
+        </Card>
+        <Card className="p-4 text-center">
           <p className="text-3xl font-semibold text-primary">
             {members.length}
           </p>
           <p className="text-sm text-muted-foreground">Members</p>
-        </div>
+        </Card>
       </div>
     </div>
   );
@@ -280,106 +278,108 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
           </p>
         ) : (
           members.map((member) => (
-            <div
+            <Card
               key={member.member.id}
-              className="flex items-center justify-between p-3 rounded-lg bg-background border"
+              className="p-3"
             >
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-xs font-medium">
-                    {member.member.first_name[0]}
-                    {member.member.last_name[0]}
-                  </span>
-                </div>
-                <div>
-                  <div className="font-medium text-sm">
-                    {member.member.first_name} {member.member.last_name}
-                    {member.member.id === memberId && (
-                      <Badge variant="secondary" className="ml-2 text-xs">
-                        You
-                      </Badge>
-                    )}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-medium">
+                      {member.member.first_name[0]}
+                      {member.member.last_name[0]}
+                    </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {member.member.email}
-                  </p>
+                  <div>
+                    <div className="font-medium text-sm">
+                      {member.member.first_name} {member.member.last_name}
+                      {member.member.id === memberId && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          You
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {member.member.email}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex flex-row items-center justify-end-safe gap-x-2 w-48">
-                {details.role === "ADMIN" && member.member.id !== memberId && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive"
-                          disabled={
-                            mutations.isAddPending ||
-                            mutations.isRemovePending ||
-                            details.total_debt !== 0
-                          }
-                          onClick={async () => {
-                            await mutations.removeFriend(member.member.id);
-                          }}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-xs">
-                          {details.total_debt !== 0
-                            ? "You must settle up before removing a member"
-                            : `Remove ${member.member.first_name} from pool`}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                {details.role === "ADMIN" && (
-                  <div className="flex flex-col items-start gap-1">
-                    <Label htmlFor="email" className="text-xs">
-                      Split %
-                    </Label>
-                    <Input
-                      type="number"
-                      className="max-w-20"
-                      value={
-                        maybeModifiedDefaultSplitPercentages.find(
-                          (m) => m.member_id === member.member.id
-                        )?.split_percentage ||
-                        member.pool_membership.default_split_percentage
-                      }
-                      onChange={async (e) => {
-                        setMaybeModifiedDefaultSplitPercentages((prev) => {
-                          const iter = prev.length
-                            ? prev
-                            : members.map((m) => ({
-                                member_id: m.member.id,
-                                split_percentage:
-                                  m.pool_membership.default_split_percentage,
-                              }));
-
-                          return iter.map((f) => {
-                            if (f.member_id === member.member.id) {
-                              return {
-                                member_id: f.member_id,
-                                split_percentage: parseFloat(e.target.value),
-                              };
-                            } else {
-                              return {
-                                member_id: f.member_id,
-                                split_percentage: f.split_percentage,
-                              };
+                <div className="flex flex-row items-center justify-end gap-x-2 w-48">
+                  {details.role === "ADMIN" && member.member.id !== memberId && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                            disabled={
+                              mutations.isAddPending ||
+                              mutations.isRemovePending ||
+                              details.total_debt !== 0
                             }
+                            onClick={async () => {
+                              await mutations.removeFriend(member.member.id);
+                            }}
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">
+                            {details.total_debt !== 0
+                              ? "You must settle up before removing a member"
+                              : `Remove ${member.member.first_name} from pool`}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  {details.role === "ADMIN" && (
+                    <div className="flex flex-col items-start gap-1">
+                      <Label htmlFor="email" className="text-xs">
+                        Split %
+                      </Label>
+                      <Input
+                        type="number"
+                        className="max-w-20"
+                        value={
+                          maybeModifiedDefaultSplitPercentages.find(
+                            (m) => m.member_id === member.member.id
+                          )?.split_percentage ||
+                          member.pool_membership.default_split_percentage
+                        }
+                        onChange={async (e) => {
+                          setMaybeModifiedDefaultSplitPercentages((prev) => {
+                            const iter = prev.length
+                              ? prev
+                              : members.map((m) => ({
+                                  member_id: m.member.id,
+                                  split_percentage:
+                                    m.pool_membership.default_split_percentage,
+                                }));
+
+                            return iter.map((f) => {
+                              if (f.member_id === member.member.id) {
+                                return {
+                                  member_id: f.member_id,
+                                  split_percentage: parseFloat(e.target.value),
+                                };
+                              } else {
+                                return {
+                                  member_id: f.member_id,
+                                  split_percentage: f.split_percentage,
+                                };
+                              }
+                            });
                           });
-                        });
-                      }}
-                    />
-                  </div>
-                )}
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </Card>
           ))
         )}
       </div>
@@ -392,32 +392,34 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
             </h4>
             <div className="space-y-2">
               {friendsEligibleToAdd.map((friend) => (
-                <div
+                <Card
                   key={friend.id}
-                  className="flex items-center justify-between p-2 rounded bg-muted/50"
+                  className="p-3"
                 >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {friend.first_name} {friend.last_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {friend.email}
-                    </p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">
+                        {friend.first_name} {friend.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {friend.email}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                      disabled={
+                        mutations.isAddPending || mutations.isRemovePending
+                      }
+                      onClick={async () => {
+                        await mutations.addFriend(friend.id);
+                      }}
+                    >
+                      <UserRoundPlus className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                    disabled={
-                      mutations.isAddPending || mutations.isRemovePending
-                    }
-                    onClick={async () => {
-                      await mutations.addFriend(friend.id);
-                    }}
-                  >
-                    <UserRoundPlus className="h-4 w-4" />
-                  </Button>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
@@ -471,7 +473,6 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
           size="sm"
           variant="outline"
           onClick={() => setIsSettleUpModalOpen(true)}
-          className="bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
         >
           <CheckCircle className="h-4 w-4 mr-1" />
           Settle Up
@@ -493,42 +494,44 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
       ) : (
         <div className="space-y-3">
           {balances.map((balance, index) => (
-            <div
+            <Card
               key={index}
-              className="flex items-center justify-between p-4 rounded-lg bg-card border border-border"
+              className="p-4"
             >
-              <div>
-                <p className="font-medium text-base">{balance.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {balance.type === "inbound" ? "Owes you" : "You owe"}
-                </p>
-              </div>
-              <div className="text-right flex flex-row gap-x-3 items-center">
-                <p
-                  className={`font-semibold text-lg ${
-                    balance.type === "inbound"
-                      ? "text-primary"
-                      : "text-destructive"
-                  }`}
-                >
-                  ${balance.amount.toFixed(2)}
-                </p>
-                {balance.venmoHandle && (
-                  <a
-                    href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${round(balance.amount)}&note=Settling up our pool on Medici`}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    className="hover:opacity-80 transition-opacity duration-200"
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-base">{balance.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {balance.type === "inbound" ? "Owes you" : "You owe"}
+                  </p>
+                </div>
+                <div className="text-right flex flex-row gap-x-3 items-center">
+                  <p
+                    className={`font-semibold text-lg ${
+                      balance.type === "inbound"
+                        ? "text-primary"
+                        : "text-destructive"
+                    }`}
                   >
-                    <img
-                      src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
-                      className="size-8 rounded-lg"
-                      alt="Pay with Venmo"
-                    />
-                  </a>
-                )}
+                    ${balance.amount.toFixed(2)}
+                  </p>
+                  {balance.venmoHandle && (
+                    <a
+                      href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${round(balance.amount)}&note=Settling up our pool on Medici`}
+                      rel="noopener noreferrer"
+                      target="_blank"
+                      className="hover:opacity-80 transition-opacity duration-200"
+                    >
+                      <img
+                        src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
+                        className="size-8 rounded-lg"
+                        alt="Pay with Venmo"
+                      />
+                    </a>
+                  )}
+                </div>
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

@@ -109,45 +109,36 @@ export const FriendsView = () => {
         value={activeTab}
         onValueChange={setActiveTab}
       >
-        <div className="px-6">
-          <TabsList className="grid w-full grid-cols-3 bg-muted rounded-lg">
-            <TabsTrigger
-              value="friends"
-              className="rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
-            >
+        <div className="px-6 pb-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="friends">
               Friends ({friends.length})
             </TabsTrigger>
-            <TabsTrigger
-              value="requests"
-              className="relative rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
-            >
+            <TabsTrigger value="requests" className="relative">
               Requests
               {pendingCount > 0 && (
                 <Badge
                   variant="default"
-                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1 bg-primary text-primary-foreground border-0"
+                  className="ml-2 px-1.5 py-0.5 text-xs absolute -top-1 -right-1"
                 >
                   {pendingCount}
                 </Badge>
               )}
             </TabsTrigger>
-            <TabsTrigger
-              value="me"
-              className="rounded-md font-medium data-[state=active]:bg-background data-[state=active]:text-foreground"
-            >
+            <TabsTrigger value="me">
               Profile
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="friends" className="mt-0 pt-2">
-          <CardContent className="space-y-1 pb-2">
+        <TabsContent value="friends" className="mt-0">
+          <CardContent className="space-y-1">
             {friends.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <div className="bg-muted rounded-full p-3 mb-3">
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <div className="bg-muted rounded-full p-4 mb-4">
                   <UserPlus className="h-8 w-8 text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground mb-3">
+                <p className="text-muted-foreground mb-4">
                   No friends added yet
                 </p>
                 <Button variant="outline" onClick={() => setIsModalOpen(true)}>
@@ -155,11 +146,11 @@ export const FriendsView = () => {
                 </Button>
               </div>
             ) : (
-              <div className="divide-y divide-gray-100">
+              <div className="space-y-1">
                 {friends.map((friend) => (
                   <motion.div
                     key={friend.id}
-                    className="flex items-center justify-between py-3 px-1"
+                    className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-muted/50 transition-colors"
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
@@ -181,14 +172,14 @@ export const FriendsView = () => {
           </CardContent>
         </TabsContent>
 
-        <TabsContent value="requests" className="mt-0 pt-2">
-          <CardContent className="space-y-4 pb-2">
+        <TabsContent value="requests" className="mt-0">
+          <CardContent className="space-y-4">
             {friendRequests.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="bg-muted rounded-full p-4 mb-4">
                   <Clock className="h-10 w-10 text-muted-foreground" />
                 </div>
-                <p className="text-lg font-medium text-muted-foreground">
+                <p className="text-lg font-medium">
                   No pending friend requests
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -205,11 +196,11 @@ export const FriendsView = () => {
                         {inboundRequests.length}
                       </Badge>
                     </h3>
-                    <div className="divide-y divide-gray-100 rounded-md border">
+                    <div className="space-y-2">
                       {inboundRequests.map((request) => (
                         <motion.div
                           key={request.member.id}
-                          className="flex items-center justify-between py-3 px-3"
+                          className="flex items-center justify-between py-3 px-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2 }}
@@ -241,7 +232,7 @@ export const FriendsView = () => {
                             </Button>
                             <Button
                               size="icon"
-                              className="h-8 w-8 rounded-full bg-green-50 hover:bg-green-100 text-green-600 hover:text-green-700 border border-green-200"
+                              className="h-8 w-8 bg-green-600 hover:bg-green-700 text-white"
                               onClick={async () => {
                                 await mutations.acceptFriendRequest(
                                   request.member.id
@@ -266,11 +257,11 @@ export const FriendsView = () => {
                         {outboundRequests.length}
                       </Badge>
                     </h3>
-                    <div className="divide-y divide-gray-100 rounded-md border">
+                    <div className="space-y-2">
                       {outboundRequests.map((request) => (
                         <motion.div
                           key={request.member.id}
-                          className="flex items-center justify-between py-3 px-3"
+                          className="flex items-center justify-between py-3 px-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ duration: 0.2 }}
@@ -290,7 +281,7 @@ export const FriendsView = () => {
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="h-8 w-8"
                               onClick={async () => {
                                 mutations.deleteFriendRequest(
                                   request.member.id
@@ -310,11 +301,11 @@ export const FriendsView = () => {
           </CardContent>
         </TabsContent>
 
-        <TabsContent value="me" className="mt-0 pt-2">
-          <CardContent className="pb-2 flex flex-col space-y-4">
-            <div className="bg-muted/50 p-4 rounded-lg border border-border">
-              <div className="flex flex-row items-center justify-center mb-2">
-                <div className="bg-primary rounded-full p-3 mr-3">
+        <TabsContent value="me" className="mt-0">
+          <CardContent className="space-y-6">
+            <div className="bg-muted/30 p-6 rounded-lg">
+              <div className="flex items-center gap-4">
+                <div className="bg-primary rounded-full p-3">
                   <span className="text-primary-foreground font-bold text-lg">
                     {name
                       .split(" ")
@@ -322,8 +313,8 @@ export const FriendsView = () => {
                       .join("")}
                   </span>
                 </div>
-                <div className="text-center">
-                  <p className="font-semibold text-lg text-foreground">
+                <div>
+                  <p className="font-semibold text-lg">
                     {name}
                   </p>
                   <p className="text-muted-foreground text-sm">{email}</p>
@@ -331,56 +322,57 @@ export const FriendsView = () => {
               </div>
             </div>
 
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-foreground">
-                Venmo Handle
-              </Label>
-              <div className="flex flex-row gap-x-2 items-center">
-                <Input
-                  placeholder="@my-venmo-handle"
-                  value={venmoHandle || ""}
-                  onChange={(event) => {
-                    setVenmoHandle(event.target.value);
-                  }}
-                  className="flex-1 rounded-lg"
-                />
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (memberId) {
-                      await updateMember({
-                        params: {
-                          path: { member_id: memberId },
-                        },
-                        body: {
-                          venmo_handle: venmoHandle || null,
-                        },
-                        headers: createAuthHeader(),
-                      });
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Venmo Handle
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="@my-venmo-handle"
+                    value={venmoHandle || ""}
+                    onChange={(event) => {
+                      setVenmoHandle(event.target.value);
+                    }}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      if (memberId) {
+                        await updateMember({
+                          params: {
+                            path: { member_id: memberId },
+                          },
+                          body: {
+                            venmo_handle: venmoHandle || null,
+                          },
+                          headers: createAuthHeader(),
+                        });
 
-                      await queryClient.invalidateQueries({
-                        queryKey: ["get", "/api/members/{member_id}"],
-                      });
-                    }
-                  }}
-                  disabled={isPending}
-                  className="rounded-lg"
-                >
-                  <Save className="size-4" />
-                </Button>
+                        await queryClient.invalidateQueries({
+                          queryKey: ["get", "/api/members/{member_id}"],
+                        });
+                      }
+                    }}
+                    disabled={isPending}
+                  >
+                    <Save className="size-4" />
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <Button
-              variant="outline"
-              onClick={() => {
-                logout();
-              }}
-              className="justify-center py-3 border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground rounded-lg font-medium"
-            >
-              <LogOut className="size-4 mr-2" />
-              Log Out
-            </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  logout();
+                }}
+                className="w-full justify-center border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              >
+                <LogOut className="size-4 mr-2" />
+                Log Out
+              </Button>
+            </div>
           </CardContent>
         </TabsContent>
       </Tabs>
