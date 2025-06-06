@@ -601,16 +601,17 @@ impl Expense {
         member_id: uuid::Uuid,
         limit: i64,
         expense_category: Option<ExpenseCategory>,
+        is_settled: bool,
     ) -> QueryResult<Vec<(Self, f64)>> {
         let mut query = expense::table
             .inner_join(
                 expense_line_item::table.on(expense::id
                     .eq(expense_line_item::expense_id)
-                    .and(expense::is_settled.eq(false)) // <-- fix here
+                    .and(expense::is_settled.eq(is_settled)) // <-- fix here
                     .and(expense_line_item::debtor_member_id.eq(member_id))),
             )
             .filter(expense::pool_id.eq(pool_id))
-            .filter(expense::is_settled.eq(false))
+            .filter(expense::is_settled.eq(is_settled))
             .into_boxed();
 
         if let Some(value) = expense_category {

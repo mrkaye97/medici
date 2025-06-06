@@ -6,9 +6,10 @@ import { useCallback, useMemo } from "react";
 import { components } from "schema";
 import { ExpenseCategory } from "@/components/add-expense-modal";
 
-type ExpensesListProps = {
+export type ExpensesListProps = {
   limit?: number;
   category?: ExpenseCategory;
+  isSettled?: boolean;
 };
 
 export const usePool = ({
@@ -70,6 +71,7 @@ export const usePool = ({
         query: {
           limit: expenseOptions?.limit ?? 100,
           category: expenseOptions?.category,
+          is_settled: expenseOptions?.isSettled ?? false,
         },
       },
       headers: createAuthHeader(),

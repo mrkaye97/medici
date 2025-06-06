@@ -1216,11 +1216,13 @@ export interface operations {
   };
   get_pool_recent_expenses_handler: {
     parameters: {
-      query?: {
+      query: {
         /** @description Filter expenses by category */
         category?: components["schemas"]["ExpenseCategory"];
         /** @description Limit the number of expenses returned */
         limit?: number;
+        /** @description Filter expenses by settle status */
+        is_settled: boolean;
       };
       header?: never;
       path: {

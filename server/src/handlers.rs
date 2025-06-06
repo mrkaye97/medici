@@ -1370,6 +1370,7 @@ pub struct RecentExpenseDetails {
 pub struct RecentExpensesQuery {
     limit: Option<i64>,
     category: Option<ExpenseCategory>,
+    is_settled: bool,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1385,7 +1386,8 @@ pub struct RecentExpensesPath {
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
         ("category" = Option<ExpenseCategory>, Query, description = "Filter expenses by category"),
-        ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned")
+        ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned"),
+        ("is_settled" = bool, Query, description = "Filter expenses by settle status"),
     ),
     responses(
         (status = 200, description = "Create expense", body = Vec<RecentExpenseDetails>),
@@ -1403,24 +1405,24 @@ pub async fn get_pool_recent_expenses_handler(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    let limit = query.limit;
-    let category = query.category;
-    let pool_id = path.pool_id;
-    let member_id = path.member_id;
+    let limit = query.limit.unwrap_or(5);
 
-    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
-    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
-    span.set_attribute(KeyValue::new("limit", limit.unwrap_or(5).to_string()));
+    span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("limit", limit.to_string()));
 
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
 
-    let limit = limit.unwrap_or(5);
-
     let expenses = tokio::task::spawn_blocking(move || {
         models::Expense::get_recent_for_member_in_pool(
-            &mut conn, pool_id, member_id, limit, category,
+            &mut conn,
+            path.pool_id,
+            path.member_id,
+            limit,
+            query.category,
+            query.is_settled,
         )
         .expect("Failed to get recent expenses")
     })

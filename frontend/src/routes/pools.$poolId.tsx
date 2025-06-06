@@ -30,7 +30,7 @@ import { SettleUpModal } from "@/components/settle-up-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { components } from "schema";
-import { usePool } from "@/hooks/use-pool";
+import { ExpensesListProps, usePool } from "@/hooks/use-pool";
 import {
   Tooltip,
   TooltipContent,
@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import MiniSearch from "minisearch";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -99,12 +100,14 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showSettled, setShowSettled] = useState(false);
 
-  const expenseOptions = useMemo(
+  const expenseOptions: ExpensesListProps = useMemo(
     () => ({
       category: selectedCategory,
+      isSettled: showSettled,
     }),
-    [selectedCategory]
+    [selectedCategory, showSettled],
   );
 
   const {
@@ -134,7 +137,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
         name: expense.name,
         description: expense.description || "",
         notes: expense.notes || "",
-      }))
+      })),
     );
 
     return m;
@@ -206,15 +209,27 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             </Button>
           </div>
 
-          <CardTitle className="text-2xl font-semibold flex flex-row items-center gap-3 text-foreground mb-6">
-            <BanknoteIcon className="h-6 w-6 text-primary flex-shrink-0" />
-            <span className="flex items-center">Recent Expenses</span>
-            <Badge
-              variant="secondary"
-              className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
-            >
-              {formatCurrency(totalExpenses)} total
-            </Badge>
+          <CardTitle className="text-2xl font-semibold flex flex-row items-center justify-between gap-3 text-foreground mb-6">
+            <div className="flex flex-row items-center gap-2">
+              <BanknoteIcon className="h-6 w-6 text-primary flex-shrink-0" />
+              <span className="flex items-center">Recent Expenses</span>
+              <Badge
+                variant="secondary"
+                className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
+              >
+                {formatCurrency(totalExpenses)} total
+              </Badge>
+            </div>
+            <div className="flex flex-row gap-1 text-sm items-center">
+              <Checkbox
+                id="toggle"
+                className="border border-primary"
+                onCheckedChange={(isChecked) =>
+                  setShowSettled(isChecked.valueOf() === true)
+                }
+              />
+              <Label htmlFor="toggle"> Show settled</Label>
+            </div>
           </CardTitle>
 
           <div className="space-y-4">
@@ -361,7 +376,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages
+          maybeModifiedDefaultSplitPercentages,
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -398,7 +413,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
         ) : (
           members
             .sort((a, b) =>
-              a.member.first_name.localeCompare(b.member.first_name)
+              a.member.first_name.localeCompare(b.member.first_name),
             )
             .map((member) => (
               <Card key={member.member.id} className="p-3">
@@ -462,7 +477,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                           className="max-w-20"
                           value={
                             maybeModifiedDefaultSplitPercentages.find(
-                              (m) => m.member_id === member.member.id
+                              (m) => m.member_id === member.member.id,
                             )?.split_percentage ||
                             member.pool_membership.default_split_percentage
                           }
@@ -482,7 +497,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                                   return {
                                     member_id: f.member_id,
                                     split_percentage: parseFloat(
-                                      e.target.value
+                                      e.target.value,
                                     ),
                                   };
                                 } else {
