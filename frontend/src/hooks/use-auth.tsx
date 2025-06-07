@@ -80,15 +80,8 @@ export function useAuthInner() {
   const loginMutation = apiClient.useMutation("post", "/api/login");
   const signupMutation = apiClient.useMutation("post", "/api/signup");
 
-  const setAuthMetadata = async ({
-    token,
-    memberId,
-  }: {
-    token: string;
-    memberId: string;
-  }) => {
+  const setAuthMetadata = async ({ token }: { token: string }) => {
     localStorage.setItem("token", token);
-    localStorage.setItem("memberId", memberId);
 
     setToken(token);
 
@@ -98,7 +91,6 @@ export function useAuthInner() {
   const clearAuthMetadata = async () => {
     setToken(null);
     localStorage.removeItem("token");
-    localStorage.removeItem("memberId");
 
     await queryClient.invalidateQueries();
   };
@@ -109,10 +101,9 @@ export function useAuthInner() {
         body: { email, password },
       });
 
-      if (result.is_authenticated && result.token && result.id) {
+      if (result.is_authenticated && result.token) {
         await setAuthMetadata({
           token: result.token,
-          memberId: result.id,
         });
 
         navigate({ to: "/", reloadDocument: true });
@@ -149,10 +140,9 @@ export function useAuthInner() {
         },
       });
 
-      if (result.is_authenticated && result.token && result.id) {
+      if (result.is_authenticated && result.token) {
         await setAuthMetadata({
           token: result.token,
-          memberId: result.id,
         });
 
         navigate({ to: "/", reloadDocument: true });
@@ -180,7 +170,6 @@ export function useAuthInner() {
     logout,
     signup,
     createAuthHeader,
-    token,
     memberId,
   };
 }
