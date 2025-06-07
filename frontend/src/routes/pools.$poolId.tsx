@@ -31,14 +31,7 @@ import { Expense, formatCurrency } from "@/components/expense";
 import { SettleUpModal } from "@/components/settle-up-modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { components } from "schema";
-import { ExpensesListProps, usePool } from "@/hooks/use-pool";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -46,8 +39,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { components } from "schema";
+import { ExpensesListProps, usePool } from "@/hooks/use-pool";
 import MiniSearch from "minisearch";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -111,7 +111,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       isSettled: showSettled,
       paidByMemberId: selectedMemberId,
     }),
-    [selectedCategory, showSettled, selectedMemberId],
+    [selectedCategory, showSettled, selectedMemberId]
   );
 
   const {
@@ -141,7 +141,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
         name: expense.name,
         description: expense.description || "",
         notes: expense.notes || "",
-      })),
+      }))
     );
 
     return m;
@@ -332,7 +332,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                   </SelectItem>
                   {members
                     .sort((a, b) =>
-                      a.member.first_name.localeCompare(b.member.first_name),
+                      a.member.first_name.localeCompare(b.member.first_name)
                     )
                     .map((member) => (
                       <SelectItem
@@ -434,7 +434,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages,
+          maybeModifiedDefaultSplitPercentages
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -471,7 +471,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
         ) : (
           members
             .sort((a, b) =>
-              a.member.first_name.localeCompare(b.member.first_name),
+              a.member.first_name.localeCompare(b.member.first_name)
             )
             .map((member) => (
               <Card key={member.member.id} className="p-3">
@@ -535,7 +535,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                           className="max-w-20"
                           value={
                             maybeModifiedDefaultSplitPercentages.find(
-                              (m) => m.member_id === member.member.id,
+                              (m) => m.member_id === member.member.id
                             )?.split_percentage ||
                             member.pool_membership.default_split_percentage
                           }
@@ -555,7 +555,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                                   return {
                                     member_id: f.member_id,
                                     split_percentage: parseFloat(
-                                      e.target.value,
+                                      e.target.value
                                     ),
                                   };
                                 } else {
@@ -678,7 +678,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
             All settled up!
           </p>
           <p className="text-sm text-muted-foreground mt-1">
-            Everyone&ampos;s even - great teamwork!
+            Everyone&apos;s even - great teamwork!
           </p>
         </div>
       ) : (
