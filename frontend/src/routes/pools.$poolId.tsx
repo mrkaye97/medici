@@ -11,7 +11,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
@@ -123,11 +122,6 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   )
 }
 
-type TimeRange = {
-  since: Date
-  until: Date | undefined
-}
-
 function ExpensesPaneLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
@@ -142,10 +136,6 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>()
   const [selectedMemberId, setSelectedMemberId] = useState<string>()
-  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
-    since: new Date(new Date().setMonth(new Date().getMonth() - 1)),
-    until: new Date(),
-  })
   const [searchQuery, setSearchQuery] = useState("")
   const [showSettled, setShowSettled] = useState(false)
 
@@ -154,10 +144,8 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       category: selectedCategory,
       isSettled: showSettled,
       paidByMemberId: selectedMemberId,
-      since: selectedTimeRange.since,
-      until: selectedTimeRange.until,
     }),
-    [selectedCategory, showSettled, selectedMemberId, selectedTimeRange]
+    [selectedCategory, showSettled, selectedMemberId]
   )
 
   const {
@@ -301,7 +289,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                 onChange={e => {
                   setSearchQuery(e.target.value)
                 }}
-                className="bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 h-full pl-10 transition-all duration-200 focus:ring-1"
+                className="bg-background/50 border border-primary/40 focus:border-primary/50 focus:ring-primary/20 h-full pl-10 transition-all duration-200 focus:ring-1"
               />
             </div>
 
@@ -315,7 +303,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
               }}
               defaultValue="all"
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-w-[250px]">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
@@ -359,7 +347,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
               }}
               defaultValue="all"
             >
-              <SelectTrigger>
+              <SelectTrigger className="min-w-[250px]">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
@@ -394,22 +382,6 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                   ))}
               </SelectContent>
             </Select>
-
-            <DateRangePicker
-              onUpdate={values => {
-                const { from, to } = values.range
-
-                setSelectedTimeRange({
-                  since: from,
-                  until: to,
-                })
-              }}
-              initialDateFrom={selectedTimeRange.since}
-              initialDateTo={selectedTimeRange.until}
-              align="start"
-              locale="en-US"
-              showCompare={false}
-            />
           </div>
         </div>
       </CardHeader>
