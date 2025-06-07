@@ -1,4 +1,3 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 import { useEffect, useState } from "react";
@@ -66,51 +65,7 @@ export const FriendsView = () => {
   const waitingOutboundCount = outboundRequests.length;
 
   if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-6 w-16" />
-          <Skeleton className="h-8 w-24 rounded-lg" />
-        </div>
-
-        <Card className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex gap-2 p-4 border-b">
-            <Skeleton className="h-8 w-20 rounded-lg" />
-            <Skeleton className="h-8 w-20 rounded-lg" />
-            <Skeleton className="h-8 w-20 rounded-lg" />
-          </div>
-
-          <CardContent className="flex-1 overflow-auto p-4">
-            <div className="space-y-3">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-3 p-3 rounded-lg border"
-                >
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-32 mb-1" />
-                    <Skeleton className="h-3 w-48" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-
-          <CardFooter className="border-t">
-            <div className="flex gap-4">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   return (

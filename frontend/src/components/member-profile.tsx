@@ -12,7 +12,6 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
 } from "lucide-react";
-import { Skeleton } from "./ui/skeleton";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,19 +44,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   if (isLoading) {
-    return (
-      <Card className="w-full">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <Skeleton className="h-6 w-36" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-          </div>
-        </CardHeader>
-        <CardContent className="py-2">
-          <Skeleton className="h-4 w-48" />
-        </CardContent>
-      </Card>
-    );
+    return null;
   }
 
   if (!member) {
