@@ -92,7 +92,7 @@ const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   return (
-    <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] md:overflow-hidden">
+    <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] 2xl:w-[500px] md:overflow-hidden">
       <div className="mb-6">
         <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
           <DollarSign className="text-primary h-6 w-6" />

@@ -125,7 +125,7 @@ function Home() {
         </Card>
       </div>
 
-      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] md:overflow-hidden">
+      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] 2xl:w-[500px] md:overflow-hidden">
         <FriendsView />
       </div>
     </div>
