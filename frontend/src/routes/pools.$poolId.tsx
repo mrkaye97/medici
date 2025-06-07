@@ -157,13 +157,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       since: selectedTimeRange.since,
       until: selectedTimeRange.until,
     }),
-    [
-      selectedCategory,
-      showSettled,
-      selectedMemberId,
-      selectedTimeRange.since,
-      selectedTimeRange.until,
-    ]
+    [selectedCategory, showSettled, selectedMemberId, selectedTimeRange]
   )
 
   const {
