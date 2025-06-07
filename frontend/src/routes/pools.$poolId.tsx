@@ -128,6 +128,16 @@ type TimeRange = {
   until: Date | undefined
 }
 
+function ExpensesPaneLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
+      <Card className="border-border flex flex-col overflow-auto rounded-lg border shadow-sm md:flex-1 md:overflow-hidden">
+        {children}
+      </Card>
+    </div>
+  )
+}
+
 const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>()
@@ -212,235 +222,233 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
 
   if (isLoading || isMembersLoading || !details || isBalancesLoading) {
     return (
-      <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
-        <Card className="border-border flex flex-col overflow-auto rounded-lg border shadow-sm md:flex-1 md:overflow-hidden"></Card>
-      </div>
+      <ExpensesPaneLayout>
+        <div />
+      </ExpensesPaneLayout>
     )
   }
 
   return (
-    <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
+    <ExpensesPaneLayout>
       <AddExpenseModal
         isOpen={isAddExpenseModalOpen}
         setIsOpen={setIsAddExpenseModalOpen}
         pool={details}
       />
-      <Card className="border-border flex flex-col overflow-auto rounded-lg border shadow-sm md:flex-1 md:overflow-hidden">
-        <CardHeader className="bg-card flex-shrink-0 rounded-t-lg pb-4">
-          <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row">
-            <div className="flex flex-col gap-3">
-              <Link
-                to="/"
-                className="text-muted-foreground hover:text-primary group flex w-fit items-center gap-2 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                <Home className="h-4 w-4" />
-                <span className="text-sm font-medium">Back to Home</span>
-              </Link>
-              <h1 className="text-foreground text-4xl font-semibold tracking-tight">
-                {details.name}
-              </h1>
-              <div className="text-muted-foreground flex items-center gap-2">
-                <UsersRound className="text-primary h-5 w-5" />
-                <span className="font-medium">{members.length} members</span>
-                {details.role === "ADMIN" && (
-                  <Badge
-                    variant="outline"
-                    className="bg-primary/10 border-primary text-primary ml-2"
-                  >
-                    Admin
-                  </Badge>
-                )}
-              </div>
-            </div>
-            <Button
-              onClick={() => setIsAddExpenseModalOpen(true)}
-              className="flex items-center gap-2"
-              size="lg"
+      <CardHeader className="bg-card flex-shrink-0 rounded-t-lg pb-4">
+        <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row">
+          <div className="flex flex-col gap-3">
+            <Link
+              to="/"
+              className="text-muted-foreground hover:text-primary group flex w-fit items-center gap-2 transition-colors"
             >
-              <PlusCircleIcon className="h-5 w-5" />
-              Add Expense
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+              <Home className="h-4 w-4" />
+              <span className="text-sm font-medium">Back to Home</span>
+            </Link>
+            <h1 className="text-foreground text-4xl font-semibold tracking-tight">
+              {details.name}
+            </h1>
+            <div className="text-muted-foreground flex items-center gap-2">
+              <UsersRound className="text-primary h-5 w-5" />
+              <span className="font-medium">{members.length} members</span>
+              {details.role === "ADMIN" && (
+                <Badge
+                  variant="outline"
+                  className="bg-primary/10 border-primary text-primary ml-2"
+                >
+                  Admin
+                </Badge>
+              )}
+            </div>
+          </div>
+          <Button
+            onClick={() => setIsAddExpenseModalOpen(true)}
+            className="flex items-center gap-2"
+            size="lg"
+          >
+            <PlusCircleIcon className="h-5 w-5" />
+            Add Expense
+          </Button>
+        </div>
+
+        <CardTitle className="text-foreground mb-6 flex flex-row items-center justify-between gap-3 text-2xl font-semibold">
+          <div className="flex flex-row items-center gap-2">
+            <BanknoteIcon className="text-primary h-6 w-6 flex-shrink-0" />
+            <span className="flex items-center">Recent Expenses</span>
+            <Badge
+              variant="secondary"
+              className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
+            >
+              {formatCurrency(totalExpenses)} total
+            </Badge>
+          </div>
+          <div className="flex flex-row items-center gap-1 text-sm">
+            <Checkbox
+              id="toggle"
+              className="border-primary border"
+              onCheckedChange={isChecked =>
+                setShowSettled(isChecked.valueOf() === true)
+              }
+            />
+            <Label htmlFor="toggle"> Show settled</Label>
+          </div>
+        </CardTitle>
+
+        <div className="space-y-4">
+          <div className="flex flex-col items-stretch gap-3 sm:flex-row">
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Search className="text-muted-foreground h-4 w-4" />
+              </div>
+              <Input
+                placeholder="Search expenses..."
+                value={searchQuery}
+                onChange={e => {
+                  setSearchQuery(e.target.value)
+                }}
+                className="bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 h-full pl-10 transition-all duration-200 focus:ring-1"
+              />
+            </div>
+
+            <Select
+              onValueChange={value => {
+                if (value === "all") {
+                  setSelectedCategory(undefined)
+                  return
+                }
+                setSelectedCategory(value as ExpenseCategory)
+              }}
+              defaultValue="all"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border/50">
+                <SelectItem
+                  key="all"
+                  value="all"
+                  className="focus:bg-primary/10"
+                >
+                  <div className="flex items-center gap-2">
+                    {selectedCategory === undefined && (
+                      <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
+                    )}
+                    <span className="font-medium">All Categories</span>
+                  </div>
+                </SelectItem>
+                {expenseCategories
+                  .sort((a, b) => a.localeCompare(b))
+                  .map(category => (
+                    <SelectItem
+                      key={category}
+                      value={category}
+                      className="focus:bg-primary/10 capitalize"
+                    >
+                      {selectedCategory === category && (
+                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
+                      )}
+
+                      <span>{categoryToDisplayName({ category })}</span>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              onValueChange={value => {
+                if (value === "all") {
+                  setSelectedMemberId(undefined)
+                  return
+                }
+                setSelectedMemberId(value)
+              }}
+              defaultValue="all"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent className="bg-card border-border/50">
+                <SelectItem
+                  key="all"
+                  value="all"
+                  className="focus:bg-primary/10"
+                >
+                  <div className="flex items-center gap-2">
+                    {selectedMemberId === undefined && (
+                      <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
+                    )}
+                    <span className="font-medium">All Payers</span>
+                  </div>
+                </SelectItem>
+                {members
+                  .sort((a, b) =>
+                    a.member.first_name.localeCompare(b.member.first_name)
+                  )
+                  .map(member => (
+                    <SelectItem
+                      key={member.member.id}
+                      value={member.member.id}
+                      className="focus:bg-primary/10 capitalize"
+                    >
+                      {selectedMemberId === member.member.id && (
+                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
+                      )}
+
+                      <span>{member.member.first_name}</span>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+
+            <DateRangePicker
+              onUpdate={values => {
+                const { from, to } = values.range
+
+                setSelectedTimeRange({
+                  since: from,
+                  until: to,
+                })
+              }}
+              initialDateFrom={selectedTimeRange.since}
+              initialDateTo={selectedTimeRange.until}
+              align="start"
+              locale="en-US"
+              showCompare={false}
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
+        {expenses.length === 0 ? (
+          <div className="px-4 py-20 text-center">
+            <div className="bg-primary/10 mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full">
+              <BanknoteIcon className="text-primary h-12 w-12" />
+            </div>
+            <h3 className="text-muted-foreground mb-4 text-2xl font-semibold">
+              No expenses yet!
+            </h3>
+            <p className="text-muted-foreground mx-auto mb-6 max-w-sm">
+              Start tracking your shared expenses by adding your first one.
+            </p>
+            <Button onClick={() => setIsAddExpenseModalOpen(true)} size="lg">
+              <PlusCircleIcon className="mr-2 h-5 w-5" />
+              Add First Expense
             </Button>
           </div>
-
-          <CardTitle className="text-foreground mb-6 flex flex-row items-center justify-between gap-3 text-2xl font-semibold">
-            <div className="flex flex-row items-center gap-2">
-              <BanknoteIcon className="text-primary h-6 w-6 flex-shrink-0" />
-              <span className="flex items-center">Recent Expenses</span>
-              <Badge
-                variant="secondary"
-                className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
-              >
-                {formatCurrency(totalExpenses)} total
-              </Badge>
-            </div>
-            <div className="flex flex-row items-center gap-1 text-sm">
-              <Checkbox
-                id="toggle"
-                className="border-primary border"
-                onCheckedChange={isChecked =>
-                  setShowSettled(isChecked.valueOf() === true)
-                }
-              />
-              <Label htmlFor="toggle"> Show settled</Label>
-            </div>
-          </CardTitle>
-
-          <div className="space-y-4">
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row">
-              <div className="relative flex-1">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                  <Search className="text-muted-foreground h-4 w-4" />
+        ) : (
+          <div className="flex-1 overflow-auto">
+            <div className="space-y-2">
+              {searchResults.map(expense => (
+                <div key={expense.id} className="px-2 transition-colors">
+                  <Expense expense={expense} />
                 </div>
-                <Input
-                  placeholder="Search expenses..."
-                  value={searchQuery}
-                  onChange={e => {
-                    setSearchQuery(e.target.value)
-                  }}
-                  className="bg-background/50 border-border/50 focus:border-primary/50 focus:ring-primary/20 h-full pl-10 transition-all duration-200 focus:ring-1"
-                />
-              </div>
-
-              <Select
-                onValueChange={value => {
-                  if (value === "all") {
-                    setSelectedCategory(undefined)
-                    return
-                  }
-                  setSelectedCategory(value as ExpenseCategory)
-                }}
-                defaultValue="all"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border/50">
-                  <SelectItem
-                    key="all"
-                    value="all"
-                    className="focus:bg-primary/10"
-                  >
-                    <div className="flex items-center gap-2">
-                      {selectedCategory === undefined && (
-                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                      )}
-                      <span className="font-medium">All Categories</span>
-                    </div>
-                  </SelectItem>
-                  {expenseCategories
-                    .sort((a, b) => a.localeCompare(b))
-                    .map(category => (
-                      <SelectItem
-                        key={category}
-                        value={category}
-                        className="focus:bg-primary/10 capitalize"
-                      >
-                        {selectedCategory === category && (
-                          <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                        )}
-
-                        <span>{categoryToDisplayName({ category })}</span>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-
-              <Select
-                onValueChange={value => {
-                  if (value === "all") {
-                    setSelectedMemberId(undefined)
-                    return
-                  }
-                  setSelectedMemberId(value)
-                }}
-                defaultValue="all"
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent className="bg-card border-border/50">
-                  <SelectItem
-                    key="all"
-                    value="all"
-                    className="focus:bg-primary/10"
-                  >
-                    <div className="flex items-center gap-2">
-                      {selectedMemberId === undefined && (
-                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                      )}
-                      <span className="font-medium">All Payers</span>
-                    </div>
-                  </SelectItem>
-                  {members
-                    .sort((a, b) =>
-                      a.member.first_name.localeCompare(b.member.first_name)
-                    )
-                    .map(member => (
-                      <SelectItem
-                        key={member.member.id}
-                        value={member.member.id}
-                        className="focus:bg-primary/10 capitalize"
-                      >
-                        {selectedMemberId === member.member.id && (
-                          <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                        )}
-
-                        <span>{member.member.first_name}</span>
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-
-              <DateRangePicker
-                onUpdate={values => {
-                  const { from, to } = values.range
-
-                  setSelectedTimeRange({
-                    since: from,
-                    until: to,
-                  })
-                }}
-                initialDateFrom={selectedTimeRange.since}
-                initialDateTo={selectedTimeRange.until}
-                align="start"
-                locale="en-US"
-                showCompare={false}
-              />
+              ))}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
-          {expenses.length === 0 ? (
-            <div className="px-4 py-20 text-center">
-              <div className="bg-primary/10 mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full">
-                <BanknoteIcon className="text-primary h-12 w-12" />
-              </div>
-              <h3 className="text-muted-foreground mb-4 text-2xl font-semibold">
-                No expenses yet!
-              </h3>
-              <p className="text-muted-foreground mx-auto mb-6 max-w-sm">
-                Start tracking your shared expenses by adding your first one.
-              </p>
-              <Button onClick={() => setIsAddExpenseModalOpen(true)} size="lg">
-                <PlusCircleIcon className="mr-2 h-5 w-5" />
-                Add First Expense
-              </Button>
-            </div>
-          ) : (
-            <div className="flex-1 overflow-auto">
-              <div className="space-y-2">
-                {searchResults.map(expense => (
-                  <div key={expense.id} className="px-2 transition-colors">
-                    <Expense expense={expense} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </ExpensesPaneLayout>
   )
 }
 
