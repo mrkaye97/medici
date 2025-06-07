@@ -1371,6 +1371,7 @@ pub struct RecentExpensesQuery {
     limit: Option<i64>,
     category: Option<ExpenseCategory>,
     is_settled: bool,
+    paid_by_member_id: Option<uuid::Uuid>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1388,6 +1389,7 @@ pub struct RecentExpensesPath {
         ("category" = Option<ExpenseCategory>, Query, description = "Filter expenses by category"),
         ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned"),
         ("is_settled" = bool, Query, description = "Filter expenses by settle status"),
+        ("paid_by_member_id" = Option<uuid::Uuid>, Query, description = "Filter expenses by the member who paid")
     ),
     responses(
         (status = 200, description = "Create expense", body = Vec<RecentExpenseDetails>),
@@ -1422,6 +1424,7 @@ pub async fn get_pool_recent_expenses_handler(
             path.member_id,
             limit,
             query.category,
+            query.paid_by_member_id,
             query.is_settled,
         )
         .expect("Failed to get recent expenses")

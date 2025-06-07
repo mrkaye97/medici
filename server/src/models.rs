@@ -6,6 +6,7 @@ use diesel::sql_types::{Double, Uuid as SqlUuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+use crate::schema::expense::paid_by_member_id;
 use crate::schema::{
     expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
 };
@@ -601,6 +602,7 @@ impl Expense {
         member_id: uuid::Uuid,
         limit: i64,
         expense_category: Option<ExpenseCategory>,
+        paying_member_id: Option<uuid::Uuid>,
         is_settled: bool,
     ) -> QueryResult<Vec<(Self, f64)>> {
         let mut query = expense::table
@@ -616,6 +618,10 @@ impl Expense {
 
         if let Some(value) = expense_category {
             query = query.filter(expense::category.eq(value));
+        }
+
+        if let Some(paid_by_member_id_filter) = paying_member_id {
+            query = query.filter(expense::paid_by_member_id.eq(paid_by_member_id_filter));
         }
 
         let results = query

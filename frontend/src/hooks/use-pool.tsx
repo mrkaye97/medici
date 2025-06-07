@@ -10,6 +10,7 @@ export type ExpensesListProps = {
   limit?: number;
   category?: ExpenseCategory;
   isSettled?: boolean;
+  paidByMemberId?: string;
 };
 
 export const usePool = ({
@@ -72,6 +73,7 @@ export const usePool = ({
           limit: expenseOptions?.limit ?? 100,
           category: expenseOptions?.category,
           is_settled: expenseOptions?.isSettled ?? false,
+          paid_by_member_id: expenseOptions?.paidByMemberId,
         },
       },
       headers: createAuthHeader(),

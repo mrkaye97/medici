@@ -22,8 +22,10 @@ import {
   CheckCircle,
   Clock,
   Search,
+  ArrowLeft,
+  Home,
 } from "lucide-react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Expense, formatCurrency } from "@/components/expense";
 import { SettleUpModal } from "@/components/settle-up-modal";
@@ -99,6 +101,7 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
 const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>();
+  const [selectedMemberId, setSelectedMemberId] = useState<string>();
   const [searchQuery, setSearchQuery] = useState("");
   const [showSettled, setShowSettled] = useState(false);
 
@@ -106,8 +109,9 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
     () => ({
       category: selectedCategory,
       isSettled: showSettled,
+      paidByMemberId: selectedMemberId,
     }),
-    [selectedCategory, showSettled],
+    [selectedCategory, showSettled, selectedMemberId],
   );
 
   const {
@@ -182,11 +186,19 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm border border-border rounded-lg">
         <CardHeader className="pb-4 flex-shrink-0 bg-card rounded-t-lg">
           <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
-            <div>
+            <div className="flex flex-col gap-3">
+              <Link
+                to="/"
+                className="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors group w-fit"
+              >
+                <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
+                <Home className="h-4 w-4" />
+                <span className="text-sm font-medium">Back to Home</span>
+              </Link>
               <h1 className="text-4xl font-semibold tracking-tight text-foreground">
                 {details.name}
               </h1>
-              <div className="text-muted-foreground mt-2 flex items-center gap-2">
+              <div className="text-muted-foreground flex items-center gap-2">
                 <UsersRound className="h-5 w-5 text-primary" />
                 <span className="font-medium">{members.length} members</span>
                 {details.role === "ADMIN" && (
@@ -287,6 +299,52 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                         )}
 
                         <span>{categoryToDisplayName({ category })}</span>
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                onValueChange={(value) => {
+                  if (value === "all") {
+                    setSelectedMemberId(undefined);
+                    return;
+                  }
+                  setSelectedMemberId(value);
+                }}
+                defaultValue="all"
+              >
+                <SelectTrigger className="w-full md:w-[200px] bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-200 h-full">
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent className="bg-card border-border/50">
+                  <SelectItem
+                    key="all"
+                    value="all"
+                    className="focus:bg-primary/10"
+                  >
+                    <div className="flex items-center gap-2">
+                      {selectedMemberId === undefined && (
+                        <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-primary/60"></div>
+                      )}
+                      <span className="font-medium">All Payers</span>
+                    </div>
+                  </SelectItem>
+                  {members
+                    .sort((a, b) =>
+                      a.member.first_name.localeCompare(b.member.first_name),
+                    )
+                    .map((member) => (
+                      <SelectItem
+                        key={member.member.id}
+                        value={member.member.id}
+                        className="capitalize focus:bg-primary/10"
+                      >
+                        {selectedMemberId === member.member.id && (
+                          <div className="h-2 w-2 rounded-full bg-gradient-to-r from-primary to-primary/60"></div>
+                        )}
+
+                        <span>{member.member.first_name}</span>
                       </SelectItem>
                     ))}
                 </SelectContent>

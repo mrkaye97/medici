@@ -1223,6 +1223,8 @@ export interface operations {
         limit?: number;
         /** @description Filter expenses by settle status */
         is_settled: boolean;
+        /** @description Filter expenses by the member who paid */
+        paid_by_member_id?: string;
       };
       header?: never;
       path: {
