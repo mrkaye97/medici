@@ -75,13 +75,22 @@ type PoolPaneProps = {
 }
 
 const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
-  const { details, isBalancesLoading, isDetailsLoading, isMembersLoading } =
-    usePool({
-      poolId,
-    })
+  const {
+    details,
+    isBalancesLoading,
+    isDetailsLoading,
+    isMembersLoading,
+    isExpensesLoading,
+  } = usePool({
+    poolId,
+  })
 
   const isLoading =
-    isMembersLoading || isDetailsLoading || isBalancesLoading || !details
+    isMembersLoading ||
+    isDetailsLoading ||
+    isBalancesLoading ||
+    isExpensesLoading ||
+    !details
 
   if (isLoading) {
     return null
