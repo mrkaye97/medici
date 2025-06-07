@@ -1,9 +1,9 @@
-import { Link } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router"
 
 export function NotFound(
   props: Readonly<{
-    children?: React.ReactNode;
-  }>,
+    children?: React.ReactNode
+  }>
 ) {
   return (
     <div className="space-y-2 p-2">
@@ -13,17 +13,17 @@ export function NotFound(
       <p className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => window.history.back()}
-          className="rounded bg-primary px-2 py-1 text-sm font-black uppercase text-primary-foreground"
+          className="bg-primary text-primary-foreground rounded px-2 py-1 text-sm font-black uppercase"
         >
           Go back
         </button>
         <Link
           to="/"
-          className="rounded bg-cyan-600 px-2 py-1 text-sm font-black uppercase text-white"
+          className="rounded bg-cyan-600 px-2 py-1 text-sm font-black text-white uppercase"
         >
           Start Over
         </Link>
       </p>
     </div>
-  );
+  )
 }

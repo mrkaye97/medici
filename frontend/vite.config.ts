@@ -1,11 +1,11 @@
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig, loadEnv } from "vite";
-import react from "@vitejs/plugin-react";
-import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
-import path from "path";
+import tailwindcss from "@tailwindcss/vite"
+import { TanStackRouterVite } from "@tanstack/router-plugin/vite"
+import react from "@vitejs/plugin-react"
+import path from "path"
+import { defineConfig, loadEnv } from "vite"
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), "");
+  const env = loadEnv(mode, process.cwd(), "")
 
   return {
     base: env.VITE_BASE_PATH || "/",
@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => {
     },
     preview: {
       allowedHosts: ["localhost", env.VITE_HOST].filter(
-        (host): host is string => Boolean(host),
+        (host): host is string => Boolean(host)
       ),
     },
-  };
-});
+  }
+})

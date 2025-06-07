@@ -1,4 +1,11 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { apiClient } from "@/api/client"
+import { useAuth } from "@/hooks/use-auth"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "./ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import {
   Form,
   FormControl,
@@ -6,36 +13,29 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./ui/form";
-import { Input } from "./ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "./ui/button";
-import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/api/client";
+} from "./ui/form"
+import { Input } from "./ui/input"
 
 const poolSchema = z.object({
   poolName: z.string().min(1, "Required"),
   poolDescription: z.string().min(1, "Required"),
-});
+})
 
-type PoolFormValues = z.infer<typeof poolSchema>;
+type PoolFormValues = z.infer<typeof poolSchema>
 
 export function CreatePoolModal({
   isOpen,
   setIsOpen,
 }: {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
 }) {
-  const queryClient = useQueryClient();
-  const { memberId, createAuthHeader } = useAuth();
+  const queryClient = useQueryClient()
+  const { memberId, createAuthHeader } = useAuth()
   const { mutateAsync: createPool, isPending } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/pools",
-  );
+    "/api/members/{member_id}/pools"
+  )
 
   const form = useForm<PoolFormValues>({
     resolver: zodResolver(poolSchema),
@@ -43,19 +43,19 @@ export function CreatePoolModal({
       poolName: "",
       poolDescription: "",
     },
-  });
+  })
 
   if (!memberId) {
-    return null;
+    return null
   }
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
+      onOpenChange={value => {
+        setIsOpen(value)
         if (!value) {
-          form.reset();
+          form.reset()
         }
       }}
     >
@@ -66,7 +66,7 @@ export function CreatePoolModal({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(async (data) => {
+            onSubmit={form.handleSubmit(async data => {
               try {
                 await createPool({
                   body: {
@@ -79,17 +79,17 @@ export function CreatePoolModal({
                     },
                   },
                   headers: createAuthHeader(),
-                });
+                })
 
                 await queryClient.invalidateQueries({
                   queryKey: ["get", "/api/members/{member_id}/pools"],
-                });
+                })
 
-                setIsOpen(false);
-                form.reset();
+                setIsOpen(false)
+                form.reset()
               } catch (error) {
-                console.error("Failed to create pool:", error);
-                alert("Failed to create pool. Please try again.");
+                console.error("Failed to create pool:", error)
+                alert("Failed to create pool. Please try again.")
               }
             })}
             className="space-y-6"
@@ -137,5 +137,5 @@ export function CreatePoolModal({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

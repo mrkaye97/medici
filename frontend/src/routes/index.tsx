@@ -1,10 +1,8 @@
-import { PoolSummary } from "@/components/pool-summay";
-import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/api/client";
-import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { FriendsView } from "@/components/friends-view";
-import { PlusCircle, Wallet } from "lucide-react";
+import { apiClient } from "@/api/client"
+import { CreatePoolModal } from "@/components/create-pool-modal"
+import { FriendsView } from "@/components/friends-view"
+import { PoolSummary } from "@/components/pool-summay"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
@@ -12,17 +10,19 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CreatePoolModal } from "@/components/create-pool-modal";
+} from "@/components/ui/card"
+import { useAuth } from "@/hooks/use-auth"
+import { createFileRoute, Navigate } from "@tanstack/react-router"
+import { PlusCircle, Wallet } from "lucide-react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/")({
   component: Home,
-});
+})
 
 function Home() {
-  const { memberId, createAuthHeader, isAuthenticated } = useAuth();
-  const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false);
+  const { memberId, createAuthHeader, isAuthenticated } = useAuth()
+  const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false)
 
   const {
     data,
@@ -41,38 +41,38 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    },
-  );
+    }
+  )
 
-  const pools = data || [];
-  const isLoading = isPoolsLoading;
+  const pools = data || []
+  const isLoading = isPoolsLoading
 
   if (isLoading || isFetching) {
-    return null;
+    return null
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" />
   }
 
   return (
-    <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh bg-background">
+    <div className="bg-background flex flex-col overflow-auto md:h-dvh md:flex-row md:overflow-hidden">
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
       />
-      <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-6">
-        <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow duration-200 bg-card border border-border rounded-lg">
-          <CardHeader className="pb-4 flex-shrink-0">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-2xl font-semibold text-foreground">
+      <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
+        <Card className="bg-card border-border flex flex-col overflow-auto rounded-lg border shadow-sm transition-shadow duration-200 hover:shadow-md md:flex-1 md:overflow-hidden">
+          <CardHeader className="flex-shrink-0 pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-foreground text-2xl font-semibold">
                 Pools
               </CardTitle>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsCreatePoolOpen(true)}
-                className="flex items-center gap-2 bg-background border-border text-foreground font-medium rounded-lg"
+                className="bg-background border-border text-foreground flex items-center gap-2 rounded-lg font-medium"
               >
                 <PlusCircle className="h-4 w-4" />
                 <span>New Pool</span>
@@ -85,9 +85,9 @@ function Home() {
 
           <CardContent className="flex-1 overflow-hidden px-4 pb-4">
             {pools.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center h-full">
-                <div className="bg-primary/10 rounded-full p-4 mb-4">
-                  <Wallet className="h-10 w-10 text-primary" />
+              <div className="flex h-full flex-col items-center justify-center py-12 text-center">
+                <div className="bg-primary/10 mb-4 rounded-full p-4">
+                  <Wallet className="text-primary h-10 w-10" />
                 </div>
                 <p className="text-muted-foreground mb-4 text-lg">
                   No pools created yet
@@ -95,7 +95,7 @@ function Home() {
                 <Button
                   variant="outline"
                   onClick={() => setIsCreatePoolOpen(true)}
-                  className="bg-background hover:bg-accent border-border text-foreground font-medium rounded-lg"
+                  className="bg-background hover:bg-accent border-border text-foreground rounded-lg font-medium"
                 >
                   Create your first pool
                 </Button>
@@ -103,10 +103,10 @@ function Home() {
             ) : (
               <div className="flex-1 overflow-auto">
                 <div className="space-y-3">
-                  {pools.map((pool) => (
+                  {pools.map(pool => (
                     <div
                       key={pool.id}
-                      className="transition-colors duration-200 hover:bg-accent/50 rounded-lg overflow-hidden"
+                      className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
                     >
                       <PoolSummary poolId={pool.id} />
                     </div>
@@ -116,8 +116,8 @@ function Home() {
             )}
           </CardContent>
 
-          <CardFooter className="pt-4 border-t border-border flex-shrink-0">
-            <div className="text-sm text-muted-foreground">
+          <CardFooter className="border-border flex-shrink-0 border-t pt-4">
+            <div className="text-muted-foreground text-sm">
               {pools.length}{" "}
               {pools.length === 1 ? "active pool" : "active pools"}
             </div>
@@ -125,9 +125,9 @@ function Home() {
         </Card>
       </div>
 
-      <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-6 border-l border-border">
+      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] md:overflow-hidden">
         <FriendsView />
       </div>
     </div>
-  );
+  )
 }

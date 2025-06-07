@@ -1,4 +1,44 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { apiClient } from "@/api/client"
+import { useAuth } from "@/hooks/use-auth"
+import { usePool } from "@/hooks/use-pool"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
+import {
+  Baby,
+  Bath,
+  Briefcase,
+  Car,
+  CircleDollarSign,
+  CirclePercent,
+  CreditCard,
+  Dog,
+  Dumbbell,
+  Ellipsis,
+  FileChartLine,
+  Gift,
+  GraduationCap,
+  HelpingHand,
+  Home,
+  HousePlus,
+  Pin,
+  Plane,
+  Plug,
+  Receipt,
+  Scale,
+  Shield,
+  ShoppingBag,
+  ShoppingCart,
+  Stethoscope,
+  TrendingUp,
+  Tv,
+  Utensils,
+} from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { useForm } from "react-hook-form"
+import { components } from "schema"
+import { z } from "zod"
+import { Button } from "./ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import {
   Form,
   FormControl,
@@ -6,46 +46,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./ui/form";
-import {
-  Utensils,
-  ShoppingCart,
-  ShoppingBag,
-  Car,
-  Home,
-  Plug,
-  Stethoscope,
-  Tv,
-  GraduationCap,
-  Plane,
-  Bath,
-  Dumbbell,
-  CreditCard,
-  Receipt,
-  Briefcase,
-  TrendingUp,
-  Shield,
-  Gift,
-  HelpingHand,
-  Ellipsis,
-  Pin,
-  Baby,
-  HousePlus,
-  Dog,
-  Scale,
-  FileChartLine,
-} from "lucide-react";
-import { Input } from "./ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "./ui/button";
-import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
-import { Label } from "./ui/label";
-import { CircleDollarSign, CirclePercent } from "lucide-react";
-import { useCallback, useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
+} from "./ui/form"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
+import { RadioGroup, RadioGroupItem } from "./ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -53,11 +57,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Textarea } from "./ui/textarea";
-import { apiClient } from "@/api/client";
-import { components } from "schema";
-import { usePool } from "@/hooks/use-pool";
+} from "./ui/select"
+import { Textarea } from "./ui/textarea"
 
 enum SplitMethodType {
   Percentage = "percentage",
@@ -65,7 +66,7 @@ enum SplitMethodType {
   Default = "default",
 }
 
-export type ExpenseCategory = components["schemas"]["ExpenseCategory"];
+export type ExpenseCategory = components["schemas"]["ExpenseCategory"]
 
 export const expenseCategories: ExpenseCategory[] = [
   "FoodDining",
@@ -93,145 +94,145 @@ export const expenseCategories: ExpenseCategory[] = [
   "Pets",
   "ProfessionalServices",
   "Taxes",
-];
+]
 
 export const categoryToIcon = ({
   category,
   size = 4,
 }: {
-  category: ExpenseCategory;
-  size?: number;
+  category: ExpenseCategory
+  size?: number
 }) => {
   switch (category) {
     case "FoodDining":
-      return <Utensils className={`size-${size}`} />;
+      return <Utensils className={`size-${size}`} />
     case "Groceries":
-      return <ShoppingCart className={`size-${size}`} />;
+      return <ShoppingCart className={`size-${size}`} />
     case "Transportation":
-      return <Car className={`size-${size}`} />;
+      return <Car className={`size-${size}`} />
     case "HousingRent":
-      return <Home className={`size-${size}`} />;
+      return <Home className={`size-${size}`} />
     case "Utilities":
-      return <Plug className={`size-${size}`} />;
+      return <Plug className={`size-${size}`} />
     case "Healthcare":
-      return <Stethoscope className={`size-${size}`} />;
+      return <Stethoscope className={`size-${size}`} />
     case "Entertainment":
-      return <Tv className={`size-${size}`} />;
+      return <Tv className={`size-${size}`} />
     case "Shopping":
-      return <ShoppingBag className={`size-${size}`} />;
+      return <ShoppingBag className={`size-${size}`} />
     case "Education":
-      return <GraduationCap className={`size-${size}`} />;
+      return <GraduationCap className={`size-${size}`} />
     case "Travel":
-      return <Plane className={`size-${size}`} />;
+      return <Plane className={`size-${size}`} />
     case "PersonalCare":
-      return <Bath className={`size-${size}`} />;
+      return <Bath className={`size-${size}`} />
     case "Fitness":
-      return <Dumbbell className={`size-${size}`} />;
+      return <Dumbbell className={`size-${size}`} />
     case "Subscriptions":
-      return <CreditCard className={`size-${size}`} />;
+      return <CreditCard className={`size-${size}`} />
     case "BillsPayments":
-      return <Receipt className={`size-${size}`} />;
+      return <Receipt className={`size-${size}`} />
     case "BusinessExpenses":
-      return <Briefcase className={`size-${size}`} />;
+      return <Briefcase className={`size-${size}`} />
     case "Investments":
-      return <TrendingUp className={`size-${size}`} />;
+      return <TrendingUp className={`size-${size}`} />
     case "Insurance":
-      return <Shield className={`size-${size}`} />;
+      return <Shield className={`size-${size}`} />
     case "Gifts":
-      return <Gift className={`size-${size}`} />;
+      return <Gift className={`size-${size}`} />
     case "Charity":
-      return <HelpingHand className={`size-${size}`} />;
+      return <HelpingHand className={`size-${size}`} />
     case "Miscellaneous":
-      return <Ellipsis className={`size-${size}`} />;
+      return <Ellipsis className={`size-${size}`} />
     case "HomeHouseholdSupplies":
-      return <HousePlus className={`size-${size}`} />;
+      return <HousePlus className={`size-${size}`} />
     case "Childcare":
-      return <Baby className={`size-${size}`} />;
+      return <Baby className={`size-${size}`} />
     case "Pets":
-      return <Dog className={`size-${size}`} />;
+      return <Dog className={`size-${size}`} />
     case "ProfessionalServices":
-      return <Scale className={`size-${size}`} />;
+      return <Scale className={`size-${size}`} />
     case "Taxes":
-      return <FileChartLine className={`size-${size}`} />;
+      return <FileChartLine className={`size-${size}`} />
     default:
-      const exhaustiveCheck: never = category;
-      throw new Error(`Unhandled category: ${exhaustiveCheck}`);
+      const exhaustiveCheck: never = category
+      throw new Error(`Unhandled category: ${exhaustiveCheck}`)
   }
-};
+}
 
 export const categoryToDisplayName = ({
   category,
 }: {
-  category: ExpenseCategory;
+  category: ExpenseCategory
 }) => {
   switch (category) {
     case "FoodDining":
-      return "Food & Dining";
+      return "Food & Dining"
     case "Groceries":
-      return "Groceries";
+      return "Groceries"
     case "Transportation":
-      return "Transportation";
+      return "Transportation"
     case "HousingRent":
-      return "Housing & Rent";
+      return "Housing & Rent"
     case "Utilities":
-      return "Utilities";
+      return "Utilities"
     case "Healthcare":
-      return "Healthcare";
+      return "Healthcare"
     case "Entertainment":
-      return "Entertainment";
+      return "Entertainment"
     case "Shopping":
-      return "Shopping";
+      return "Shopping"
     case "Education":
-      return "Education";
+      return "Education"
     case "Travel":
-      return "Travel";
+      return "Travel"
     case "PersonalCare":
-      return "Personal Care";
+      return "Personal Care"
     case "Fitness":
-      return "Fitness";
+      return "Fitness"
     case "Subscriptions":
-      return "Subscriptions";
+      return "Subscriptions"
     case "BillsPayments":
-      return "Bills & Payments";
+      return "Bills & Payments"
     case "BusinessExpenses":
-      return "Business Expenses";
+      return "Business Expenses"
     case "Investments":
-      return "Investments";
+      return "Investments"
     case "Insurance":
-      return "Insurance";
+      return "Insurance"
     case "Gifts":
-      return "Gifts";
+      return "Gifts"
     case "Charity":
-      return "Charity";
+      return "Charity"
     case "Miscellaneous":
-      return "Miscellaneous";
+      return "Miscellaneous"
     case "Childcare":
-      return "Childcare";
+      return "Childcare"
     case "HomeHouseholdSupplies":
-      return "Home & Household Supplies";
+      return "Home & Household Supplies"
     case "Pets":
-      return "Pets";
+      return "Pets"
     case "ProfessionalServices":
-      return "Professional Services";
+      return "Professional Services"
     case "Taxes":
-      return "Taxes";
+      return "Taxes"
     default:
-      const exhaustiveCheck: never = category;
-      throw new Error(`Unhandled category: ${exhaustiveCheck}`);
+      const exhaustiveCheck: never = category
+      throw new Error(`Unhandled category: ${exhaustiveCheck}`)
   }
-};
+}
 
 export const ExpenseIcon = ({
   category,
   size = 4,
 }: {
-  category: ExpenseCategory;
-  size?: number;
+  category: ExpenseCategory
+  size?: number
 }) => {
-  return categoryToIcon({ category, size });
-};
+  return categoryToIcon({ category, size })
+}
 
-const splitMethodType = Object.values(SplitMethodType);
+const splitMethodType = Object.values(SplitMethodType)
 
 function typeToLabelAndIcon(type: SplitMethodType) {
   switch (type) {
@@ -239,27 +240,27 @@ function typeToLabelAndIcon(type: SplitMethodType) {
       return {
         label: "Split by default",
         icon: <Pin className="size-4" />,
-      };
+      }
     case SplitMethodType.Amount:
       return {
         label: "Split by dollar amounts",
         icon: <CircleDollarSign className="size-4" />,
-      };
+      }
     case SplitMethodType.Percentage:
       return {
         label: "Split by percentages",
         icon: <CirclePercent className="size-4" />,
-      };
+      }
     default:
-      const exhaustiveCheck: never = type;
-      throw new Error(`Unhandled type: ${exhaustiveCheck}`);
+      const exhaustiveCheck: never = type
+      throw new Error(`Unhandled type: ${exhaustiveCheck}`)
   }
 }
 
 type SplitMethodProps = {
-  value: SplitMethodType;
-  setValue: (value: SplitMethodType) => void;
-};
+  value: SplitMethodType
+  setValue: (value: SplitMethodType) => void
+}
 
 export function SplitMethod({ value, setValue }: SplitMethodProps) {
   return (
@@ -267,12 +268,12 @@ export function SplitMethod({ value, setValue }: SplitMethodProps) {
       <RadioGroup value={value} onValueChange={setValue}>
         {splitMethodType
           .sort((a, b) => {
-            if (a === SplitMethodType.Default) return -1;
-            if (b === SplitMethodType.Default) return 1;
-            return a.localeCompare(b);
+            if (a === SplitMethodType.Default) return -1
+            if (b === SplitMethodType.Default) return 1
+            return a.localeCompare(b)
           })
-          .map((t) => {
-            const { label, icon } = typeToLabelAndIcon(t);
+          .map(t => {
+            const { label, icon } = typeToLabelAndIcon(t)
 
             return (
               <div key={t} className="flex items-center space-x-2">
@@ -285,11 +286,11 @@ export function SplitMethod({ value, setValue }: SplitMethodProps) {
                   {label}
                 </Label>
               </div>
-            );
+            )
           })}
       </RadioGroup>
     </div>
-  );
+  )
 }
 
 const expenseSchema = z.object({
@@ -305,27 +306,27 @@ const expenseSchema = z.object({
     ],
     {
       errorMap: () => ({ message: "Required" }),
-    },
+    }
   ),
   paidByMemberId: z.string().min(1, "Required"),
-});
+})
 
-type ExpenseFormValues = z.infer<typeof expenseSchema>;
+type ExpenseFormValues = z.infer<typeof expenseSchema>
 
 type SplitAmount = {
-  memberId: string;
-  amount: number;
-};
+  memberId: string
+  amount: number
+}
 
 type SplitState = {
-  splitMethod: SplitMethodType;
-  splitAmounts: SplitAmount[];
-};
+  splitMethod: SplitMethodType
+  splitAmounts: SplitAmount[]
+}
 
-type Pool = components["schemas"]["PoolDetails"];
+type Pool = components["schemas"]["PoolDetails"]
 
 export function round(num: number) {
-  return Number(num.toFixed(2));
+  return Number(num.toFixed(2))
 }
 
 export function AddExpenseModal({
@@ -333,36 +334,36 @@ export function AddExpenseModal({
   isOpen,
   setIsOpen,
 }: {
-  pool: Pool;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  pool: Pool
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
 }) {
-  const queryClient = useQueryClient();
-  const { memberId, createAuthHeader } = useAuth();
+  const queryClient = useQueryClient()
+  const { memberId, createAuthHeader } = useAuth()
   const { mutateAsync: addExpense, isPending } = apiClient.useMutation(
     "post",
-    "/api/pools/{pool_id}/expenses",
-  );
+    "/api/pools/{pool_id}/expenses"
+  )
 
-  const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id });
+  const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id })
 
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
     splitMethod: SplitMethodType.Default,
-    splitAmounts: members.map((member) => ({
+    splitAmounts: members.map(member => ({
       memberId: member.member.id,
       amount: round(100 / members.length),
     })),
-  });
+  })
 
   const resetSplitAmounts = useCallback(() => {
     setSplitAmounts({
       splitMethod: SplitMethodType.Default,
-      splitAmounts: members.map((member) => ({
+      splitAmounts: members.map(member => ({
         memberId: member.member.id,
         amount: round(100 / members.length),
       })),
-    });
-  }, [members]);
+    })
+  }, [members])
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -374,150 +375,146 @@ export function AddExpenseModal({
       splitMethod: SplitMethodType.Default,
       paidByMemberId: memberId || "",
     },
-  });
+  })
 
   const handleUpdateSplitAmounts = useCallback(
     ({
       splitMethod,
       total,
     }: {
-      splitMethod: SplitMethodType;
-      total: number;
+      splitMethod: SplitMethodType
+      total: number
     }) => {
       if (splitMethod === SplitMethodType.Percentage) {
         setSplitAmounts(() => {
-          const newAmounts = members.map((member) => ({
+          const newAmounts = members.map(member => ({
             memberId: member.member.id,
             amount: round(100 / members.length),
-          }));
+          }))
 
           return {
             splitMethod,
             splitAmounts: newAmounts,
-          };
-        });
+          }
+        })
       }
 
       if (splitMethod === SplitMethodType.Amount) {
         setSplitAmounts(() => {
-          const newAmounts = members.map((member) => ({
+          const newAmounts = members.map(member => ({
             memberId: member.member.id,
             amount: round(total / members.length),
-          }));
+          }))
 
           return {
             splitMethod,
             splitAmounts: newAmounts,
-          };
-        });
+          }
+        })
       }
 
       if (splitMethod === SplitMethodType.Default) {
         setSplitAmounts(() => {
-          const newAmounts = members.map((member) => {
-            const splitPct = member.pool_membership.default_split_percentage;
+          const newAmounts = members.map(member => {
+            const splitPct = member.pool_membership.default_split_percentage
 
             return {
               memberId: member.member.id,
               amount: round(splitPct * (total / 100)),
-            };
-          });
+            }
+          })
 
           return {
             splitMethod,
             splitAmounts: newAmounts,
-          };
-        });
+          }
+        })
       }
     },
-    [members],
-  );
+    [members]
+  )
 
-  const watchedAmount = form.watch("amount");
+  const watchedAmount = form.watch("amount")
 
   useEffect(() => {
-    const splitMethod = form.getValues("splitMethod");
+    const splitMethod = form.getValues("splitMethod")
 
     handleUpdateSplitAmounts({
       splitMethod,
       total: watchedAmount,
-    });
-  }, [watchedAmount, form, handleUpdateSplitAmounts]);
+    })
+  }, [watchedAmount, form, handleUpdateSplitAmounts])
 
   if (!members.length || isLoading) {
-    return null;
+    return null
   }
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
+      onOpenChange={value => {
+        setIsOpen(value)
         if (!value) {
-          form.reset();
-          resetSplitAmounts();
+          form.reset()
+          resetSplitAmounts()
         }
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(async (data) => {
-              const memberLineItemAmounts = splitAmounts.splitAmounts.map(
-                (a) => {
-                  const member = members.find(
-                    (m) => m.member.id === a.memberId,
-                  );
+            onSubmit={form.handleSubmit(async data => {
+              const memberLineItemAmounts = splitAmounts.splitAmounts.map(a => {
+                const member = members.find(m => m.member.id === a.memberId)
 
-                  if (!member) {
-                    throw new Error(
-                      `Member with id ${a.memberId} not found in pool`,
-                    );
-                  }
+                if (!member) {
+                  throw new Error(
+                    `Member with id ${a.memberId} not found in pool`
+                  )
+                }
 
-                  const amount =
-                    splitAmounts.splitMethod === SplitMethodType.Percentage
-                      ? (a.amount / 100) * data.amount
-                      : splitAmounts.splitMethod === SplitMethodType.Amount
-                        ? a.amount
-                        : (member.pool_membership.default_split_percentage /
-                            100) *
-                          data.amount;
+                const amount =
+                  splitAmounts.splitMethod === SplitMethodType.Percentage
+                    ? (a.amount / 100) * data.amount
+                    : splitAmounts.splitMethod === SplitMethodType.Amount
+                      ? a.amount
+                      : (member.pool_membership.default_split_percentage /
+                          100) *
+                        data.amount
 
-                  return {
-                    debtor_member_id: a.memberId,
-                    amount,
-                  };
-                },
-              );
+                return {
+                  debtor_member_id: a.memberId,
+                  amount,
+                }
+              })
 
               const total = memberLineItemAmounts.reduce(
                 (acc, item) => acc + item.amount,
-                0,
-              );
+                0
+              )
 
-              const roundingError = Math.abs(total - data.amount);
-              const n = memberLineItemAmounts.length;
+              const roundingError = Math.abs(total - data.amount)
+              const n = memberLineItemAmounts.length
               const maxRoundingError =
-                Math.abs(n * round(data.amount / n) - data.amount) + 0.01;
+                Math.abs(n * round(data.amount / n) - data.amount) + 0.01
 
               if (roundingError < maxRoundingError) {
                 memberLineItemAmounts.forEach((item, ix) => {
                   if (ix === 0) {
-                    item.amount += roundingError;
+                    item.amount += roundingError
                   }
-                });
+                })
               }
 
               if (total !== data.amount && roundingError > maxRoundingError) {
                 alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`,
-                );
-                return;
+                  `Total amount (${data.amount}) does not match split amounts (${total})`
+                )
+                return
               }
 
               await addExpense(
@@ -540,23 +537,23 @@ export function AddExpenseModal({
                 },
                 {
                   onSuccess: async () => {
-                    setIsOpen(false);
+                    setIsOpen(false)
                     await queryClient.invalidateQueries({
                       queryKey: [
                         "get",
                         "/api/pools/{pool_id}/members/{member_id}/expenses",
                       ],
-                    });
+                    })
 
-                    form.reset();
-                    resetSplitAmounts();
+                    form.reset()
+                    resetSplitAmounts()
                   },
-                  onError: (error) => {
-                    console.error("Failed to add expense:", error);
-                    alert("Failed to add expense. Please try again.");
+                  onError: error => {
+                    console.error("Failed to add expense:", error)
+                    alert("Failed to add expense. Please try again.")
                   },
-                },
-              );
+                }
+              )
             })}
             className="space-y-6"
           >
@@ -591,7 +588,7 @@ export function AddExpenseModal({
               )}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="amount"
@@ -624,7 +621,7 @@ export function AddExpenseModal({
                           <SelectGroup>
                             {expenseCategories
                               .sort((a, b) => a.localeCompare(b))
-                              .map((c) => (
+                              .map(c => (
                                 <SelectItem
                                   key={c}
                                   value={c}
@@ -663,13 +660,13 @@ export function AddExpenseModal({
                         <SelectGroup>
                           {members
                             .sort((a, b) => {
-                              if (a.member.id === memberId) return -1;
+                              if (a.member.id === memberId) return -1
 
                               return a.member.first_name.localeCompare(
-                                b.member.first_name,
-                              );
+                                b.member.first_name
+                              )
                             })
-                            .map((c) => (
+                            .map(c => (
                               <SelectItem
                                 key={c.member.id}
                                 value={c.member.id}
@@ -694,32 +691,32 @@ export function AddExpenseModal({
                 <FormItem>
                   <FormLabel>Split Method</FormLabel>
                   <FormControl>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+                    <div className="grid grid-cols-1 items-center gap-6 lg:grid-cols-2">
                       <div className="flex flex-col gap-y-2">
                         <SplitMethod
                           value={field.value}
-                          setValue={(value) => {
-                            field.onChange(value);
+                          setValue={value => {
+                            field.onChange(value)
 
                             handleUpdateSplitAmounts({
                               splitMethod: value,
                               total: form.getValues("amount"),
-                            });
+                            })
                           }}
                         />
                       </div>
-                      <div className="flex flex-col gap-y-2 border border-border p-4 rounded-lg max-h-40 overflow-y-auto">
+                      <div className="border-border flex max-h-40 flex-col gap-y-2 overflow-y-auto rounded-lg border p-4">
                         {members
                           .sort((a, b) =>
                             a.member.first_name
                               .toLowerCase()
-                              .localeCompare(b.member.first_name.toLowerCase()),
+                              .localeCompare(b.member.first_name.toLowerCase())
                           )
-                          .map((m) => (
+                          .map(m => (
                             <div className="flex flex-col" key={m.member.email}>
                               <div
                                 key={m.member.id}
-                                className="flex flex-row gap-y-4 justify-between items-center"
+                                className="flex flex-row items-center justify-between gap-y-4"
                               >
                                 <Label
                                   htmlFor={m.member.id}
@@ -731,14 +728,14 @@ export function AddExpenseModal({
                                   type="number"
                                   value={
                                     splitAmounts.splitAmounts.find(
-                                      (a) => a.memberId == m.member.id,
+                                      a => a.memberId == m.member.id
                                     )?.amount
                                   }
-                                  onChange={(e) => {
+                                  onChange={e => {
                                     handleUpdateSplitAmounts({
                                       splitMethod: splitAmounts.splitMethod,
                                       total: parseFloat(e.target.value),
-                                    });
+                                    })
                                   }}
                                   className="w-32"
                                 />
@@ -760,5 +757,5 @@ export function AddExpenseModal({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

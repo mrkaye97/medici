@@ -1,4 +1,12 @@
-import { useState } from "react";
+import { usePool } from "@/hooks/use-pool"
+import { Link } from "@tanstack/react-router"
+import { Calendar, ChevronDown, ChevronRight, ScrollText } from "lucide-react"
+import { useState } from "react"
+import { AddExpenseModal } from "./add-expense-modal"
+import { Expense, formatCurrency, formatDate } from "./expense"
+import { SettleUpModal } from "./settle-up-modal"
+import { Badge } from "./ui/badge"
+import { Button } from "./ui/button"
 import {
   Card,
   CardContent,
@@ -6,31 +14,23 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
-import { AddExpenseModal } from "./add-expense-modal";
-import { Expense, formatCurrency, formatDate } from "./expense";
-import { Link } from "@tanstack/react-router";
-import { SettleUpModal } from "./settle-up-modal";
-import { usePool } from "@/hooks/use-pool";
+} from "./ui/card"
 
 export function PoolSummary({ poolId }: { poolId: string }) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
-  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
+  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false)
 
   const { details, isDetailsLoading } = usePool({
     poolId,
-  });
+  })
 
   const { expenses, isExpensesLoading } = usePool({
     poolId,
     expenseOptions: { limit: 5 },
-  });
+  })
   if (isDetailsLoading || !details || isExpensesLoading) {
-    return null;
+    return null
   }
 
   return (
@@ -47,8 +47,8 @@ export function PoolSummary({ poolId }: { poolId: string }) {
       />
       <Card key={poolId} className="overflow-hidden border">
         <Link to="/pools/$poolId" params={{ poolId }}>
-          <CardHeader className="bg-muted/30 pb-2 hover:bg-muted/50 transition-colors">
-            <div className="flex justify-between items-start">
+          <CardHeader className="bg-muted/30 hover:bg-muted/50 pb-2 transition-colors">
+            <div className="flex items-start justify-between">
               <div>
                 <CardTitle className="text-lg">{details.name}</CardTitle>
                 {details.description && (
@@ -59,7 +59,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
               </div>
               {details.total_debt === 0 ? (
                 <Badge
-                  className={`ml-2 py-2 bg-muted text-muted-foreground hover:bg-muted/80`}
+                  className={`bg-muted text-muted-foreground hover:bg-muted/80 ml-2 py-2`}
                 >
                   <p className="text-base font-light">All settled up!</p>
                 </Badge>
@@ -77,8 +77,8 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </Link>
 
         <CardContent className="pt-4">
-          <div className="flex items-center text-sm text-muted-foreground mb-2">
-            <Calendar className="w-4 h-4 mr-1" />
+          <div className="text-muted-foreground mb-2 flex items-center text-sm">
+            <Calendar className="mr-1 h-4 w-4" />
             <span>Created {formatDate(new Date(details.inserted_at))}</span>
             <span className="mx-2">•</span>
             <span>Updated {formatDate(new Date(details.updated_at))}</span>
@@ -88,25 +88,25 @@ export function PoolSummary({ poolId }: { poolId: string }) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setIsExpanded((prev) => !prev)}
-              className="flex items-center p-2 h-auto hover:bg-transparent"
+              onClick={() => setIsExpanded(prev => !prev)}
+              className="flex h-auto items-center p-2 hover:bg-transparent"
             >
               {isExpanded ? (
-                <ChevronDown className="w-4 h-4 mr-1" />
+                <ChevronDown className="mr-1 h-4 w-4" />
               ) : (
-                <ChevronRight className="w-4 h-4 mr-1" />
+                <ChevronRight className="mr-1 h-4 w-4" />
               )}
               <span className="flex items-center">
-                <ScrollText className="w-4 h-4 mr-1" />
+                <ScrollText className="mr-1 h-4 w-4" />
                 Recent Expenses
               </span>
             </Button>
           )}
 
           {isExpanded && (
-            <div className="mt-3 px-4 rounded-md gap-y-2 flex flex-col max-h-96 overflow-y-auto">
+            <div className="mt-3 flex max-h-96 flex-col gap-y-2 overflow-y-auto rounded-md px-4">
               {expenses.map((expense, index) => {
-                return <Expense key={index} expense={expense} />;
+                return <Expense key={index} expense={expense} />
               })}
             </div>
           )}
@@ -126,5 +126,5 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </CardFooter>
       </Card>
     </>
-  );
+  )
 }

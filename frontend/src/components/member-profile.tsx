@@ -1,29 +1,24 @@
-import { formatDate } from "./expense";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-} from "@/components/ui/card";
-import {
-  CalendarIcon,
-  MailIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
-} from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { apiClient } from "@/api/client"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { apiClient } from "@/api/client";
-import { useAuth } from "@/hooks/use-auth";
+} from "@/components/ui/collapsible"
+import { useAuth } from "@/hooks/use-auth"
+import {
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  MailIcon,
+} from "lucide-react"
+import { useState } from "react"
+import { formatDate } from "./expense"
 
 export const MemberProfile = ({ id }: { id: string }) => {
-  const { createAuthHeader } = useAuth();
+  const { createAuthHeader } = useAuth()
 
   const { data: member, isLoading } = apiClient.useQuery(
     "get",
@@ -38,44 +33,44 @@ export const MemberProfile = ({ id }: { id: string }) => {
     },
     {
       enabled: !!id,
-    },
-  );
+    }
+  )
 
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false)
 
   if (isLoading) {
-    return null;
+    return null
   }
 
   if (!member) {
     return (
       <Card className="w-full bg-red-50">
         <CardContent className="py-4">
-          <p className="text-red-500 text-center">Member not found</p>
+          <p className="text-center text-red-500">Member not found</p>
         </CardContent>
       </Card>
-    );
+    )
   }
 
-  const membershipDate = new Date(member.inserted_at);
-  const currentDate = new Date();
+  const membershipDate = new Date(member.inserted_at)
+  const currentDate = new Date()
   const membershipMonths =
     (currentDate.getFullYear() - membershipDate.getFullYear()) * 12 +
-    (currentDate.getMonth() - membershipDate.getMonth());
+    (currentDate.getMonth() - membershipDate.getMonth())
 
-  let memberStatus = "New Member";
+  let memberStatus = "New Member"
   if (membershipMonths > 24) {
-    memberStatus = "Veteran Member";
+    memberStatus = "Veteran Member"
   } else if (membershipMonths > 12) {
-    memberStatus = "Regular Member";
+    memberStatus = "Regular Member"
   } else if (membershipMonths > 6) {
-    memberStatus = "Active Member";
+    memberStatus = "Active Member"
   }
 
   return (
     <Card className="w-full">
       <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
-        <CardHeader className="pb-1 pt-4">
+        <CardHeader className="pt-4 pb-1">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-bold">
@@ -83,7 +78,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
               </h3>
             </div>
             <CollapsibleTrigger asChild>
-              <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                 {isOpen ? (
                   <ChevronUpIcon className="h-4 w-4 text-gray-500" />
                 ) : (
@@ -102,7 +97,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
         </CardContent>
 
         <CollapsibleContent>
-          <CardContent className="pt-2 border-t border-gray-100">
+          <CardContent className="border-t border-gray-100 pt-2">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Badge variant="outline">{memberStatus}</Badge>
@@ -116,15 +111,15 @@ export const MemberProfile = ({ id }: { id: string }) => {
               </div>
 
               {member.bio && (
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="text-gray-600 text-sm italic">{member.bio}</p>
+                <div className="border-t border-gray-100 pt-2">
+                  <p className="text-sm text-gray-600 italic">{member.bio}</p>
                 </div>
               )}
             </div>
           </CardContent>
 
           <CardFooter className="bg-gray-50 py-2">
-            <div className="flex justify-between w-full text-xs text-gray-500">
+            <div className="flex w-full justify-between text-xs text-gray-500">
               <div>ID: {id.substring(0, 8)}...</div>
               <div>
                 Last updated:{" "}
@@ -137,7 +132,7 @@ export const MemberProfile = ({ id }: { id: string }) => {
         </CollapsibleContent>
       </Collapsible>
     </Card>
-  );
-};
+  )
+}
 
-export default MemberProfile;
+export default MemberProfile

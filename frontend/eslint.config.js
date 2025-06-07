@@ -1,7 +1,7 @@
-import eslint from "@eslint/js";
-import reactPlugin from "eslint-plugin-react";
-import hooksPlugin from "eslint-plugin-react-hooks";
-import tseslint from "typescript-eslint";
+import eslint from "@eslint/js"
+import reactPlugin from "eslint-plugin-react"
+import hooksPlugin from "eslint-plugin-react-hooks"
+import tseslint from "typescript-eslint"
 
 export default tseslint.config(
   eslint.configs.recommended,
@@ -27,5 +27,5 @@ export default tseslint.config(
         React: "writable",
       },
     },
-  },
-);
+  }
+)

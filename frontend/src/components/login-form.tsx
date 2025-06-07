@@ -1,32 +1,32 @@
-import { Link } from "@tanstack/react-router";
-import { cn } from "./lib/utils";
-import { Button } from "./ui/button";
+import { Link } from "@tanstack/react-router"
+import { FormEvent, useCallback } from "react"
+import { cn } from "./lib/utils"
+import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { Button } from "./ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { FormEvent, useCallback } from "react";
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
+} from "./ui/card"
+import { Input } from "./ui/input"
+import { Label } from "./ui/label"
 
 type LoginFormProps = {
-  className?: string;
+  className?: string
   onSubmit: (
     e: FormEvent<HTMLFormElement>,
     formData: {
-      email: string;
-      password: string;
-      firstName?: string | null;
-      lastName?: string | null;
-    },
-  ) => void;
-  formType: "login" | "signup";
-  hasError?: boolean;
-};
+      email: string
+      password: string
+      firstName?: string | null
+      lastName?: string | null
+    }
+  ) => void
+  formType: "login" | "signup"
+  hasError?: boolean
+}
 
 export function LoginForm({
   className,
@@ -36,20 +36,20 @@ export function LoginForm({
 }: LoginFormProps) {
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
+      e.preventDefault()
 
-      const formData = new FormData(e.currentTarget);
-      const email = formData.get("email") as string;
-      const password = formData.get("password") as string;
-      const firstName = formData.get("firstName") as string | null;
-      const lastName = formData.get("lastName") as string | null;
+      const formData = new FormData(e.currentTarget)
+      const email = formData.get("email") as string
+      const password = formData.get("password") as string
+      const firstName = formData.get("firstName") as string | null
+      const lastName = formData.get("lastName") as string | null
 
       if (onSubmit) {
-        onSubmit(e, { email, password, firstName, lastName });
+        onSubmit(e, { email, password, firstName, lastName })
       }
     },
-    [onSubmit],
-  );
+    [onSubmit]
+  )
 
   return (
     <div className={cn("flex flex-col gap-6", className)}>
@@ -138,5 +138,5 @@ export function LoginForm({
         </CardContent>
       </Card>
     </div>
-  );
+  )
 }

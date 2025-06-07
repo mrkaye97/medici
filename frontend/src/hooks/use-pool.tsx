@@ -1,31 +1,31 @@
-import { apiClient } from "@/api/client";
-import { useAuth } from "./use-auth";
-import { useQueryClient } from "@tanstack/react-query";
-import { useFriends } from "./use-friends";
-import { useCallback, useMemo } from "react";
-import { components } from "schema";
-import { ExpenseCategory } from "@/components/add-expense-modal";
+import { apiClient } from "@/api/client"
+import { ExpenseCategory } from "@/components/add-expense-modal"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback, useMemo } from "react"
+import { components } from "schema"
+import { useAuth } from "./use-auth"
+import { useFriends } from "./use-friends"
 
 export type ExpensesListProps = {
-  limit?: number;
-  category?: ExpenseCategory;
-  isSettled?: boolean;
-  paidByMemberId?: string;
-  since?: Date | undefined;
-  until?: Date | undefined;
-};
+  limit?: number
+  category?: ExpenseCategory
+  isSettled?: boolean
+  paidByMemberId?: string
+  since?: Date | undefined
+  until?: Date | undefined
+}
 
 export const usePool = ({
   poolId,
   expenseOptions,
 }: {
-  poolId: string;
-  expenseOptions?: ExpensesListProps;
+  poolId: string
+  expenseOptions?: ExpensesListProps
 }) => {
-  const { memberId, createAuthHeader } = useAuth();
-  const queryClient = useQueryClient();
+  const { memberId, createAuthHeader } = useAuth()
+  const queryClient = useQueryClient()
 
-  const { friends } = useFriends();
+  const { friends } = useFriends()
 
   const { data: members, isLoading: isMembersLoading } = apiClient.useQuery(
     "get",
@@ -38,8 +38,8 @@ export const usePool = ({
         },
       },
       headers: createAuthHeader(),
-    },
-  );
+    }
+  )
 
   const { data: details, isLoading: isDetailsLoading } = apiClient.useQuery(
     "get",
@@ -55,8 +55,8 @@ export const usePool = ({
     },
     {
       enabled: !!memberId,
-    },
-  );
+    }
+  )
 
   const {
     data: expenses,
@@ -87,9 +87,9 @@ export const usePool = ({
       headers: createAuthHeader(),
     },
     {
-      placeholderData: (prev) => prev,
-    },
-  );
+      placeholderData: prev => prev,
+    }
+  )
 
   const { data: rawBalances, isLoading: isBalancesLoading } =
     apiClient.useQuery(
@@ -103,49 +103,49 @@ export const usePool = ({
           },
         },
         headers: createAuthHeader(),
-      },
-    );
+      }
+    )
 
   const balances = useMemo(() => {
     return (rawBalances || [])
-      .map((b) => {
-        const otherMember = friends.find((m) => m.id === b.member_id);
+      .map(b => {
+        const otherMember = friends.find(m => m.id === b.member_id)
 
         if (!otherMember) {
-          return null;
+          return null
         }
 
-        const name = otherMember.first_name + " " + otherMember.last_name;
+        const name = otherMember.first_name + " " + otherMember.last_name
 
         return {
           name,
           amount: b.amount,
           type: b.direction,
           venmoHandle: otherMember.venmo_handle,
-        };
+        }
       })
-      .filter((b) => b !== null);
-  }, [rawBalances, friends]);
+      .filter(b => b !== null)
+  }, [rawBalances, friends])
 
   const invalidate = useCallback(async () => {
     await queryClient.invalidateQueries({
       queryKey: ["get", "/api/members/{member_id}/pools/{pool_id}/members"],
-    });
-  }, [queryClient]);
+    })
+  }, [queryClient])
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
-    apiClient.useMutation("post", "/api/pools/{pool_id}/members");
+    apiClient.useMutation("post", "/api/pools/{pool_id}/members")
 
   const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
-    apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}");
+    apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}")
 
   const {
     mutateAsync: modifyDefaultSplitMutation,
     isPending: isModifyDefaultSplitPending,
   } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/default-splits",
-  );
+    "/api/members/{member_id}/pools/{pool_id}/default-splits"
+  )
 
   const addFriend = useCallback(
     async (friendMemberId: string) => {
@@ -157,12 +157,12 @@ export const usePool = ({
           path: { pool_id: poolId },
         },
         headers: createAuthHeader(),
-      });
+      })
 
-      await invalidate();
+      await invalidate()
     },
-    [addFriendToPool, createAuthHeader, poolId, invalidate],
-  );
+    [addFriendToPool, createAuthHeader, poolId, invalidate]
+  )
 
   const removeFriend = useCallback(
     async (friendMemberId: string) => {
@@ -174,17 +174,17 @@ export const usePool = ({
           },
         },
         headers: createAuthHeader(),
-      });
+      })
 
-      await invalidate();
+      await invalidate()
     },
-    [poolId, createAuthHeader, invalidate, removeFriendFromPool],
-  );
+    [poolId, createAuthHeader, invalidate, removeFriendFromPool]
+  )
 
   const modifyDefaultSplit = useCallback(
     async (percentages: components["schemas"]["MemberIdSplitPercentage"][]) => {
       if (!memberId) {
-        return;
+        return
       }
 
       await modifyDefaultSplitMutation({
@@ -198,25 +198,19 @@ export const usePool = ({
           default_split_percentages: percentages,
         },
         headers: createAuthHeader(),
-      });
+      })
 
-      await invalidate();
+      await invalidate()
     },
-    [
-      createAuthHeader,
-      invalidate,
-      memberId,
-      modifyDefaultSplitMutation,
-      poolId,
-    ],
-  );
+    [createAuthHeader, invalidate, memberId, modifyDefaultSplitMutation, poolId]
+  )
 
   const friendsEligibleToAdd = friends.filter(
-    (f) => !members?.find((m) => m.member.id === f.id),
-  );
+    f => !members?.find(m => m.member.id === f.id)
+  )
 
   const totalExpenses =
-    expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0;
+    expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0
 
   return {
     members: members || [],
@@ -239,5 +233,5 @@ export const usePool = ({
       isRemovePending,
       isModifyDefaultSplitPending,
     },
-  };
-};
+  }
+}

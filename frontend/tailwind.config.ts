@@ -1,4 +1,4 @@
-import type { Config } from "tailwindcss";
+import type { Config } from "tailwindcss"
 
 export default {
   content: ["./pages/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
@@ -53,4 +53,4 @@ export default {
       },
     },
   },
-} satisfies Config;
+} satisfies Config

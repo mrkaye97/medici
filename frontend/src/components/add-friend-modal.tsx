@@ -1,4 +1,11 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { apiClient } from "@/api/client"
+import { useAuth } from "@/hooks/use-auth"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useQueryClient } from "@tanstack/react-query"
+import { useForm } from "react-hook-form"
+import { z } from "zod"
+import { Button } from "./ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import {
   Form,
   FormControl,
@@ -6,54 +13,47 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "./ui/form";
-import { Input } from "./ui/input";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "./ui/button";
-import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/api/client";
+} from "./ui/form"
+import { Input } from "./ui/input"
 
 const friendRequestSchema = z.object({
   email: z.string().email("Invalid email address"),
-});
+})
 
-type FriendRequestFormValues = z.infer<typeof friendRequestSchema>;
+type FriendRequestFormValues = z.infer<typeof friendRequestSchema>
 
 export function AddFriendModal({
   isOpen,
   setIsOpen,
 }: {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
 }) {
-  const queryClient = useQueryClient();
-  const { memberId, createAuthHeader } = useAuth();
+  const queryClient = useQueryClient()
+  const { memberId, createAuthHeader } = useAuth()
   const { mutateAsync: createFriendRequest, isPending } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/friend-requests",
-  );
+    "/api/members/{member_id}/friend-requests"
+  )
 
   const form = useForm<FriendRequestFormValues>({
     resolver: zodResolver(friendRequestSchema),
     defaultValues: {
       email: "",
     },
-  });
+  })
 
   if (!memberId) {
-    return null;
+    return null
   }
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
+      onOpenChange={value => {
+        setIsOpen(value)
         if (!value) {
-          form.reset();
+          form.reset()
         }
       }}
     >
@@ -64,7 +64,7 @@ export function AddFriendModal({
 
         <Form {...form}>
           <form
-            onSubmit={form.handleSubmit(async (data) => {
+            onSubmit={form.handleSubmit(async data => {
               try {
                 await createFriendRequest({
                   body: {
@@ -76,17 +76,17 @@ export function AddFriendModal({
                     },
                   },
                   headers: createAuthHeader(),
-                });
+                })
 
                 await queryClient.invalidateQueries({
                   queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-                });
+                })
 
-                setIsOpen(false);
-                form.reset();
+                setIsOpen(false)
+                form.reset()
               } catch (error) {
-                console.error("Failed to send friend request:", error);
-                alert("Failed to send friend request. Please try again.");
+                console.error("Failed to send friend request:", error)
+                alert("Failed to send friend request. Please try again.")
               }
             })}
             className="space-y-6"
@@ -116,5 +116,5 @@ export function AddFriendModal({
         </Form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

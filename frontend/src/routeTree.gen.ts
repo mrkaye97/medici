@@ -10,111 +10,111 @@
 
 // Import Routes
 
-import { Route as rootRoute } from "./routes/__root";
-import { Route as SignupImport } from "./routes/signup";
-import { Route as LoginImport } from "./routes/login";
-import { Route as IndexImport } from "./routes/index";
-import { Route as PoolsPoolIdImport } from "./routes/pools.$poolId";
+import { Route as rootRoute } from './routes/__root'
+import { Route as SignupImport } from './routes/signup'
+import { Route as LoginImport } from './routes/login'
+import { Route as IndexImport } from './routes/index'
+import { Route as PoolsPoolIdImport } from './routes/pools.$poolId'
 
 // Create/Update Routes
 
 const SignupRoute = SignupImport.update({
-  id: "/signup",
-  path: "/signup",
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const LoginRoute = LoginImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const IndexRoute = IndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 const PoolsPoolIdRoute = PoolsPoolIdImport.update({
-  id: "/pools/$poolId",
-  path: "/pools/$poolId",
+  id: '/pools/$poolId',
+  path: '/pools/$poolId',
   getParentRoute: () => rootRoute,
-} as any);
+} as any)
 
 // Populate the FileRoutesByPath interface
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/";
-      path: "/";
-      fullPath: "/";
-      preLoaderRoute: typeof IndexImport;
-      parentRoute: typeof rootRoute;
-    };
-    "/login": {
-      id: "/login";
-      path: "/login";
-      fullPath: "/login";
-      preLoaderRoute: typeof LoginImport;
-      parentRoute: typeof rootRoute;
-    };
-    "/signup": {
-      id: "/signup";
-      path: "/signup";
-      fullPath: "/signup";
-      preLoaderRoute: typeof SignupImport;
-      parentRoute: typeof rootRoute;
-    };
-    "/pools/$poolId": {
-      id: "/pools/$poolId";
-      path: "/pools/$poolId";
-      fullPath: "/pools/$poolId";
-      preLoaderRoute: typeof PoolsPoolIdImport;
-      parentRoute: typeof rootRoute;
-    };
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexImport
+      parentRoute: typeof rootRoute
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginImport
+      parentRoute: typeof rootRoute
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupImport
+      parentRoute: typeof rootRoute
+    }
+    '/pools/$poolId': {
+      id: '/pools/$poolId'
+      path: '/pools/$poolId'
+      fullPath: '/pools/$poolId'
+      preLoaderRoute: typeof PoolsPoolIdImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
-  "/signup": typeof SignupRoute;
-  "/pools/$poolId": typeof PoolsPoolIdRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
-  "/signup": typeof SignupRoute;
-  "/pools/$poolId": typeof PoolsPoolIdRoute;
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesById {
-  __root__: typeof rootRoute;
-  "/": typeof IndexRoute;
-  "/login": typeof LoginRoute;
-  "/signup": typeof SignupRoute;
-  "/pools/$poolId": typeof PoolsPoolIdRoute;
+  __root__: typeof rootRoute
+  '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/login" | "/signup" | "/pools/$poolId";
-  fileRoutesByTo: FileRoutesByTo;
-  to: "/" | "/login" | "/signup" | "/pools/$poolId";
-  id: "__root__" | "/" | "/login" | "/signup" | "/pools/$poolId";
-  fileRoutesById: FileRoutesById;
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/login' | '/signup' | '/pools/$poolId'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/login' | '/signup' | '/pools/$poolId'
+  id: '__root__' | '/' | '/login' | '/signup' | '/pools/$poolId'
+  fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute;
-  LoginRoute: typeof LoginRoute;
-  SignupRoute: typeof SignupRoute;
-  PoolsPoolIdRoute: typeof PoolsPoolIdRoute;
+  IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
+  SignupRoute: typeof SignupRoute
+  PoolsPoolIdRoute: typeof PoolsPoolIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -122,11 +122,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SignupRoute: SignupRoute,
   PoolsPoolIdRoute: PoolsPoolIdRoute,
-};
+}
 
 export const routeTree = rootRoute
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>();
+  ._addFileTypes<FileRouteTypes>()
 
 /* ROUTE_MANIFEST_START
 {

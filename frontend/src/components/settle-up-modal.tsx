@@ -1,34 +1,34 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
-import { useQueryClient } from "@tanstack/react-query";
-import { Button } from "./ui/button";
-import { useAuth } from "@/hooks/use-auth";
-import { apiClient } from "@/api/client";
+import { apiClient } from "@/api/client"
+import { useAuth } from "@/hooks/use-auth"
+import { useQueryClient } from "@tanstack/react-query"
+import { Button } from "./ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 
 export function SettleUpModal({
   poolId,
   isOpen,
   setIsOpen,
 }: {
-  poolId: string;
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  poolId: string
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
 }) {
-  const queryClient = useQueryClient();
-  const { memberId, createAuthHeader } = useAuth();
+  const queryClient = useQueryClient()
+  const { memberId, createAuthHeader } = useAuth()
   const { mutateAsync: settleUpPool, isPending } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}/pools/{pool_id}/settle-up",
-  );
+    "/api/members/{member_id}/pools/{pool_id}/settle-up"
+  )
 
   if (!memberId) {
-    return null;
+    return null
   }
 
   return (
     <Dialog
       open={isOpen}
-      onOpenChange={(value) => {
-        setIsOpen(value);
+      onOpenChange={value => {
+        setIsOpen(value)
       }}
     >
       <DialogContent>
@@ -49,18 +49,18 @@ export function SettleUpModal({
                     },
                   },
                   headers: createAuthHeader(),
-                });
+                })
 
                 await queryClient.invalidateQueries({
                   queryKey: [
                     "get",
                     "/api/pools/{pool_id}/members/{member_id}/expenses",
                   ],
-                });
-                setIsOpen(false);
+                })
+                setIsOpen(false)
               } catch (error) {
-                console.error("Failed to settle up pool:", error);
-                alert("Failed to settle up pool. Please try again.");
+                console.error("Failed to settle up pool:", error)
+                alert("Failed to settle up pool. Please try again.")
               }
             }}
             disabled={isPending}
@@ -70,5 +70,5 @@ export function SettleUpModal({
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

@@ -5,16 +5,16 @@ import {
   rootRouteId,
   useMatch,
   useRouter,
-} from "@tanstack/react-router";
+} from "@tanstack/react-router"
 
 export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
-  const router = useRouter();
+  const router = useRouter()
   const isRoot = useMatch({
     strict: false,
-    select: (state) => state.id === rootRouteId,
-  });
+    select: state => state.id === rootRouteId,
+  })
 
-  console.error(error);
+  console.error(error)
 
   return (
     <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-6 p-4">
@@ -22,26 +22,26 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
       <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => {
-            router.invalidate();
+            router.invalidate()
           }}
-          className="rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg px-4 py-2 font-medium transition-colors"
         >
           Try Again
         </button>
         {isRoot ? (
           <Link
             to="/"
-            className="rounded-lg bg-secondary px-4 py-2 font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg px-4 py-2 font-medium transition-colors"
           >
             Home
           </Link>
         ) : (
           <Link
             to="/"
-            className="rounded-lg bg-secondary px-4 py-2 font-medium text-secondary-foreground hover:bg-secondary/80 transition-colors"
-            onClick={(e) => {
-              e.preventDefault();
-              window.history.back();
+            className="bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-lg px-4 py-2 font-medium transition-colors"
+            onClick={e => {
+              e.preventDefault()
+              window.history.back()
             }}
           >
             Go Back
@@ -49,5 +49,5 @@ export function DefaultCatchBoundary({ error }: ErrorComponentProps) {
         )}
       </div>
     </div>
-  );
+  )
 }

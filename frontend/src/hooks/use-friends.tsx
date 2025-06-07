@@ -1,11 +1,11 @@
-import { apiClient } from "@/api/client";
-import { useAuth } from "./use-auth";
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback } from "react";
+import { apiClient } from "@/api/client"
+import { useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
+import { useAuth } from "./use-auth"
 
 export const useFriends = () => {
-  const { memberId, createAuthHeader } = useAuth();
-  const queryClient = useQueryClient();
+  const { memberId, createAuthHeader } = useAuth()
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = apiClient.useQuery(
     "get",
@@ -18,8 +18,8 @@ export const useFriends = () => {
       },
       headers: createAuthHeader(),
     },
-    { enabled: !!memberId },
-  );
+    { enabled: !!memberId }
+  )
 
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
     apiClient.useQuery(
@@ -33,8 +33,8 @@ export const useFriends = () => {
       },
       {
         enabled: !!memberId,
-      },
-    );
+      }
+    )
 
   const { mutate: acceptFriendRequestMutation, isPending: isAccepting } =
     apiClient.useMutation(
@@ -44,13 +44,13 @@ export const useFriends = () => {
         onSuccess: () => {
           queryClient.invalidateQueries({
             queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-          });
+          })
           queryClient.invalidateQueries({
             queryKey: ["get", "/api/members/{member_id}/friends"],
-          });
+          })
         },
-      },
-    );
+      }
+    )
 
   const { mutate: deleteFriendRequestMutation, isPending: isDeleting } =
     apiClient.useMutation(
@@ -60,10 +60,10 @@ export const useFriends = () => {
         onSuccess: async () => {
           await queryClient.invalidateQueries({
             queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-          });
+          })
         },
-      },
-    );
+      }
+    )
 
   const acceptFriendRequest = useCallback(
     async (invitingMemberId: string) => {
@@ -75,10 +75,10 @@ export const useFriends = () => {
           },
         },
         headers: createAuthHeader(),
-      });
+      })
     },
-    [acceptFriendRequestMutation, memberId, createAuthHeader],
-  );
+    [acceptFriendRequestMutation, memberId, createAuthHeader]
+  )
 
   const deleteFriendRequest = useCallback(
     async (inviteeMemberId: string) => {
@@ -90,16 +90,16 @@ export const useFriends = () => {
           },
         },
         headers: createAuthHeader(),
-      });
+      })
     },
-    [deleteFriendRequestMutation, memberId, createAuthHeader],
-  );
+    [deleteFriendRequestMutation, memberId, createAuthHeader]
+  )
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
       queryKey: ["get", "/api/members/{member_id}/friends"],
-    });
-  };
+    })
+  }
 
   return {
     friends: data || [],
@@ -113,5 +113,5 @@ export const useFriends = () => {
       isAccepting,
       isDeleting,
     },
-  };
-};
+  }
+}
