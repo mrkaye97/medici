@@ -7,14 +7,10 @@ import { jwtDecode } from "jwt-decode";
 type DecodedToken =
   | {
       isAuthenticated: boolean;
-      issuedAt: Date;
-      expiresAt: Date;
       memberId: string;
     }
   | {
       isAuthenticated: false;
-      issuedAt: null;
-      expiresAt: null;
       memberId: null;
     };
 
@@ -22,8 +18,6 @@ const parseJWT = (token: string | null): DecodedToken => {
   if (!token) {
     return {
       isAuthenticated: false,
-      issuedAt: null,
-      expiresAt: null,
       memberId: null,
     };
   }
@@ -38,8 +32,6 @@ const parseJWT = (token: string | null): DecodedToken => {
     if (!iat || !exp || !memberId) {
       return {
         isAuthenticated: false,
-        issuedAt: null,
-        expiresAt: null,
         memberId: null,
       };
     }
@@ -47,24 +39,18 @@ const parseJWT = (token: string | null): DecodedToken => {
     if (exp && exp < new Date()) {
       return {
         isAuthenticated: false,
-        issuedAt: null,
-        expiresAt: null,
         memberId: null,
       };
     }
 
     return {
       isAuthenticated: true,
-      issuedAt: iat,
-      expiresAt: exp,
       memberId,
     };
   } catch (error) {
     console.error("Failed to decode JWT:", error);
     return {
       isAuthenticated: false,
-      issuedAt: null,
-      expiresAt: null,
       memberId: null,
     };
   }
