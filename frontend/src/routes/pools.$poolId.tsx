@@ -211,7 +211,11 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
     isDetailsLoading
 
   if (isLoading || isMembersLoading || !details || isBalancesLoading) {
-    return null
+    return (
+      <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
+        <Card className="border-border flex flex-col overflow-auto rounded-lg border shadow-sm md:flex-1 md:overflow-hidden"></Card>
+      </div>
+    )
   }
 
   return (
