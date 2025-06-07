@@ -1,5 +1,5 @@
 import { PoolSummary } from "@/components/pool-summay";
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { apiClient } from "@/api/client";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
@@ -42,7 +42,7 @@ function Home() {
     },
     {
       enabled: !!memberId,
-    }
+    },
   );
 
   const pools = data || [];
@@ -50,8 +50,85 @@ function Home() {
 
   if (isLoading || isFetching) {
     return (
-      <div className="flex flex-col items-center">
-        <Spinner className="mt-8" />
+      <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh bg-background">
+        <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-6">
+          <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm border border-border rounded-lg">
+            <CardHeader className="pb-4 flex-shrink-0 bg-card rounded-t-lg">
+              <div className="flex justify-between items-center mb-6 gap-4">
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                  <Skeleton className="h-8 w-32" />
+                </div>
+                <Skeleton className="h-10 w-32 rounded-lg" />
+              </div>
+              <Skeleton className="h-6 w-40" />
+            </CardHeader>
+
+            <CardContent className="flex-1 overflow-auto px-6 pb-6">
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <Card key={i} className="overflow-hidden border">
+                    <CardHeader className="bg-muted/30 pb-2">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-2">
+                          <Skeleton className="h-5 w-40" />
+                          <Skeleton className="h-4 w-56" />
+                        </div>
+                        <Skeleton className="h-6 w-20 rounded-full" />
+                      </div>
+                    </CardHeader>
+                    <CardContent className="py-4">
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <Skeleton className="h-4 w-24" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-3 w-full" />
+                          <Skeleton className="h-3 w-3/4" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+
+            <CardFooter className="pt-4 border-t border-border flex-shrink-0">
+              <Skeleton className="h-4 w-32" />
+            </CardFooter>
+          </Card>
+        </div>
+
+        <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-6 border-l border-border">
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-16" />
+              <Skeleton className="h-8 w-24 rounded-lg" />
+            </div>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <Skeleton className="h-8 w-20 rounded-lg" />
+                <Skeleton className="h-8 w-20 rounded-lg" />
+                <Skeleton className="h-8 w-20 rounded-lg" />
+              </div>
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-3 p-3 rounded-lg border"
+                  >
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

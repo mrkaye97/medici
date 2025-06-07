@@ -11,7 +11,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { ChevronDown, ChevronRight, Calendar, ScrollText } from "lucide-react";
 import { AddExpenseModal } from "./add-expense-modal";
-import { Spinner } from "./ui/spinner";
+import { Skeleton } from "./ui/skeleton";
 import { Expense, formatCurrency, formatDate } from "./expense";
 import { Link } from "@tanstack/react-router";
 import { SettleUpModal } from "./settle-up-modal";
@@ -32,9 +32,52 @@ export function PoolSummary({ poolId }: { poolId: string }) {
   });
   if (isDetailsLoading || !details || isExpensesLoading) {
     return (
-      <div className="flex flex-col items-center">
-        <Spinner className="mt-8" />
-      </div>
+      <Card className="overflow-hidden border">
+        <CardHeader className="bg-muted/30 pb-2">
+          <div className="flex justify-between items-start">
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-56" />
+            </div>
+            <Skeleton className="h-6 w-20 rounded-full" />
+          </div>
+        </CardHeader>
+        <CardContent className="py-4">
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-8 w-20 rounded-lg" />
+            </div>
+
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="flex justify-between items-center p-3 bg-muted/30 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-4 w-4" />
+                    <div>
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-4 w-16" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="pt-4 border-t border-border">
+          <div className="flex justify-between items-center w-full">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          </div>
+        </CardFooter>
+      </Card>
     );
   }
 

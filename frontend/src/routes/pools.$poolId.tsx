@@ -1,4 +1,4 @@
-import { Spinner } from "@/components/ui/spinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import {
   AddExpenseModal,
@@ -64,7 +64,7 @@ function Pool() {
   return (
     <div className="flex flex-col md:flex-row overflow-auto md:overflow-hidden md:h-dvh bg-background">
       <ExpensesPane poolId={poolId} />
-      <PoolDetailsPane memberId={memberId} poolId={poolId} />
+      <PoolDetailsPaneWrapper memberId={memberId} poolId={poolId} />
     </div>
   );
 }
@@ -72,6 +72,26 @@ function Pool() {
 type PoolPaneProps = {
   memberId: string;
   poolId: string;
+};
+
+const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
+  const { details, isBalancesLoading, isDetailsLoading, isMembersLoading } =
+    usePool({
+      poolId,
+    });
+
+  const isLoading =
+    isMembersLoading || isDetailsLoading || isBalancesLoading || !details;
+
+  if (isLoading) {
+    return (
+      <div className="md:w-[500px] bg-card flex flex-col h-full overflow-auto md:overflow-hidden py-6 px-6 border-l border-border">
+        <PoolDetailsPaneSkeleton />
+      </div>
+    );
+  }
+
+  return <PoolDetailsPane memberId={memberId} poolId={poolId} />;
 };
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
@@ -111,7 +131,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       isSettled: showSettled,
       paidByMemberId: selectedMemberId,
     }),
-    [selectedCategory, showSettled, selectedMemberId]
+    [selectedCategory, showSettled, selectedMemberId],
   );
 
   const {
@@ -141,7 +161,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
         name: expense.name,
         description: expense.description || "",
         notes: expense.notes || "",
-      }))
+      })),
     );
 
     return m;
@@ -169,11 +189,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
     isDetailsLoading;
 
   if (isLoading || isMembersLoading || !details || isBalancesLoading) {
-    return (
-      <div className="flex flex-col items-center">
-        <Spinner className="mt-8" />
-      </div>
-    );
+    return <ExpensesPaneSkeleton />;
   }
 
   return (
@@ -332,7 +348,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                   </SelectItem>
                   {members
                     .sort((a, b) =>
-                      a.member.first_name.localeCompare(b.member.first_name)
+                      a.member.first_name.localeCompare(b.member.first_name),
                     )
                     .map((member) => (
                       <SelectItem
@@ -434,7 +450,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 
       if (isValid && memberId) {
         await mutations.modifyDefaultSplit(
-          maybeModifiedDefaultSplitPercentages
+          maybeModifiedDefaultSplitPercentages,
         );
 
         setMaybeModifiedDefaultSplitPercentages([]);
@@ -471,7 +487,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
         ) : (
           members
             .sort((a, b) =>
-              a.member.first_name.localeCompare(b.member.first_name)
+              a.member.first_name.localeCompare(b.member.first_name),
             )
             .map((member) => (
               <Card key={member.member.id} className="p-3">
@@ -535,7 +551,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                           className="max-w-20"
                           value={
                             maybeModifiedDefaultSplitPercentages.find(
-                              (m) => m.member_id === member.member.id
+                              (m) => m.member_id === member.member.id,
                             )?.split_percentage ||
                             member.pool_membership.default_split_percentage
                           }
@@ -555,7 +571,7 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                                   return {
                                     member_id: f.member_id,
                                     split_percentage: parseFloat(
-                                      e.target.value
+                                      e.target.value,
                                     ),
                                   };
                                 } else {
@@ -641,8 +657,31 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
 
   if (isLoading || !details) {
     return (
-      <div className="flex flex-col items-center">
-        <Spinner className="mt-8" />
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-5 w-5" />
+            <Skeleton className="h-5 w-16" />
+          </div>
+          <Skeleton className="h-8 w-20 rounded-lg" />
+        </div>
+
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="p-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <Skeleton className="h-4 w-24 mb-1" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-5 w-12" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
@@ -723,5 +762,163 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
         </div>
       )}
     </div>
+  );
+};
+
+// Skeleton loading components
+const ExpensesPaneSkeleton = () => {
+  return (
+    <div className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col py-6 px-6">
+      <Card className="md:flex-1 overflow-auto md:overflow-hidden flex flex-col shadow-sm border border-border rounded-lg">
+        <CardHeader className="pb-4 flex-shrink-0 bg-card rounded-t-lg">
+          <div className="flex md:flex-row flex-col justify-between items-center mb-6 gap-y-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-24" />
+              </div>
+              <Skeleton className="h-10 w-64" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-5 w-5" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+            </div>
+            <Skeleton className="h-10 w-32 rounded-lg" />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-6 w-6" />
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-6 w-20 rounded-full" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch mt-4">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-full md:w-[200px]" />
+            <Skeleton className="h-10 w-full md:w-[200px]" />
+          </div>
+        </CardHeader>
+
+        <CardContent className="px-4 pb-4 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-4 mt-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="p-4 border rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                      <Skeleton className="h-5 w-32 mb-1" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Skeleton className="h-5 w-16 mb-1" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const PoolDetailsPaneSkeleton = () => {
+  return (
+    <>
+      <div className="mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Skeleton className="h-6 w-6" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+        <Skeleton className="h-4 w-48" />
+      </div>
+
+      <div className="space-y-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-5 w-16" />
+            </div>
+            <Skeleton className="h-8 w-20 rounded-lg" />
+          </div>
+
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-4">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <Skeleton className="h-4 w-24 mb-1" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-5 w-12" />
+                    <Skeleton className="h-8 w-8 rounded-lg" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <Skeleton className="h-5 w-20" />
+          <div className="grid grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <Card key={i} className="p-4 text-center">
+                <Skeleton className="h-8 w-8 mx-auto mb-2" />
+                <Skeleton className="h-4 w-16 mx-auto" />
+              </Card>
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+
+          <div className="space-y-2">
+            {[1, 2, 3].map((i) => (
+              <Card key={i} className="p-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <div>
+                      <Skeleton className="h-4 w-24 mb-1" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
   );
 };
