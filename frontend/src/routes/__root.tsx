@@ -9,6 +9,7 @@ import {
 import { DefaultCatchBoundary } from "@/components/error-boundary";
 import { NotFound } from "@/components/not-found";
 import * as React from "react";
+import { AuthProvider } from "@/hooks/use-auth";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -41,9 +42,11 @@ export const Route = createRootRouteWithContext<{
 function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
   return (
     <>
-      {props.children}
-      <ReactQueryDevtools buttonPosition="bottom-left" />
-      <Scripts />
+      <AuthProvider>
+        {props.children}
+        <ReactQueryDevtools buttonPosition="bottom-left" />
+        <Scripts />
+      </AuthProvider>
     </>
   );
 }
