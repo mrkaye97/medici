@@ -1225,6 +1225,10 @@ export interface operations {
         is_settled: boolean;
         /** @description Filter expenses by the member who paid */
         paid_by_member_id?: string;
+        /** @description Filter expenses since a specific date */
+        since?: string;
+        /** @description Filter expenses until a specific date */
+        until?: string;
       };
       header?: never;
       path: {

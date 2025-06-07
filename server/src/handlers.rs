@@ -1372,6 +1372,8 @@ pub struct RecentExpensesQuery {
     category: Option<ExpenseCategory>,
     is_settled: bool,
     paid_by_member_id: Option<uuid::Uuid>,
+    since: Option<chrono::DateTime<Utc>>,
+    until: Option<chrono::DateTime<Utc>>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1389,7 +1391,9 @@ pub struct RecentExpensesPath {
         ("category" = Option<ExpenseCategory>, Query, description = "Filter expenses by category"),
         ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned"),
         ("is_settled" = bool, Query, description = "Filter expenses by settle status"),
-        ("paid_by_member_id" = Option<uuid::Uuid>, Query, description = "Filter expenses by the member who paid")
+        ("paid_by_member_id" = Option<uuid::Uuid>, Query, description = "Filter expenses by the member who paid"),
+        ("since" = Option<chrono::DateTime<Utc>>, Query, description = "Filter expenses since a specific date"),
+        ("until" = Option<chrono::DateTime<Utc>>, Query, description = "Filter expenses until a specific date"),
     ),
     responses(
         (status = 200, description = "Create expense", body = Vec<RecentExpenseDetails>),
@@ -1408,6 +1412,10 @@ pub async fn get_pool_recent_expenses_handler(
         .start(tracer);
 
     let limit = query.limit.unwrap_or(5);
+    let since = query
+        .since
+        .unwrap_or_else(|| Utc::now() - chrono::Duration::days(30));
+    let until = query.until.unwrap_or_else(|| Utc::now());
 
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
@@ -1426,6 +1434,8 @@ pub async fn get_pool_recent_expenses_handler(
             query.category,
             query.paid_by_member_id,
             query.is_settled,
+            since,
+            until,
         )
         .expect("Failed to get recent expenses")
     })

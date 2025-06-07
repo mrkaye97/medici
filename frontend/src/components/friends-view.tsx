@@ -361,7 +361,7 @@ export const FriendsView = () => {
                     onClick={() => {
                       logout();
                     }}
-                    className="w-full justify-center border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                    className="w-full justify-center border-destructive/20 text-destructive hover:bg-destructive hover:text-black hover:border-destructive"
                   >
                     <LogOut className="size-4 mr-2" />
                     Log Out

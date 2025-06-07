@@ -11,6 +11,8 @@ export type ExpensesListProps = {
   category?: ExpenseCategory;
   isSettled?: boolean;
   paidByMemberId?: string;
+  since?: Date | undefined;
+  until?: Date | undefined;
 };
 
 export const usePool = ({
@@ -74,6 +76,12 @@ export const usePool = ({
           category: expenseOptions?.category,
           is_settled: expenseOptions?.isSettled ?? false,
           paid_by_member_id: expenseOptions?.paidByMemberId,
+          since: expenseOptions?.since
+            ? expenseOptions.since.toISOString()
+            : undefined,
+          until: expenseOptions?.until
+            ? expenseOptions.until.toISOString()
+            : undefined,
         },
       },
       headers: createAuthHeader(),

@@ -604,6 +604,8 @@ impl Expense {
         expense_category: Option<ExpenseCategory>,
         paying_member_id: Option<uuid::Uuid>,
         is_settled: bool,
+        since: DateTime<Utc>,
+        until: DateTime<Utc>,
     ) -> QueryResult<Vec<(Self, f64)>> {
         let mut query = expense::table
             .inner_join(
@@ -614,6 +616,8 @@ impl Expense {
             )
             .filter(expense::pool_id.eq(pool_id))
             .filter(expense::is_settled.eq(is_settled))
+            .filter(expense::inserted_at.le(until))
+            .filter(expense::inserted_at.ge(since))
             .into_boxed();
 
         if let Some(value) = expense_category {

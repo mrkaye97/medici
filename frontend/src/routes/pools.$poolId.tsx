@@ -47,6 +47,7 @@ import {
 import { components } from "schema";
 import { ExpensesListProps, usePool } from "@/hooks/use-pool";
 import MiniSearch from "minisearch";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -113,10 +114,19 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   );
 };
 
+type TimeRange = {
+  since: Date;
+  until: Date | undefined;
+};
+
 const ExpensesPane = ({ poolId }: { poolId: string }) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>();
   const [selectedMemberId, setSelectedMemberId] = useState<string>();
+  const [selectedTimeRange, setSelectedTimeRange] = useState<TimeRange>({
+    since: new Date(new Date().setMonth(new Date().getMonth() - 1)),
+    until: new Date(),
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [showSettled, setShowSettled] = useState(false);
 
@@ -125,8 +135,16 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
       category: selectedCategory,
       isSettled: showSettled,
       paidByMemberId: selectedMemberId,
+      since: selectedTimeRange.since,
+      until: selectedTimeRange.until,
     }),
-    [selectedCategory, showSettled, selectedMemberId],
+    [
+      selectedCategory,
+      showSettled,
+      selectedMemberId,
+      selectedTimeRange.since,
+      selectedTimeRange.until,
+    ],
   );
 
   const {
@@ -281,7 +299,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                 }}
                 defaultValue="all"
               >
-                <SelectTrigger className="w-full md:w-[200px] bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-200 h-full">
+                <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border/50">
@@ -325,7 +343,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                 }}
                 defaultValue="all"
               >
-                <SelectTrigger className="w-full md:w-[200px] bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all duration-200 h-full">
+                <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border/50">
@@ -360,6 +378,22 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                     ))}
                 </SelectContent>
               </Select>
+
+              <DateRangePicker
+                onUpdate={(values) => {
+                  const { from, to } = values.range;
+
+                  setSelectedTimeRange({
+                    since: from,
+                    until: to,
+                  });
+                }}
+                initialDateFrom={selectedTimeRange.since}
+                initialDateTo={selectedTimeRange.until}
+                align="start"
+                locale="en-US"
+                showCompare={false}
+              />
             </div>
           </div>
         </CardHeader>
