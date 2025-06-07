@@ -220,6 +220,7 @@ export const FriendsView = () => {
                                   request.member.id,
                                 );
                               }}
+                              aria-label={`Decline friend request from ${request.member.first_name} ${request.member.last_name}`}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -232,6 +233,7 @@ export const FriendsView = () => {
                                 );
                               }}
                               disabled={mutations.isAccepting}
+                              aria-label={`Accept friend request from ${request.member.first_name} ${request.member.last_name}`}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -280,6 +282,7 @@ export const FriendsView = () => {
                                   request.member.id,
                                 );
                               }}
+                              aria-label={`Cancel friend request to ${request.member.first_name} ${request.member.last_name}`}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -345,6 +348,7 @@ export const FriendsView = () => {
                       }
                     }}
                     disabled={isPending}
+                    aria-label="Save Venmo handle"
                   >
                     <Save className="size-4" />
                   </Button>
@@ -356,7 +360,7 @@ export const FriendsView = () => {
                 onClick={() => {
                   logout();
                 }}
-                className="w-full justify-center border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive hover:text-black"
+                className="w-full justify-center border-destructive/20 text-destructive hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
               >
                 <LogOut className="size-4 mr-2" />
                 Log Out

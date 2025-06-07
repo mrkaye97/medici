@@ -654,7 +654,7 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                       <img
                         src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
                         className="size-8 rounded-lg"
-                        alt="Pay with Venmo"
+                        alt={`${balance.type === "inbound" ? "Request payment from" : "Pay"} ${balance.name} using Venmo`}
                       />
                     </a>
                   )}

@@ -551,11 +551,12 @@ export function AddExpenseModal({
                     form.reset();
                     resetSplitAmounts();
                   },
+                  onError: (error) => {
+                    console.error("Failed to add expense:", error);
+                    alert("Failed to add expense. Please try again.");
+                  },
                 },
               );
-
-              form.reset();
-              resetSplitAmounts();
             })}
             className="space-y-6"
           >

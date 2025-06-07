@@ -106,6 +106,7 @@ export function Expense({ expense }: { expense: Expense }) {
                 });
               }}
               disabled={isPending}
+              aria-label={`Delete expense: ${expense.name}`}
             >
               <X className="size-4" />
             </Button>

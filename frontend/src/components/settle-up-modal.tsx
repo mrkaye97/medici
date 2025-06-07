@@ -15,7 +15,7 @@ export function SettleUpModal({
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutateAsync: settleUpPool } = apiClient.useMutation(
+  const { mutateAsync: settleUpPool, isPending } = apiClient.useMutation(
     "patch",
     "/api/members/{member_id}/pools/{pool_id}/settle-up",
   );
@@ -40,26 +40,32 @@ export function SettleUpModal({
           Clicking here will confirm your pool is all settled up.
           <Button
             onClick={async () => {
-              await settleUpPool({
-                params: {
-                  path: {
-                    member_id: memberId,
-                    pool_id: poolId,
+              try {
+                await settleUpPool({
+                  params: {
+                    path: {
+                      member_id: memberId,
+                      pool_id: poolId,
+                    },
                   },
-                },
-                headers: createAuthHeader(),
-              });
+                  headers: createAuthHeader(),
+                });
 
-              await queryClient.invalidateQueries({
-                queryKey: [
-                  "get",
-                  "/api/pools/{pool_id}/members/{member_id}/expenses",
-                ],
-              });
-              setIsOpen(false);
+                await queryClient.invalidateQueries({
+                  queryKey: [
+                    "get",
+                    "/api/pools/{pool_id}/members/{member_id}/expenses",
+                  ],
+                });
+                setIsOpen(false);
+              } catch (error) {
+                console.error("Failed to settle up pool:", error);
+                alert("Failed to settle up pool. Please try again.");
+              }
             }}
+            disabled={isPending}
           >
-            Confirm
+            {isPending ? "Confirming..." : "Confirm"}
           </Button>
         </div>
       </DialogContent>

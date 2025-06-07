@@ -32,7 +32,7 @@ export function CreatePoolModal({
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutateAsync: createPool } = apiClient.useMutation(
+  const { mutateAsync: createPool, isPending } = apiClient.useMutation(
     "post",
     "/api/members/{member_id}/pools",
   );
@@ -67,25 +67,30 @@ export function CreatePoolModal({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async (data) => {
-              await createPool({
-                body: {
-                  name: data.poolName,
-                  description: data.poolDescription,
-                },
-                params: {
-                  path: {
-                    member_id: memberId,
+              try {
+                await createPool({
+                  body: {
+                    name: data.poolName,
+                    description: data.poolDescription,
                   },
-                },
-                headers: createAuthHeader(),
-              });
+                  params: {
+                    path: {
+                      member_id: memberId,
+                    },
+                  },
+                  headers: createAuthHeader(),
+                });
 
-              await queryClient.invalidateQueries({
-                queryKey: ["get", "/api/members/{member_id}/pools"],
-              });
+                await queryClient.invalidateQueries({
+                  queryKey: ["get", "/api/members/{member_id}/pools"],
+                });
 
-              setIsOpen(false);
-              form.reset();
+                setIsOpen(false);
+                form.reset();
+              } catch (error) {
+                console.error("Failed to create pool:", error);
+                alert("Failed to create pool. Please try again.");
+              }
             })}
             className="space-y-6"
           >
@@ -125,7 +130,9 @@ export function CreatePoolModal({
               )}
             />
 
-            <Button type="submit">Create Pool</Button>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Creating..." : "Create Pool"}
+            </Button>
           </form>
         </Form>
       </DialogContent>

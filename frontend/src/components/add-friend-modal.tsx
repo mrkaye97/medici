@@ -31,7 +31,7 @@ export function AddFriendModal({
 }) {
   const queryClient = useQueryClient();
   const { memberId, createAuthHeader } = useAuth();
-  const { mutateAsync: createFriendRequest } = apiClient.useMutation(
+  const { mutateAsync: createFriendRequest, isPending } = apiClient.useMutation(
     "post",
     "/api/members/{member_id}/friend-requests",
   );
@@ -65,24 +65,29 @@ export function AddFriendModal({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async (data) => {
-              await createFriendRequest({
-                body: {
-                  friend_email: data.email,
-                },
-                params: {
-                  path: {
-                    member_id: memberId,
+              try {
+                await createFriendRequest({
+                  body: {
+                    friend_email: data.email,
                   },
-                },
-                headers: createAuthHeader(),
-              });
+                  params: {
+                    path: {
+                      member_id: memberId,
+                    },
+                  },
+                  headers: createAuthHeader(),
+                });
 
-              await queryClient.invalidateQueries({
-                queryKey: ["get", "/api/members/{member_id}/friend-requests"],
-              });
+                await queryClient.invalidateQueries({
+                  queryKey: ["get", "/api/members/{member_id}/friend-requests"],
+                });
 
-              setIsOpen(false);
-              form.reset();
+                setIsOpen(false);
+                form.reset();
+              } catch (error) {
+                console.error("Failed to send friend request:", error);
+                alert("Failed to send friend request. Please try again.");
+              }
             })}
             className="space-y-6"
           >
@@ -104,8 +109,8 @@ export function AddFriendModal({
               )}
             />
 
-            <Button type="submit" className="w-full">
-              Send friend request
+            <Button type="submit" className="w-full" disabled={isPending}>
+              {isPending ? "Sending..." : "Send friend request"}
             </Button>
           </form>
         </Form>
