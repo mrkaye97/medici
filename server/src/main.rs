@@ -1,18 +1,31 @@
 use axum::{Json, routing::get};
+use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use tracing_subscriber;
+use tracing_subscriber::{self, prelude::*};
 
 mod handlers;
 use handlers::{MaybeTracerProvider, handlers_routes, init_tracer_provider};
 
+use crate::handlers::init_logger_provider;
+
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt::init();
     let _ = dotenvy::dotenv();
 
-    let provider = init_tracer_provider().expect("Failed to initialize tracer provider");
+    let tracer_provider = init_tracer_provider().expect("Failed to initialize tracer provider");
+    let logger_provider = init_logger_provider().expect("Failed to initialize logger provider");
+    let otel_log_layer = OpenTelemetryTracingBridge::new(&logger_provider);
+
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_file(true)
+                .with_line_number(true),
+        )
+        .with(otel_log_layer)
+        .init();
 
     let (router, openapi) = handlers_routes().split_for_parts();
 
@@ -30,7 +43,7 @@ async fn main() {
             .await
             .expect("Failed to install CTRL+C signal handler");
 
-        match provider {
+        match tracer_provider {
             MaybeTracerProvider::Sdk(sdk_provider) => {
                 let shutdown_result =
                     tokio::task::spawn_blocking(move || sdk_provider.shutdown()).await;

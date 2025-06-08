@@ -23,8 +23,9 @@ use opentelemetry::KeyValue;
 use opentelemetry::global::{self, BoxedTracer};
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer};
-use opentelemetry_otlp::{Protocol, WithExportConfig};
+use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
 use opentelemetry_sdk::Resource;
+use opentelemetry_sdk::logs::{BatchLogProcessor, SdkLoggerProvider};
 use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracerProvider};
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
@@ -87,7 +88,7 @@ pub fn init_tracer_provider()
 
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
         .with_http()
-        .with_protocol(Protocol::HttpJson)
+        .with_protocol(Protocol::Grpc)
         .with_endpoint(exporter_url)
         .with_timeout(BuiltInDuration::from_secs(10))
         .build()?;
@@ -108,6 +109,29 @@ pub fn init_tracer_provider()
     global::set_tracer_provider(tracer_provider.clone());
 
     Ok(MaybeTracerProvider::Sdk(tracer_provider))
+}
+
+pub fn init_logger_provider()
+-> Result<SdkLoggerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or_default();
+
+    if exporter_endpoint.is_empty() {
+        return Err("OTEL_EXPORTER_OTLP_ENDPOINT not set".into());
+    }
+
+    let log_exporter = LogExporter::builder()
+        .with_http()
+        .with_endpoint(format!("{}/v1/logs", exporter_endpoint))
+        .with_timeout(BuiltInDuration::from_secs(10))
+        .build()?;
+
+    // Create logger provider with batch processor
+    let logger_provider = SdkLoggerProvider::builder()
+        .with_resource(get_resource()) // Use your existing resource function
+        .with_log_processor(BatchLogProcessor::builder(log_exporter).build())
+        .build();
+
+    Ok(logger_provider)
 }
 
 fn hash_password(password: &str) -> String {
