@@ -174,6 +174,8 @@ pub fn compute_balances_for_member(
     member_id: uuid::Uuid,
     expenses: Vec<models::DebtPair>,
 ) -> Vec<models::Balance> {
+    tracing::info!("Computing simplified balances for member: {}", member_id);
+
     if expenses.is_empty() {
         return Vec::new();
     }
