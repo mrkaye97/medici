@@ -3,7 +3,7 @@ use opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tower_http::cors::CorsLayer;
-use tracing_subscriber::{self, prelude::*};
+use tracing_subscriber::{self, EnvFilter, prelude::*};
 
 mod handlers;
 use handlers::{MaybeTracerProvider, handlers_routes, init_tracer_provider};
@@ -19,6 +19,7 @@ async fn main() {
     let otel_log_layer = OpenTelemetryTracingBridge::new(&logger_provider);
 
     tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
         .with(
             tracing_subscriber::fmt::layer()
                 .with_file(true)
