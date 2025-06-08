@@ -21,6 +21,7 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, deco
 use once_cell::sync::Lazy;
 use opentelemetry::KeyValue;
 use opentelemetry::global::{self, BoxedTracer};
+use opentelemetry::logs::NoopLoggerProvider;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer};
 use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
@@ -111,12 +112,18 @@ pub fn init_tracer_provider()
     Ok(MaybeTracerProvider::Sdk(tracer_provider))
 }
 
+pub enum MaybeLoggerProvider {
+    Sdk(SdkLoggerProvider),
+    Noop(NoopLoggerProvider),
+}
+
 pub fn init_logger_provider()
--> Result<SdkLoggerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or_default();
+-> Result<MaybeLoggerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or("".to_string());
 
     if exporter_endpoint.is_empty() {
-        return Err("OTEL_EXPORTER_OTLP_ENDPOINT not set".into());
+        let no_op_provider = NoopLoggerProvider::new();
+        return Ok(MaybeLoggerProvider::Noop(no_op_provider));
     }
 
     let log_exporter = LogExporter::builder()
@@ -131,7 +138,7 @@ pub fn init_logger_provider()
         .with_log_processor(BatchLogProcessor::builder(log_exporter).build())
         .build();
 
-    Ok(logger_provider)
+    Ok(MaybeLoggerProvider::Sdk(logger_provider))
 }
 
 fn hash_password(password: &str) -> String {

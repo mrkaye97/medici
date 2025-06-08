@@ -8,7 +8,7 @@ use tracing_subscriber::{self, EnvFilter, prelude::*};
 mod handlers;
 use handlers::{MaybeTracerProvider, handlers_routes, init_tracer_provider};
 
-use crate::handlers::init_logger_provider;
+use crate::handlers::{MaybeLoggerProvider, init_logger_provider};
 
 #[tokio::main]
 async fn main() {
@@ -16,17 +16,25 @@ async fn main() {
 
     let tracer_provider = init_tracer_provider().expect("Failed to initialize tracer provider");
     let logger_provider = init_logger_provider().expect("Failed to initialize logger provider");
-    let otel_log_layer = OpenTelemetryTracingBridge::new(&logger_provider);
 
-    tracing_subscriber::registry()
-        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
-        .with(
-            tracing_subscriber::fmt::layer()
-                .with_file(true)
-                .with_line_number(true),
-        )
-        .with(otel_log_layer)
-        .init();
+    match logger_provider {
+        MaybeLoggerProvider::Sdk(sdk_provider) => {
+            let otel_log_layer = OpenTelemetryTracingBridge::new(&sdk_provider);
+
+            tracing_subscriber::registry()
+                .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info")))
+                .with(
+                    tracing_subscriber::fmt::layer()
+                        .with_file(true)
+                        .with_line_number(true),
+                )
+                .with(otel_log_layer)
+                .init();
+        }
+        MaybeLoggerProvider::Noop(_) => {
+            tracing::info!("No-op logger provider initialized");
+        }
+    }
 
     let (router, openapi) = handlers_routes().split_for_parts();
 
