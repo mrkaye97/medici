@@ -472,8 +472,6 @@ export function BaseExpenseModal({
     return null
   }
 
-  console.log(form.getValues("splitMethod"))
-
   return (
     <Dialog
       open={isOpen}
