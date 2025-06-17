@@ -1,5 +1,5 @@
 import { apiClient } from "@/api/client"
-import { ExpenseCategory, ExpenseIcon } from "@/components/add-expense-modal"
+import { ExpenseCategory, ExpenseIcon } from "@/components/expense-modals"
 import { useAuth } from "@/hooks/use-auth"
 import { usePool } from "@/hooks/use-pool"
 import { useQueryClient } from "@tanstack/react-query"

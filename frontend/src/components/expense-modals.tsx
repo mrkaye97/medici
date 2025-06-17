@@ -35,7 +35,7 @@ import {
 } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { components } from "schema"
+import { components, paths } from "schema"
 import { z } from "zod"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
@@ -60,11 +60,8 @@ import {
 } from "./ui/select"
 import { Textarea } from "./ui/textarea"
 
-enum SplitMethodType {
-  Percentage = "percentage",
-  Amount = "amount",
-  Default = "default",
-}
+type SplitMethod = components["schemas"]["SplitMethod"]
+const splitMethods = ["Default", "Amount", "Percentage"] as SplitMethod[]
 
 export type ExpenseCategory = components["schemas"]["ExpenseCategory"]
 
@@ -232,21 +229,19 @@ export const ExpenseIcon = ({
   return categoryToIcon({ category, size })
 }
 
-const splitMethodType = Object.values(SplitMethodType)
-
-function typeToLabelAndIcon(type: SplitMethodType) {
+function typeToLabelAndIcon(type: SplitMethod) {
   switch (type) {
-    case SplitMethodType.Default:
+    case "Default":
       return {
         label: "Split by default",
         icon: <Pin className="size-4" />,
       }
-    case SplitMethodType.Amount:
+    case "Amount":
       return {
         label: "Split by dollar amounts",
         icon: <CircleDollarSign className="size-4" />,
       }
-    case SplitMethodType.Percentage:
+    case "Percentage":
       return {
         label: "Split by percentages",
         icon: <CirclePercent className="size-4" />,
@@ -258,18 +253,18 @@ function typeToLabelAndIcon(type: SplitMethodType) {
 }
 
 type SplitMethodProps = {
-  value: SplitMethodType
-  setValue: (value: SplitMethodType) => void
+  value: SplitMethod
+  setValue: (value: SplitMethod) => void
 }
 
 export function SplitMethod({ value, setValue }: SplitMethodProps) {
   return (
     <div className="flex flex-col gap-y-2">
       <RadioGroup value={value} onValueChange={setValue}>
-        {splitMethodType
+        {splitMethods
           .sort((a, b) => {
-            if (a === SplitMethodType.Default) return -1
-            if (b === SplitMethodType.Default) return 1
+            if (a === "Default") return -1
+            if (b === "Default") return 1
             return a.localeCompare(b)
           })
           .map(t => {
@@ -296,18 +291,37 @@ export function SplitMethod({ value, setValue }: SplitMethodProps) {
 const expenseSchema = z.object({
   expenseName: z.string().min(1, "Required"),
   amount: z.coerce.number().positive("Must be greater than 0"),
-  category: z.string(),
+  category: z.enum([
+    "FoodDining",
+    "Groceries",
+    "Transportation",
+    "HousingRent",
+    "Utilities",
+    "Healthcare",
+    "Entertainment",
+    "Shopping",
+    "Education",
+    "Travel",
+    "PersonalCare",
+    "Fitness",
+    "Subscriptions",
+    "BillsPayments",
+    "BusinessExpenses",
+    "Investments",
+    "Insurance",
+    "Gifts",
+    "Charity",
+    "Miscellaneous",
+    "HomeHouseholdSupplies",
+    "Childcare",
+    "Pets",
+    "ProfessionalServices",
+    "Taxes",
+  ]),
   description: z.string().optional(),
-  splitMethod: z.enum(
-    [
-      SplitMethodType.Amount,
-      SplitMethodType.Percentage,
-      SplitMethodType.Default,
-    ],
-    {
-      errorMap: () => ({ message: "Required" }),
-    }
-  ),
+  splitMethod: z.enum(["Amount", "Percentage", "Default"], {
+    errorMap: () => ({ message: "Required" }),
+  }),
   paidByMemberId: z.string().min(1, "Required"),
 })
 
@@ -319,36 +333,44 @@ type SplitAmount = {
 }
 
 type SplitState = {
-  splitMethod: SplitMethodType
+  splitMethod: SplitMethod
   splitAmounts: SplitAmount[]
 }
 
 type Pool = components["schemas"]["PoolDetails"]
 
+type Members =
+  paths["/api/members/{member_id}/pools/{pool_id}/members"]["get"]["responses"]["200"]["content"]["application/json"]
+
 export function round(num: number) {
   return Number(num.toFixed(2))
 }
 
-export function AddExpenseModal({
+export function BaseExpenseModal({
   pool,
   isOpen,
   setIsOpen,
+  onSubmit,
+  isSubmitPending,
+  defaultValues,
 }: {
   pool: Pool
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
+  onSubmit: (
+    formData: ExpenseFormValues,
+    splitAmounts: SplitState,
+    members: Members
+  ) => Promise<{ success: boolean; error?: string }>
+  isSubmitPending: boolean
+  defaultValues?: ExpenseFormValues
 }) {
-  const queryClient = useQueryClient()
-  const { memberId, createAuthHeader } = useAuth()
-  const { mutateAsync: addExpense, isPending } = apiClient.useMutation(
-    "post",
-    "/api/pools/{pool_id}/expenses"
-  )
-
+  const { memberId } = useAuth()
   const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id })
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [splitAmounts, setSplitAmounts] = useState<SplitState>({
-    splitMethod: SplitMethodType.Default,
+    splitMethod: "Default",
     splitAmounts: members.map(member => ({
       memberId: member.member.id,
       amount: round(100 / members.length),
@@ -357,7 +379,7 @@ export function AddExpenseModal({
 
   const resetSplitAmounts = useCallback(() => {
     setSplitAmounts({
-      splitMethod: SplitMethodType.Default,
+      splitMethod: "Default",
       splitAmounts: members.map(member => ({
         memberId: member.member.id,
         amount: round(100 / members.length),
@@ -367,25 +389,19 @@ export function AddExpenseModal({
 
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: {
+    defaultValues: defaultValues || {
       expenseName: "",
       amount: 0,
       category: "Miscellaneous",
       description: undefined,
-      splitMethod: SplitMethodType.Default,
+      splitMethod: "Default",
       paidByMemberId: memberId || "",
     },
   })
 
   const handleUpdateSplitAmounts = useCallback(
-    ({
-      splitMethod,
-      total,
-    }: {
-      splitMethod: SplitMethodType
-      total: number
-    }) => {
-      if (splitMethod === SplitMethodType.Percentage) {
+    ({ splitMethod, total }: { splitMethod: SplitMethod; total: number }) => {
+      if (splitMethod === "Percentage") {
         setSplitAmounts(() => {
           const newAmounts = members.map(member => ({
             memberId: member.member.id,
@@ -399,7 +415,7 @@ export function AddExpenseModal({
         })
       }
 
-      if (splitMethod === SplitMethodType.Amount) {
+      if (splitMethod === "Amount") {
         setSplitAmounts(() => {
           const newAmounts = members.map(member => ({
             memberId: member.member.id,
@@ -413,7 +429,7 @@ export function AddExpenseModal({
         })
       }
 
-      if (splitMethod === SplitMethodType.Default) {
+      if (splitMethod === "Default") {
         setSplitAmounts(() => {
           const newAmounts = members.map(member => {
             const splitPct = member.pool_membership.default_split_percentage
@@ -438,7 +454,6 @@ export function AddExpenseModal({
 
   useEffect(() => {
     const splitMethod = form.getValues("splitMethod")
-
     handleUpdateSplitAmounts({
       splitMethod,
       total: watchedAmount,
@@ -468,92 +483,15 @@ export function AddExpenseModal({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(async data => {
-              const memberLineItemAmounts = splitAmounts.splitAmounts.map(a => {
-                const member = members.find(m => m.member.id === a.memberId)
-
-                if (!member) {
-                  throw new Error(
-                    `Member with id ${a.memberId} not found in pool`
-                  )
-                }
-
-                const amount =
-                  splitAmounts.splitMethod === SplitMethodType.Percentage
-                    ? (a.amount / 100) * data.amount
-                    : splitAmounts.splitMethod === SplitMethodType.Amount
-                      ? a.amount
-                      : (member.pool_membership.default_split_percentage /
-                          100) *
-                        data.amount
-
-                return {
-                  debtor_member_id: a.memberId,
-                  amount,
-                }
-              })
-
-              const total = memberLineItemAmounts.reduce(
-                (acc, item) => acc + item.amount,
-                0
-              )
-
-              const roundingError = Math.abs(total - data.amount)
-              const n = memberLineItemAmounts.length
-              const maxRoundingError =
-                Math.abs(n * round(data.amount / n) - data.amount) + 0.01
-
-              if (roundingError < maxRoundingError) {
-                memberLineItemAmounts.forEach((item, ix) => {
-                  if (ix === 0) {
-                    item.amount += roundingError
-                  }
-                })
+              setSubmitError(null)
+              const result = await onSubmit(data, splitAmounts, members)
+              if (result.success) {
+                resetSplitAmounts()
+                form.reset()
+                setIsOpen(false)
+              } else {
+                setSubmitError(result.error || "An unexpected error occurred")
               }
-
-              if (total !== data.amount && roundingError > maxRoundingError) {
-                alert(
-                  `Total amount (${data.amount}) does not match split amounts (${total})`
-                )
-                return
-              }
-
-              await addExpense(
-                {
-                  body: {
-                    paid_by_member_id: data.paidByMemberId,
-                    pool_id: pool.id,
-                    name: data.expenseName,
-                    amount: round(data.amount),
-                    line_items: memberLineItemAmounts,
-                    description: data.description,
-                    category: data.category,
-                  },
-                  params: {
-                    path: {
-                      pool_id: pool.id,
-                    },
-                  },
-                  headers: createAuthHeader(),
-                },
-                {
-                  onSuccess: async () => {
-                    setIsOpen(false)
-                    await queryClient.invalidateQueries({
-                      queryKey: [
-                        "get",
-                        "/api/pools/{pool_id}/members/{member_id}/expenses",
-                      ],
-                    })
-
-                    form.reset()
-                    resetSplitAmounts()
-                  },
-                  onError: error => {
-                    console.error("Failed to add expense:", error)
-                    alert("Failed to add expense. Please try again.")
-                  },
-                }
-              )
             })}
             className="space-y-6"
           >
@@ -732,10 +670,15 @@ export function AddExpenseModal({
                                     )?.amount
                                   }
                                   onChange={e => {
-                                    handleUpdateSplitAmounts({
-                                      splitMethod: splitAmounts.splitMethod,
-                                      total: parseFloat(e.target.value),
-                                    })
+                                    const newAmount = parseFloat(e.target.value) || 0
+                                    setSplitAmounts(prev => ({
+                                      ...prev,
+                                      splitAmounts: prev.splitAmounts.map(split =>
+                                        split.memberId === m.member.id
+                                          ? { ...split, amount: newAmount }
+                                          : split
+                                      )
+                                    }))
                                   }}
                                   className="w-32"
                                 />
@@ -750,12 +693,287 @@ export function AddExpenseModal({
               )}
             />
 
-            <Button type="submit" disabled={isPending}>
+            {submitError && (
+              <div className="rounded-md bg-red-50 p-4">
+                <div className="text-sm text-red-700">{submitError}</div>
+              </div>
+            )}
+
+            <Button type="submit" disabled={isSubmitPending}>
               Submit Expense
             </Button>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
+  )
+}
+
+export function AddExpenseModal({
+  pool,
+  isOpen,
+  setIsOpen,
+}: {
+  pool: Pool
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
+}) {
+  const { createAuthHeader } = useAuth()
+  const queryClient = useQueryClient()
+  const { mutateAsync: addExpense, isPending } = apiClient.useMutation(
+    "post",
+    "/api/pools/{pool_id}/expenses"
+  )
+
+  const onSubmit = useCallback(
+    async (
+      data: ExpenseFormValues,
+      splitAmounts: SplitState,
+      members: Members
+    ): Promise<{ success: boolean; error?: string }> => {
+      const memberLineItemAmounts = splitAmounts.splitAmounts.map(a => {
+        const member = members.find(m => m.member.id === a.memberId)
+
+        if (!member) {
+          throw new Error(`Member with id ${a.memberId} not found in pool`)
+        }
+
+        const amount =
+          splitAmounts.splitMethod === "Percentage"
+            ? (a.amount / 100) * data.amount
+            : splitAmounts.splitMethod === "Amount"
+              ? a.amount
+              : (member.pool_membership.default_split_percentage / 100) *
+                data.amount
+
+        return {
+          debtor_member_id: a.memberId,
+          amount,
+        }
+      })
+
+      const total = memberLineItemAmounts.reduce(
+        (acc, item) => acc + item.amount,
+        0
+      )
+
+      const roundingError = Math.abs(total - data.amount)
+      const n = memberLineItemAmounts.length
+      const maxRoundingError =
+        Math.abs(n * round(data.amount / n) - data.amount) + 0.01
+
+      if (roundingError < maxRoundingError) {
+        memberLineItemAmounts.forEach((item, ix) => {
+          if (ix === 0) {
+            item.amount += roundingError
+          }
+        })
+      }
+
+      if (total !== data.amount && roundingError > maxRoundingError) {
+        return {
+          success: false,
+          error: `Total amount (${data.amount}) does not match split amounts (${total})`
+        }
+      }
+
+      try {
+        await addExpense(
+          {
+            body: {
+              paid_by_member_id: data.paidByMemberId,
+              pool_id: pool.id,
+              name: data.expenseName,
+              amount: round(data.amount),
+              line_items: memberLineItemAmounts,
+              description: data.description,
+              category: data.category,
+              split_method: data.splitMethod,
+            },
+            params: {
+              path: {
+                pool_id: pool.id,
+              },
+            },
+            headers: createAuthHeader(),
+          }
+        )
+
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/pools/{pool_id}/members/{member_id}/expenses",
+          ],
+        })
+
+        return { success: true }
+      } catch (error) {
+        console.error("Failed to add expense:", error)
+        return {
+          success: false,
+          error: "Failed to add expense. Please try again."
+        }
+      }
+    },
+    [addExpense, pool.id, queryClient, createAuthHeader]
+  )
+
+  return (
+    <BaseExpenseModal
+      pool={pool}
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      onSubmit={onSubmit}
+      isSubmitPending={isPending}
+    />
+  )
+}
+
+export function UpdateExpenseModal({
+  pool,
+  expenseId,
+  isOpen,
+  setIsOpen,
+}: {
+  pool: Pool
+  expenseId: string
+  isOpen: boolean
+  setIsOpen: (isOpen: boolean) => void
+}) {
+  const { createAuthHeader, memberId } = useAuth()
+  const queryClient = useQueryClient()
+
+  const { data: expense, isLoading } = apiClient.useQuery(
+    "get",
+    "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    {
+      params: {
+        path: {
+          member_id: memberId || "",
+          pool_id: pool.id,
+          expense_id: expenseId,
+        },
+      },
+    },
+    {
+      enabled: !!memberId && isOpen,
+    }
+  )
+  const { mutateAsync: updateExpense, isPending } = apiClient.useMutation(
+    "patch",
+    "/api/pools/{pool_id}/expenses/{expense_id}"
+  )
+
+  const onSubmit = useCallback(
+    async (
+      data: ExpenseFormValues,
+      splitAmounts: SplitState,
+      members: Members
+    ): Promise<{ success: boolean; error?: string }> => {
+      const memberLineItemAmounts = splitAmounts.splitAmounts.map(a => {
+        const member = members.find(m => m.member.id === a.memberId)
+
+        if (!member) {
+          throw new Error(`Member with id ${a.memberId} not found in pool`)
+        }
+
+        const amount =
+          splitAmounts.splitMethod === "Percentage"
+            ? (a.amount / 100) * data.amount
+            : splitAmounts.splitMethod === "Amount"
+              ? a.amount
+              : (member.pool_membership.default_split_percentage / 100) *
+                data.amount
+
+        return {
+          debtor_member_id: a.memberId,
+          amount,
+        }
+      })
+
+      const total = memberLineItemAmounts.reduce(
+        (acc, item) => acc + item.amount,
+        0
+      )
+
+      const roundingError = Math.abs(total - data.amount)
+      const n = memberLineItemAmounts.length
+      const maxRoundingError =
+        Math.abs(n * round(data.amount / n) - data.amount) + 0.01
+
+      if (roundingError < maxRoundingError) {
+        memberLineItemAmounts.forEach((item, ix) => {
+          if (ix === 0) {
+            item.amount += roundingError
+          }
+        })
+      }
+
+      if (total !== data.amount && roundingError > maxRoundingError) {
+        return {
+          success: false,
+          error: `Total amount (${data.amount}) does not match split amounts (${total})`
+        }
+      }
+
+      try {
+        await updateExpense(
+          {
+            body: {
+              name: data.expenseName,
+              amount: round(data.amount),
+              line_items: memberLineItemAmounts,
+              description: data.description,
+              category: data.category,
+            },
+            params: {
+              path: {
+                pool_id: pool.id,
+                expense_id: expenseId,
+              },
+            },
+            headers: createAuthHeader(),
+          }
+        )
+
+        await queryClient.invalidateQueries({
+          queryKey: [
+            "get",
+            "/api/pools/{pool_id}/members/{member_id}/expenses",
+          ],
+        })
+
+        return { success: true }
+      } catch (error) {
+        console.error("Failed to update expense:", error)
+        return {
+          success: false,
+          error: "Failed to update expense. Please try again."
+        }
+      }
+    },
+    [updateExpense, pool.id, queryClient, createAuthHeader, expenseId]
+  )
+
+  if (isLoading || !expense) {
+    return null
+  }
+
+  return (
+    <BaseExpenseModal
+      pool={pool}
+      isOpen={isOpen}
+      setIsOpen={setIsOpen}
+      onSubmit={onSubmit}
+      isSubmitPending={isPending}
+      defaultValues={{
+        amount: expense.amount,
+        category: expense.category,
+        description: expense.description || "",
+        expenseName: expense.name,
+        paidByMemberId: expense.paid_by_member_id,
+        splitMethod: expense.split_method,
+      }}
+    />
   )
 }

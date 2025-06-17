@@ -1,11 +1,11 @@
+import { Expense, formatCurrency } from "@/components/expense"
 import {
   AddExpenseModal,
   categoryToDisplayName,
   expenseCategories,
   ExpenseCategory,
   round,
-} from "@/components/add-expense-modal"
-import { Expense, formatCurrency } from "@/components/expense"
+} from "@/components/expense-modals"
 import { SettleUpModal } from "@/components/settle-up-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"

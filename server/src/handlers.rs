@@ -31,8 +31,8 @@ use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracer
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
 use server::models::{
-    self, Expense, ExpenseCategory, Friendship, Member, MemberChangeset, MemberPassword, NewPool,
-    PoolMembership,
+    self, Expense, ExpenseCategory, Friendship, Member, MemberChangeset, MemberPassword,
+    NewExpenseLineItem, NewPool, PoolMembership, SplitMethod,
 };
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
@@ -301,8 +301,9 @@ pub struct ExpenseInput {
     name: String,
     amount: f64,
     line_items: Vec<ExpenseLineItem>,
-    category: String,
+    category: ExpenseCategory,
     description: Option<String>,
+    split_method: SplitMethod,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1145,33 +1146,8 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
         paid_by_member_id: input.paid_by_member_id,
         description: input.description,
         notes: None,
-        category: match input.category.as_str() {
-            "FoodDining" => models::ExpenseCategory::FoodDining,
-            "Groceries" => models::ExpenseCategory::Groceries,
-            "Transportation" => models::ExpenseCategory::Transportation,
-            "HousingRent" => models::ExpenseCategory::HousingRent,
-            "Utilities" => models::ExpenseCategory::Utilities,
-            "Healthcare" => models::ExpenseCategory::Healthcare,
-            "Entertainment" => models::ExpenseCategory::Entertainment,
-            "Shopping" => models::ExpenseCategory::Shopping,
-            "Education" => models::ExpenseCategory::Education,
-            "Travel" => models::ExpenseCategory::Travel,
-            "PersonalCare" => models::ExpenseCategory::PersonalCare,
-            "Fitness" => models::ExpenseCategory::Fitness,
-            "Subscriptions" => models::ExpenseCategory::Subscriptions,
-            "BillsPayments" => models::ExpenseCategory::BillsPayments,
-            "BusinessExpenses" => models::ExpenseCategory::BusinessExpenses,
-            "Investments" => models::ExpenseCategory::Investments,
-            "Insurance" => models::ExpenseCategory::Insurance,
-            "Gifts" => models::ExpenseCategory::Gifts,
-            "Charity" => models::ExpenseCategory::Charity,
-            "HomeHouseholdSupplies" => models::ExpenseCategory::HomeHouseholdSupplies,
-            "Pets" => models::ExpenseCategory::Pets,
-            "Taxes" => models::ExpenseCategory::Taxes,
-            "Childcare" => models::ExpenseCategory::Childcare,
-            "ProfessionalServices" => models::ExpenseCategory::ProfessionalServices,
-            _ => models::ExpenseCategory::Miscellaneous,
-        },
+        category: input.category,
+        split_method: input.split_method,
     };
 
     let debtor_member_ids: Vec<uuid::Uuid> = input
@@ -1197,6 +1173,100 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Json<models
     span.end();
 
     Json(expense)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateExpenseInput {
+    name: Option<String>,
+    amount: Option<f64>,
+    line_items: Option<Vec<ExpenseLineItem>>,
+    category: Option<ExpenseCategory>,
+    description: Option<String>,
+    is_settled: Option<bool>,
+    split_method: Option<SplitMethod>,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateExpensePath {
+    pool_id: uuid::Uuid,
+    expense_id: uuid::Uuid,
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/pools/{pool_id}/expenses/{expense_id}",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to update expense for"),
+        ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to update")
+    ),
+    request_body = UpdateExpenseInput,
+    responses(
+        (status = 200, description = "Create expense", body = Expense),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn update_expense_handler(
+    Path(path): Path<UpdateExpensePath>,
+    Json(input): Json<UpdateExpenseInput>,
+) -> Json<models::Expense> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("update_expense_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
+    span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let result = conn
+        .build_transaction()
+        .run(|tx| {
+            let changeset = models::ExpenseChangeset {
+                name: input.name,
+                amount: input.amount,
+                is_settled: input.is_settled,
+                description: input.description,
+                notes: None,
+                category: input.category,
+                split_method: input.split_method,
+            };
+
+            let updated_expense = Expense::update(tx, &path.expense_id, &changeset);
+
+            let _ = models::ExpenseLineItem::delete_by_expense_id(tx, path.expense_id);
+
+            if input.line_items.is_some() {
+                let mut new_line_items: Vec<NewExpenseLineItem> = Vec::new();
+
+                for line_item in input.line_items.as_ref().unwrap() {
+                    let line_item = NewExpenseLineItem {
+                        expense_id: path.expense_id,
+                        is_settled: false,
+                        amount: line_item.amount,
+                        debtor_member_id: line_item.debtor_member_id,
+                    };
+
+                    new_line_items.push(line_item);
+                }
+
+                let _ = models::ExpenseLineItem::bulk_create(tx, &new_line_items);
+            };
+
+            return updated_expense;
+        })
+        .map_err(|e| {
+            eprintln!("Transaction failed: {}", e);
+            diesel::result::Error::RollbackTransaction
+        });
+
+    span.end();
+
+    Json(result.expect("Failed to update expense"))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -1756,6 +1826,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(modify_default_splits_handler))
         .routes(routes!(delete_expense_handler))
         .routes(routes!(update_member_handler))
+        .routes(routes!(update_expense_handler))
         .route_layer(middleware::from_fn(auth_middleware))
         .route_layer(middleware::from_fn(trace_middleware));
 

@@ -1,5 +1,5 @@
 import { apiClient } from "@/api/client"
-import { ExpenseCategory } from "@/components/add-expense-modal"
+import { ExpenseCategory } from "@/components/expense-modals"
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback, useMemo } from "react"
 import { components } from "schema"

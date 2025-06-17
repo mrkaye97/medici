@@ -38,6 +38,19 @@ pub enum FriendshipStatus {
     diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
 )]
 #[db_enum(
+    existing_type_path = "crate::schema::sql_types::SplitMethod",
+    value_style = "snake_case"
+)]
+pub enum SplitMethod {
+    Percentage,
+    Amount,
+    Default,
+}
+
+#[derive(
+    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
+)]
+#[db_enum(
     existing_type_path = "crate::schema::sql_types::ExpenseCategory",
     value_style = "snake_case"
 )]
@@ -183,6 +196,7 @@ pub struct Expense {
     pub description: Option<String>,
     pub notes: Option<String>,
     pub category: ExpenseCategory,
+    pub split_method: SplitMethod,
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
@@ -196,6 +210,7 @@ pub struct NewExpense {
     pub description: Option<String>,
     pub notes: Option<String>,
     pub category: ExpenseCategory,
+    pub split_method: SplitMethod,
 }
 
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
@@ -207,6 +222,7 @@ pub struct ExpenseChangeset {
     pub description: Option<String>,
     pub notes: Option<String>,
     pub category: Option<ExpenseCategory>,
+    pub split_method: Option<SplitMethod>,
 }
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
@@ -681,6 +697,19 @@ impl Expense {
         return Ok(result);
     }
 
+    pub fn update(
+        conn: &mut PgConnection,
+        expense_id: &uuid::Uuid,
+        new_expense: &ExpenseChangeset,
+    ) -> QueryResult<Self> {
+        let expense = diesel::update(expense::table)
+            .filter(expense::id.eq(expense_id))
+            .set(new_expense)
+            .get_result(conn)?;
+
+        return Ok(expense);
+    }
+
     pub fn list_unpaid_for_balance_computation(
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
@@ -717,6 +746,38 @@ impl ExpenseLineItem {
         diesel::insert_into(expense_line_item::table)
             .values(new_line_item)
             .get_result(conn)
+    }
+
+    pub fn bulk_create(
+        conn: &mut PgConnection,
+        new_line_items: &[NewExpenseLineItem],
+    ) -> QueryResult<Vec<Self>> {
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let mut line_items = Vec::new();
+            for line_item in new_line_items {
+                let line_item = NewExpenseLineItem {
+                    expense_id: line_item.expense_id,
+                    is_settled: false,
+                    amount: line_item.amount,
+                    debtor_member_id: line_item.debtor_member_id,
+                };
+
+                let created_item = ExpenseLineItem::create(conn, &line_item)?;
+                line_items.push(created_item);
+            }
+
+            Ok(line_items)
+        })
+    }
+
+    pub fn delete_by_expense_id(
+        conn: &mut PgConnection,
+        expense_id: uuid::Uuid,
+    ) -> QueryResult<usize> {
+        diesel::delete(
+            expense_line_item::table.filter(expense_line_item::expense_id.eq(expense_id)),
+        )
+        .execute(conn)
     }
 
     pub fn find_for_expense(

@@ -228,6 +228,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/pools/{pool_id}/expenses/{expense_id}": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch: operations["update_expense_handler"]
+    trace?: never
+  }
   "/api/pools/{pool_id}/members": {
     parameters: {
       query?: never
@@ -368,6 +384,7 @@ export interface components {
       paid_by_member_id: string
       /** Format: uuid */
       pool_id: string
+      split_method: components["schemas"]["SplitMethod"]
       /** Format: date-time */
       updated_at: string
     }
@@ -401,7 +418,7 @@ export interface components {
     ExpenseInput: {
       /** Format: double */
       amount: number
-      category: string
+      category: components["schemas"]["ExpenseCategory"]
       description?: string | null
       line_items: components["schemas"]["ExpenseLineItem"][]
       name: string
@@ -409,6 +426,7 @@ export interface components {
       paid_by_member_id: string
       /** Format: uuid */
       pool_id: string
+      split_method: components["schemas"]["SplitMethod"]
     }
     ExpenseLineItem: {
       /** Format: double */
@@ -513,6 +531,18 @@ export interface components {
       first_name: string
       last_name: string
       password: string
+    }
+    /** @enum {string} */
+    SplitMethod: "Percentage" | "Amount" | "Default"
+    UpdateExpenseInput: {
+      /** Format: double */
+      amount?: number | null
+      category?: null | components["schemas"]["ExpenseCategory"]
+      description?: string | null
+      is_settled?: boolean | null
+      line_items?: components["schemas"]["ExpenseLineItem"][] | null
+      name?: string | null
+      split_method?: null | components["schemas"]["SplitMethod"]
     }
   }
   responses: never
@@ -1095,6 +1125,42 @@ export interface operations {
     requestBody: {
       content: {
         "application/json": components["schemas"]["ExpenseInput"]
+      }
+    }
+    responses: {
+      /** @description Create expense */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["Expense"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  update_expense_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description ID of the pool to update expense for */
+        pool_id: string
+        /** @description ID of the expense to update */
+        expense_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["UpdateExpenseInput"]
       }
     }
     responses: {

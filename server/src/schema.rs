@@ -12,11 +12,16 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "pool_role"))]
     pub struct PoolRole;
+
+    #[derive(diesel::query_builder::QueryId, Clone, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "split_method"))]
+    pub struct SplitMethod;
 }
 
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ExpenseCategory;
+    use super::sql_types::SplitMethod;
 
     expense (id, is_settled) {
         id -> Uuid,
@@ -30,6 +35,7 @@ diesel::table! {
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        split_method -> SplitMethod,
     }
 }
 
@@ -48,6 +54,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ExpenseCategory;
+    use super::sql_types::SplitMethod;
 
     expense_p_is_settled_false (id, is_settled) {
         id -> Uuid,
@@ -61,12 +68,14 @@ diesel::table! {
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        split_method -> SplitMethod,
     }
 }
 
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::ExpenseCategory;
+    use super::sql_types::SplitMethod;
 
     expense_p_is_settled_true (id, is_settled) {
         id -> Uuid,
@@ -80,6 +89,7 @@ diesel::table! {
         description -> Nullable<Text>,
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
+        split_method -> SplitMethod,
     }
 }
 
