@@ -372,7 +372,6 @@ export function BaseExpenseModal({
   const { memberId } = useAuth()
   const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id })
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const [isResettingForm, setIsResettingForm] = useState(false)
 
   const [splitAmounts, setSplitAmounts] = useState<SplitState>(
     defaultSplitAmounts || {
@@ -407,20 +406,6 @@ export function BaseExpenseModal({
       paidByMemberId: memberId || "",
     },
   })
-
-  useEffect(() => {
-    if (defaultValues) {
-      setIsResettingForm(true)
-      form.reset(defaultValues)
-      setTimeout(() => setIsResettingForm(false), 0)
-    }
-  }, [defaultValues, form])
-
-  useEffect(() => {
-    if (defaultSplitAmounts) {
-      setSplitAmounts(defaultSplitAmounts)
-    }
-  }, [defaultSplitAmounts])
 
   const handleUpdateSplitAmounts = useCallback(
     ({ splitMethod, total }: { splitMethod: SplitMethod; total: number }) => {
@@ -476,18 +461,18 @@ export function BaseExpenseModal({
   const watchedAmount = form.watch("amount")
 
   useEffect(() => {
-    if (!isResettingForm) {
-      const splitMethod = form.getValues("splitMethod")
-      handleUpdateSplitAmounts({
-        splitMethod,
-        total: watchedAmount,
-      })
-    }
-  }, [watchedAmount, form, handleUpdateSplitAmounts, isResettingForm])
+    const splitMethod = form.getValues("splitMethod")
+    handleUpdateSplitAmounts({
+      splitMethod,
+      total: watchedAmount,
+    })
+  }, [watchedAmount, form, handleUpdateSplitAmounts])
 
   if (!members.length || isLoading) {
     return null
   }
+
+  console.log(form.getValues("splitMethod"))
 
   return (
     <Dialog
@@ -511,10 +496,11 @@ export function BaseExpenseModal({
             onSubmit={form.handleSubmit(async data => {
               setSubmitError(null)
               const result = await onSubmit(data, splitAmounts, members)
+
               if (result.success) {
+                setIsOpen(false)
                 resetSplitAmounts()
                 form.reset()
-                setIsOpen(false)
               } else {
                 setSubmitError(result.error || "An unexpected error occurred")
               }
@@ -962,19 +948,20 @@ export function UpdateExpenseModal({
           headers: createAuthHeader(),
         })
 
-        await queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/pools/{pool_id}/members/{member_id}/expenses",
-          ],
-        })
-
-        await queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
-          ],
-        })
+        await Promise.all([
+          queryClient.invalidateQueries({
+            queryKey: [
+              "get",
+              "/api/pools/{pool_id}/members/{member_id}/expenses",
+            ],
+          }),
+          queryClient.invalidateQueries({
+            queryKey: [
+              "get",
+              "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+            ],
+          }),
+        ])
 
         return { success: true }
       } catch (error) {

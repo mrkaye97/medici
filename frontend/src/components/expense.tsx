@@ -167,12 +167,14 @@ export function Expense({ expense }: { expense: Expense }) {
         </div>
       </div>
 
-      <UpdateExpenseModal
-        pool={pool}
-        expenseId={expense.id}
-        isOpen={isUpdateModalOpen}
-        setIsOpen={setIsUpdateModalOpen}
-      />
+      {isUpdateModalOpen && (
+        <UpdateExpenseModal
+          pool={pool}
+          expenseId={expense.id}
+          isOpen={isUpdateModalOpen}
+          setIsOpen={setIsUpdateModalOpen}
+        />
+      )}
     </div>
   )
 }

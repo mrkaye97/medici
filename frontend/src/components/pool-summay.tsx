@@ -35,11 +35,13 @@ export function PoolSummary({ poolId }: { poolId: string }) {
 
   return (
     <>
-      <AddExpenseModal
-        pool={details}
-        isOpen={isAddExpenseModalOpen}
-        setIsOpen={setIsAddExpenseModalOpen}
-      />
+      {isAddExpenseModalOpen && (
+        <AddExpenseModal
+          pool={details}
+          isOpen={isAddExpenseModalOpen}
+          setIsOpen={setIsAddExpenseModalOpen}
+        />
+      )}
       <SettleUpModal
         poolId={poolId}
         isOpen={isSettleUpModalOpen}

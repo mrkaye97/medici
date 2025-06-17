@@ -212,11 +212,13 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
 
   return (
     <ExpensesPaneLayout>
-      <AddExpenseModal
-        isOpen={isAddExpenseModalOpen}
-        setIsOpen={setIsAddExpenseModalOpen}
-        pool={details}
-      />
+      {isAddExpenseModalOpen && (
+        <AddExpenseModal
+          isOpen={isAddExpenseModalOpen}
+          setIsOpen={setIsAddExpenseModalOpen}
+          pool={details}
+        />
+      )}
       <CardHeader className="bg-card flex-shrink-0 rounded-t-lg pb-4">
         <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row">
           <div className="flex flex-col gap-3">
