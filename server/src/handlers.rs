@@ -936,13 +936,13 @@ pub struct ExpensePath {
         ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to fetch")
     ),
     responses(
-        (status = 200, description = "Get expenses", body = models::Expense),
+        (status = 200, description = "Get expenses", body = models::ExpenseWithLineItems),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn get_expense_handler(
     Path(path): Path<ExpensePath>,
-) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<models::ExpenseWithLineItems>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -959,7 +959,7 @@ pub async fn get_expense_handler(
         .expect("Failed to get database connection");
 
     let expense = tokio::task::spawn_blocking(move || {
-        models::Expense::find(
+        models::Expense::find_with_line_items(
             &mut conn,
             path.expense_id,
             path.member_id,
@@ -967,7 +967,7 @@ pub async fn get_expense_handler(
             false,
         )
         .or_else(|_| {
-            models::Expense::find(
+            models::Expense::find_with_line_items(
                 &mut conn,
                 path.expense_id,
                 path.member_id,

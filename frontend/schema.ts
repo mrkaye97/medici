@@ -434,6 +434,27 @@ export interface components {
       /** Format: uuid */
       debtor_member_id: string
     }
+    ExpenseWithLineItems: {
+      /** Format: double */
+      amount: number
+      category: components["schemas"]["ExpenseCategory"]
+      description?: string | null
+      /** Format: uuid */
+      id: string
+      /** Format: date-time */
+      inserted_at: string
+      is_settled: boolean
+      line_items: components["schemas"]["ExpenseLineItem"][]
+      name: string
+      notes?: string | null
+      /** Format: uuid */
+      paid_by_member_id: string
+      /** Format: uuid */
+      pool_id: string
+      split_method: components["schemas"]["SplitMethod"]
+      /** Format: date-time */
+      updated_at: string
+    }
     FriendRequestInput: {
       friend_email: string
     }
@@ -1002,7 +1023,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          "application/json": components["schemas"]["Expense"]
+          "application/json": components["schemas"]["ExpenseWithLineItems"]
         }
       }
       /** @description Internal server error */

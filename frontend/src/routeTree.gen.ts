@@ -10,67 +10,67 @@
 
 // Import Routes
 
-import { Route as rootRoute } from './routes/__root'
-import { Route as SignupImport } from './routes/signup'
-import { Route as LoginImport } from './routes/login'
-import { Route as IndexImport } from './routes/index'
-import { Route as PoolsPoolIdImport } from './routes/pools.$poolId'
+import { Route as rootRoute } from "./routes/__root"
+import { Route as IndexImport } from "./routes/index"
+import { Route as LoginImport } from "./routes/login"
+import { Route as PoolsPoolIdImport } from "./routes/pools.$poolId"
+import { Route as SignupImport } from "./routes/signup"
 
 // Create/Update Routes
 
 const SignupRoute = SignupImport.update({
-  id: '/signup',
-  path: '/signup',
+  id: "/signup",
+  path: "/signup",
   getParentRoute: () => rootRoute,
 } as any)
 
 const LoginRoute = LoginImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => rootRoute,
 } as any)
 
 const IndexRoute = IndexImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRoute,
 } as any)
 
 const PoolsPoolIdRoute = PoolsPoolIdImport.update({
-  id: '/pools/$poolId',
-  path: '/pools/$poolId',
+  id: "/pools/$poolId",
+  path: "/pools/$poolId",
   getParentRoute: () => rootRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
+    "/": {
+      id: "/"
+      path: "/"
+      fullPath: "/"
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
+    "/login": {
+      id: "/login"
+      path: "/login"
+      fullPath: "/login"
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    '/signup': {
-      id: '/signup'
-      path: '/signup'
-      fullPath: '/signup'
+    "/signup": {
+      id: "/signup"
+      path: "/signup"
+      fullPath: "/signup"
       preLoaderRoute: typeof SignupImport
       parentRoute: typeof rootRoute
     }
-    '/pools/$poolId': {
-      id: '/pools/$poolId'
-      path: '/pools/$poolId'
-      fullPath: '/pools/$poolId'
+    "/pools/$poolId": {
+      id: "/pools/$poolId"
+      path: "/pools/$poolId"
+      fullPath: "/pools/$poolId"
       preLoaderRoute: typeof PoolsPoolIdImport
       parentRoute: typeof rootRoute
     }
@@ -80,33 +80,33 @@ declare module '@tanstack/react-router' {
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/pools/$poolId': typeof PoolsPoolIdRoute
+  "/": typeof IndexRoute
+  "/login": typeof LoginRoute
+  "/signup": typeof SignupRoute
+  "/pools/$poolId": typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/pools/$poolId': typeof PoolsPoolIdRoute
+  "/": typeof IndexRoute
+  "/login": typeof LoginRoute
+  "/signup": typeof SignupRoute
+  "/pools/$poolId": typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  '/': typeof IndexRoute
-  '/login': typeof LoginRoute
-  '/signup': typeof SignupRoute
-  '/pools/$poolId': typeof PoolsPoolIdRoute
+  "/": typeof IndexRoute
+  "/login": typeof LoginRoute
+  "/signup": typeof SignupRoute
+  "/pools/$poolId": typeof PoolsPoolIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/signup' | '/pools/$poolId'
+  fullPaths: "/" | "/login" | "/signup" | "/pools/$poolId"
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/signup' | '/pools/$poolId'
-  id: '__root__' | '/' | '/login' | '/signup' | '/pools/$poolId'
+  to: "/" | "/login" | "/signup" | "/pools/$poolId"
+  id: "__root__" | "/" | "/login" | "/signup" | "/pools/$poolId"
   fileRoutesById: FileRoutesById
 }
 

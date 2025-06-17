@@ -199,6 +199,23 @@ pub struct Expense {
     pub split_method: SplitMethod,
 }
 
+#[derive(Debug, Serialize, Deserialize, ToSchema)]
+pub struct ExpenseWithLineItems {
+    pub id: uuid::Uuid,
+    pub name: String,
+    pub amount: f64,
+    pub is_settled: bool,
+    pub inserted_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub pool_id: uuid::Uuid,
+    pub paid_by_member_id: uuid::Uuid,
+    pub description: Option<String>,
+    pub notes: Option<String>,
+    pub category: ExpenseCategory,
+    pub split_method: SplitMethod,
+    pub line_items: Vec<ExpenseLineItem>,
+}
+
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
 #[diesel(table_name = expense)]
 pub struct NewExpense {
@@ -609,6 +626,33 @@ impl Expense {
         )
         .returning(expense::all_columns)
         .get_result(conn)
+    }
+
+    pub fn find_with_line_items(
+        conn: &mut PgConnection,
+        expense_id: uuid::Uuid,
+        member_id: uuid::Uuid,
+        pool_id: uuid::Uuid,
+        is_settled: bool,
+    ) -> QueryResult<ExpenseWithLineItems> {
+        let expense = Self::find(conn, expense_id, member_id, pool_id, is_settled)?;
+        let line_items = ExpenseLineItem::find_for_expense(conn, expense_id)?;
+        
+        Ok(ExpenseWithLineItems {
+            id: expense.id,
+            name: expense.name,
+            amount: expense.amount,
+            is_settled: expense.is_settled,
+            inserted_at: expense.inserted_at,
+            updated_at: expense.updated_at,
+            pool_id: expense.pool_id,
+            paid_by_member_id: expense.paid_by_member_id,
+            description: expense.description,
+            notes: expense.notes,
+            category: expense.category,
+            split_method: expense.split_method,
+            line_items,
+        })
     }
 
     pub fn get_recent_for_member_in_pool(

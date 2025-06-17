@@ -1,9 +1,14 @@
 import { apiClient } from "@/api/client"
-import { ExpenseCategory, ExpenseIcon } from "@/components/expense-modals"
+import {
+  ExpenseCategory,
+  ExpenseIcon,
+  UpdateExpenseModal,
+} from "@/components/expense-modals"
 import { useAuth } from "@/hooks/use-auth"
 import { usePool } from "@/hooks/use-pool"
 import { useQueryClient } from "@tanstack/react-query"
-import { X } from "lucide-react"
+import { Edit, X } from "lucide-react"
+import { useState } from "react"
 import { components } from "schema"
 import { cn } from "./lib/utils"
 import { Button } from "./ui/button"
@@ -27,9 +32,16 @@ type Expense = components["schemas"]["RecentExpenseDetails"]
 
 export function Expense({ expense }: { expense: Expense }) {
   const queryClient = useQueryClient()
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
 
   const { memberId, createAuthHeader } = useAuth()
-  const { members, isMembersLoading, invalidate } = usePool({
+  const {
+    members,
+    isMembersLoading,
+    invalidate,
+    details: pool,
+    isDetailsLoading,
+  } = usePool({
     poolId: expense.pool_id,
   })
   const { mutateAsync: deleteExpense, isPending } = apiClient.useMutation(
@@ -55,7 +67,7 @@ export function Expense({ expense }: { expense: Expense }) {
     }
   )
 
-  if (!members || isMembersLoading || !memberId) {
+  if (!members || isMembersLoading || !memberId || !pool || isDetailsLoading) {
     return (
       <div className="mt-4 flex w-full flex-1 gap-x-4 px-4">
         <div className="flex w-full flex-1 flex-col">
@@ -88,7 +100,16 @@ export function Expense({ expense }: { expense: Expense }) {
               </div>
             </div>
           </div>
-          <div className="flex flex-col-reverse items-end gap-x-2">
+          <div className="flex items-center gap-x-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+              onClick={() => setIsUpdateModalOpen(true)}
+              aria-label={`Edit expense: ${expense.name}`}
+            >
+              <Edit className="size-4" />
+            </Button>
             <Button
               size="sm"
               variant="ghost"
@@ -145,6 +166,13 @@ export function Expense({ expense }: { expense: Expense }) {
           </div>
         </div>
       </div>
+
+      <UpdateExpenseModal
+        pool={pool}
+        expenseId={expense.id}
+        isOpen={isUpdateModalOpen}
+        setIsOpen={setIsUpdateModalOpen}
+      />
     </div>
   )
 }
