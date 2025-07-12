@@ -637,7 +637,7 @@ impl Expense {
     ) -> QueryResult<ExpenseWithLineItems> {
         let expense = Self::find(conn, expense_id, member_id, pool_id, is_settled)?;
         let line_items = ExpenseLineItem::find_for_expense(conn, expense_id)?;
-        
+
         Ok(ExpenseWithLineItems {
             id: expense.id,
             name: expense.name,
@@ -670,7 +670,7 @@ impl Expense {
             .inner_join(
                 expense_line_item::table.on(expense::id
                     .eq(expense_line_item::expense_id)
-                    .and(expense::is_settled.eq(is_settled)) // <-- fix here
+                    .and(expense::is_settled.eq(is_settled))
                     .and(expense_line_item::debtor_member_id.eq(member_id))),
             )
             .filter(expense::pool_id.eq(pool_id))

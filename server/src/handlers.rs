@@ -1515,7 +1515,7 @@ pub async fn get_pool_recent_expenses_handler(
     let limit = query.limit.unwrap_or(5);
     let since = query
         .since
-        .unwrap_or_else(|| Utc::now() - chrono::Duration::days(30));
+        .unwrap_or_else(|| Utc::now() - chrono::Duration::days(365));
     let until = query.until.unwrap_or_else(|| Utc::now());
 
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
