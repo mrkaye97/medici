@@ -7,14 +7,12 @@ import { DefaultCatchBoundary } from "./components/error-boundary"
 import { NotFound } from "./components/not-found"
 import { routeTree } from "./routeTree.gen"
 
-const basePath = import.meta.env.VITE_BASE_PATH || "/"
-
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error: FetchError) => {
         if (error?.status === 401 || error?.status === 403) {
-          window.location.href = `${basePath}/login`
+          window.location.href = "/login"
           return false
         }
         return failureCount < 3
@@ -27,7 +25,6 @@ const router = createRouter({
   context: { queryClient },
   routeTree,
   defaultPreload: "intent",
-  basepath: basePath,
   defaultErrorComponent: DefaultCatchBoundary,
   defaultNotFoundComponent: () => <NotFound />,
   scrollRestoration: true,
