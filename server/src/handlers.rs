@@ -21,12 +21,11 @@ use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, deco
 use once_cell::sync::Lazy;
 use opentelemetry::KeyValue;
 use opentelemetry::global::{self, BoxedTracer};
-use opentelemetry::logs::NoopLoggerProvider;
 use opentelemetry::trace::noop::NoopTracerProvider;
 use opentelemetry::trace::{FutureExt, Span, SpanKind, Status, TraceContextExt, Tracer};
-use opentelemetry_otlp::{LogExporter, Protocol, WithExportConfig};
+use opentelemetry_otlp::tonic_types::metadata::MetadataMap;
+use opentelemetry_otlp::{Protocol, WithExportConfig, WithTonicConfig};
 use opentelemetry_sdk::Resource;
-use opentelemetry_sdk::logs::{BatchLogProcessor, SdkLoggerProvider};
 use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracerProvider};
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
@@ -79,6 +78,8 @@ pub enum MaybeTracerProvider {
 pub fn init_tracer_provider()
 -> Result<MaybeTracerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
     let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or("".to_string());
+    let authorization_header =
+        std::env::var("OTEL_EXPORTER_OTLP_AUTHORIZATION_HEADER").unwrap_or("".to_string());
 
     if exporter_endpoint.is_empty() {
         let no_op_provider = NoopTracerProvider::new();
@@ -87,11 +88,15 @@ pub fn init_tracer_provider()
 
     let exporter_url = format!("{}/v1/traces", exporter_endpoint);
 
+    let mut metadata = MetadataMap::new();
+    metadata.insert("authorization", authorization_header.parse().unwrap());
+
     let otlp_exporter = opentelemetry_otlp::SpanExporter::builder()
-        .with_http()
+        .with_tonic()
         .with_protocol(Protocol::Grpc)
         .with_endpoint(exporter_url)
         .with_timeout(BuiltInDuration::from_secs(10))
+        .with_metadata(metadata)
         .build()?;
 
     let batch_config = BatchConfigBuilder::default()
@@ -110,35 +115,6 @@ pub fn init_tracer_provider()
     global::set_tracer_provider(tracer_provider.clone());
 
     Ok(MaybeTracerProvider::Sdk(tracer_provider))
-}
-
-pub enum MaybeLoggerProvider {
-    Sdk(SdkLoggerProvider),
-    Noop(NoopLoggerProvider),
-}
-
-pub fn init_logger_provider()
--> Result<MaybeLoggerProvider, Box<dyn std::error::Error + Send + Sync + 'static>> {
-    let exporter_endpoint = std::env::var("OTEL_EXPORTER_OTLP_ENDPOINT").unwrap_or("".to_string());
-
-    if exporter_endpoint.is_empty() {
-        let no_op_provider = NoopLoggerProvider::new();
-        return Ok(MaybeLoggerProvider::Noop(no_op_provider));
-    }
-
-    let log_exporter = LogExporter::builder()
-        .with_http()
-        .with_endpoint(format!("{}/v1/logs", exporter_endpoint))
-        .with_timeout(BuiltInDuration::from_secs(10))
-        .build()?;
-
-    // Create logger provider with batch processor
-    let logger_provider = SdkLoggerProvider::builder()
-        .with_resource(get_resource()) // Use your existing resource function
-        .with_log_processor(BatchLogProcessor::builder(log_exporter).build())
-        .build();
-
-    Ok(MaybeLoggerProvider::Sdk(logger_provider))
 }
 
 fn hash_password(password: &str) -> String {
