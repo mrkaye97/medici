@@ -514,7 +514,24 @@ const PoolAnalytics = ({ poolId }: { poolId: string }) => {
               tickMargin={10}
               axisLine={false}
             />
-            <ChartTooltip content={<ChartTooltipContent />} />
+            <ChartTooltip
+              content={<ChartTooltipContent />}
+              labelClassName="flex flex-row ml-8 items-center"
+              formatter={(value, name, payload) => {
+                return (
+                  <div className="flex flex-row items-center justify-between w-full px-1 gap-x-2">
+                    <div className="flex flex-row gap-x-1 items-center">
+                      <span
+                        className="inline-block size-2 align-middle border border-black"
+                        style={{ backgroundColor: payload.payload.fill }}
+                      ></span>
+                      <span className="capitalize font-semibold">{name}</span>
+                    </div>
+                    <span>{formatCurrency(value as number)}</span>
+                  </div>
+                )
+              }}
+            />
             <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ChartContainer>
