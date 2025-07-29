@@ -10,6 +10,12 @@ import { SettleUpModal } from "@/components/settle-up-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -46,6 +52,7 @@ import {
 } from "lucide-react"
 import MiniSearch from "minisearch"
 import { useEffect, useMemo, useState } from "react"
+import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
 import { components } from "schema"
 
 export const Route = createFileRoute("/pools/$poolId")({
@@ -100,7 +107,7 @@ const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
 
 const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
   return (
-    <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 md:w-[400px] 2xl:w-[500px] md:overflow-hidden">
+    <div className="bg-card border-border flex h-dvh flex-col overflow-auto border-l px-6 py-6 md:w-[480px] 2xl:w-[560px] md:overflow-hidden scrollbar-none">
       <div className="mb-6">
         <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
           <DollarSign className="text-primary h-6 w-6" />
@@ -111,10 +118,10 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 overflow-auto h-full scrollbar-none">
         <PoolBalancesPane poolId={poolId} />
         <Separator />
-        <PoolStatistics poolId={poolId} />
+        <PoolAnalytics poolId={poolId} />
         <Separator />
         <PoolMemberManagementPane poolId={poolId} memberId={memberId} />
       </div>
@@ -236,6 +243,8 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
             <div className="text-muted-foreground flex items-center gap-2">
               <UsersRound className="text-primary h-5 w-5" />
               <span className="font-medium">{members.length} members</span>
+              <DollarSign className="text-primary h-5 w-5 ml-2" />
+              <span className="font-medium">{expenses.length} expenses</span>
               {details.role === "ADMIN" && (
                 <Badge
                   variant="outline"
@@ -420,29 +429,95 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   )
 }
 
-const PoolStatistics = ({ poolId }: { poolId: string }) => {
-  const { members, expenses } = usePool({
+const PoolAnalytics = ({ poolId }: { poolId: string }) => {
+  const { expenses } = usePool({
     poolId,
   })
+
+  const expenseSummary = useMemo(() => {
+    const agg = expenses.reduce(
+      (acc, expense) => {
+        const category = expense.category
+
+        if (!acc[category]) {
+          acc[category] = 0
+        }
+
+        acc[category] += expense.amount
+
+        return acc
+      },
+      {} as Record<ExpenseCategory, number>
+    )
+
+    const entries = Object.entries(agg)
+      .map(([category, amount]) => ({
+        name: categoryToDisplayName({ category: category as ExpenseCategory }),
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount)
+
+    const numToShow = 5
+
+    const withOtherCategory = [
+      ...entries.slice(0, numToShow - 1),
+      {
+        name: "Other",
+        amount: entries
+          .slice(numToShow - 1)
+          .reduce((sum, entry) => sum + entry.amount, 0),
+      },
+    ]
+
+    const maxAmount = Math.max(...withOtherCategory.map(e => e.amount))
+    const minAmount = Math.min(...withOtherCategory.map(e => e.amount))
+
+    return withOtherCategory.map(entry => {
+      const intensity =
+        withOtherCategory.length > 1
+          ? (entry.amount - minAmount) / (maxAmount - minAmount)
+          : 0.5
+
+      const getGreenShade = (intensity: number) => {
+        const lightness = 0.72 - intensity * 0.32
+        const chroma = 0.055 + intensity * 0.035
+
+        return `oklch(${lightness} ${chroma} 155)`
+      }
+
+      return {
+        ...entry,
+        fill: getGreenShade(intensity),
+      }
+    })
+  }, [expenses])
+
+  const chartConfig = {
+    amount: {
+      label: "Amount",
+      color: "hsl(var(--color-primary))",
+    },
+  } satisfies ChartConfig
 
   return (
     <div className="space-y-4">
       <h3 className="text-foreground flex items-center gap-2 font-semibold">
-        Pool Statistics
+        Spend Summary
       </h3>
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="p-4 text-center">
-          <p className="text-primary text-3xl font-semibold">
-            {expenses.length}
-          </p>
-          <p className="text-muted-foreground text-sm">Expenses</p>
-        </Card>
-        <Card className="p-4 text-center">
-          <p className="text-primary text-3xl font-semibold">
-            {members.length}
-          </p>
-          <p className="text-muted-foreground text-sm">Members</p>
-        </Card>
+      <div>
+        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
+          <BarChart accessibilityLayer data={expenseSummary}>
+            <CartesianGrid vertical={false} />
+            <XAxis
+              dataKey="name"
+              tickLine={false}
+              tickMargin={10}
+              axisLine={false}
+            />
+            <ChartTooltip content={<ChartTooltipContent />} />
+            <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ChartContainer>
       </div>
     </div>
   )
