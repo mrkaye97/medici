@@ -468,6 +468,13 @@ const ExpensesPane = ({
   )
 }
 
+type ChartPayload = {
+  name: string
+  amount: number
+  fill: string
+  key: ExpenseCategory | "other"
+}
+
 const PoolAnalytics = ({
   poolId,
   setSelectedCategory,
@@ -500,7 +507,7 @@ const PoolAnalytics = ({
     return () => window.removeEventListener("resize", updateNumToShow)
   }, [])
 
-  const expenseSummary = useMemo(() => {
+  const expenseSummary: ChartPayload[] = useMemo(() => {
     const agg = expenses.reduce(
       (acc, expense) => {
         const category = expense.category
@@ -520,6 +527,7 @@ const PoolAnalytics = ({
       .map(([category, amount]) => ({
         name: categoryToDisplayName({ category: category as ExpenseCategory }),
         amount,
+        key: category as ExpenseCategory,
       }))
       .sort((a, b) => b.amount - a.amount)
 
@@ -530,6 +538,7 @@ const PoolAnalytics = ({
         amount: entries
           .slice(numToShow - 1)
           .reduce((sum, entry) => sum + entry.amount, 0),
+        key: "other" as ExpenseCategory | "other",
       },
     ]
 
@@ -574,12 +583,15 @@ const PoolAnalytics = ({
             accessibilityLayer
             data={expenseSummary}
             onClick={e => {
-              if (e.activeLabel === "Other") {
+              const payload: ChartPayload | undefined =
+                e.activePayload?.at(0)?.payload
+
+              if (!payload || payload.key == "other") {
                 setSelectedCategory(undefined)
                 return
               }
 
-              setSelectedCategory(e.activeLabel as ExpenseCategory)
+              setSelectedCategory(payload.key)
             }}
           >
             <CartesianGrid vertical={false} />
