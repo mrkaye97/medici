@@ -78,6 +78,7 @@ function Pool() {
       <PoolDetailsPaneWrapper
         memberId={memberId}
         poolId={poolId}
+        selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
       />
     </div>
@@ -87,12 +88,14 @@ function Pool() {
 type PoolPaneProps = {
   memberId: string
   poolId: string
+  selectedCategory: ExpenseCategory | undefined
   setSelectedCategory: (category: ExpenseCategory | undefined) => void
 }
 
 const PoolDetailsPaneWrapper = ({
   memberId,
   poolId,
+  selectedCategory,
   setSelectedCategory,
 }: PoolPaneProps) => {
   const {
@@ -120,6 +123,7 @@ const PoolDetailsPaneWrapper = ({
     <PoolDetailsPane
       memberId={memberId}
       poolId={poolId}
+      selectedCategory={selectedCategory}
       setSelectedCategory={setSelectedCategory}
     />
   )
@@ -128,6 +132,7 @@ const PoolDetailsPaneWrapper = ({
 const PoolDetailsPane = ({
   memberId,
   poolId,
+  selectedCategory,
   setSelectedCategory,
 }: PoolPaneProps) => {
   return (
@@ -147,12 +152,14 @@ const PoolDetailsPane = ({
         <Separator />
         <PoolAnalytics
           poolId={poolId}
+          selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
         <Separator />
         <PoolMemberManagementPane
           poolId={poolId}
           memberId={memberId}
+          selectedCategory={selectedCategory}
           setSelectedCategory={setSelectedCategory}
         />
       </div>
@@ -481,9 +488,11 @@ type ChartPayload = {
 
 const PoolAnalytics = ({
   poolId,
+  selectedCategory,
   setSelectedCategory,
 }: {
   poolId: string
+  selectedCategory: ExpenseCategory | undefined
   setSelectedCategory: (category: ExpenseCategory | undefined) => void
 }) => {
   const { expenses } = usePool({
@@ -590,7 +599,11 @@ const PoolAnalytics = ({
               const payload: ChartPayload | undefined =
                 e.activePayload?.at(0)?.payload
 
-              if (!payload || payload.key == "other") {
+              if (
+                !payload ||
+                payload.key == "other" ||
+                payload.key === selectedCategory
+              ) {
                 setSelectedCategory(undefined)
                 return
               }
