@@ -313,7 +313,7 @@ const ExpensesPane = ({
         <CardTitle className="text-foreground mb-6 flex flex-row items-center justify-between gap-3 text-2xl font-semibold">
           <div className="flex flex-row items-center gap-2">
             <BanknoteIcon className="text-primary h-6 w-6 flex-shrink-0" />
-            <span className="flex items-center">Recent Expenses</span>
+            <span className="flex items-center">Expenses</span>
             <Badge
               variant="secondary"
               className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
