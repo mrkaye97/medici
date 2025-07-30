@@ -58,14 +58,101 @@ Medici is a minimalistic, self-hostable alternative to Splitwise for managing gr
 
 ![Add Expenses](./screenshots/add-expense.png)
 
-## Self-Hosting
+## Quick Start
 
-Medici has three components (a server, a frontend, and a Postgres database), and is trivial to self-host. You can run it with Docker Compose using the `compose.example.yaml` file, or you can run it locally with the `just` tool.
+### Docker Compose (Recommended for Self-Hosting)
 
-## Local Development
+The easiest way to get Medici running in production is to run the `compose.example.yaml` file, which will pull the necessary Docker images. You'll need a `.env` for the backend like this:
 
-Medici is a Rust (Axum) + React app, with a Postgres database. You can run it locally in a few steps:
+```
+DATABASE_URL=postgres://postgres:postgres@localhost:5442/medici
+AUTH_SECRET_KEY=medici-key
+```
 
-1. `just setup`
-2. In one terminal: `cd frontend && pnpm dev`
-3. In another terminal: `cd backend && cargo watch -x run`
+and for the frontend like this:
+
+```
+VITE_API_URL=http://medici-server:8000
+```
+
+### Local Development Setup
+
+For development or if you prefer running without Docker:
+
+**Prerequisites:**
+
+- [Rust](https://rustup.rs/) (latest stable version)
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [pnpm](https://pnpm.io/) package manager
+- [PostgreSQL](https://postgresql.org/) (v12 or higher)
+- [just](https://github.com/casey/just) command runner
+- [diesel_cli](https://diesel.rs/guides/getting-started) for database migrations
+
+**Detailed Setup Steps:**
+
+1. **Install Prerequisites:**
+
+```bash
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+
+# Install diesel CLI
+cargo install diesel_cli --no-default-features --features postgres
+
+# Install just
+cargo install just
+
+# Install Node.js and pnpm (using your preferred method)
+# On macOS with Homebrew:
+brew install node pnpm
+```
+
+2. **Database Setup:**
+
+```bash
+# Start PostgreSQL (method varies by OS)
+# On macOS with Homebrew:
+brew services start postgresql
+
+# Create database and user
+psql postgres -c "CREATE DATABASE medici;"
+psql postgres -c "CREATE USER medici WITH PASSWORD 'medici';"
+psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE medici TO medici;"
+```
+
+3. **Clone and Configure:**
+
+```bash
+# Clone the repository
+git clone https://github.com/your-username/medici.git
+cd medici
+
+# Set up environment files
+just set-env-backend
+just set-env-frontend
+
+# Review and edit .env files as needed
+cat server/.env
+cat frontend/.env
+```
+
+4. **Initialize and Start:**
+
+```bash
+# Run the complete setup (installs dependencies, runs migrations)
+just setup
+
+# Start development servers in separate terminals:
+
+# Terminal 1: Frontend (React dev server)
+cd frontend && pnpm dev
+
+# Terminal 2: Backend (Rust server with hot reload)
+cd server && cargo watch -x run
+```
+
+The development setup will be available at:
+
+- Frontend: `http://localhost:3001`
+- Backend API: `http://localhost:8000`
