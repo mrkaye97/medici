@@ -10,7 +10,23 @@ Medici is a minimalistic Splitwise-like app for managing group expenses. It's na
 
 Similarly to Splitwise, Medici will automatically simplify the debts between friends in the pool, so that you can pay each other back in the least number of transactions possible.
 
-![Medici Screenshot](./screenshots/add-expense.png)
+## Screenshots
+
+### View Pools
+
+|             Friends View              |                   Profile View                    |
+| :-----------------------------------: | :-----------------------------------------------: |
+| ![](./screenshots/pools-overview.png) | ![](./screenshots/pools-overview-profile-tab.png) |
+
+### Pool Details
+
+|            Roommates             |          Yosemite Trip          |
+| :------------------------------: | :-----------------------------: |
+| ![](./screenshots/roommates.png) | ![](./screenshots/yosemite.png) |
+
+### Add Expenses
+
+![Add Expenses](./screenshots/add-expense.png)
 
 ## Self-Hosting
 
