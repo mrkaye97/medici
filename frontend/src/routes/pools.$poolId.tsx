@@ -457,7 +457,11 @@ const ExpensesPane = ({
             <div className="space-y-2">
               {searchResults.map(expense => (
                 <div key={expense.id} className="px-2 transition-colors">
-                  <Expense expense={expense} />
+                  <Expense
+                    expense={expense}
+                    selectedCategory={selectedCategory}
+                    setSelectedCategory={setSelectedCategory}
+                  />
                 </div>
               ))}
             </div>
@@ -621,7 +625,11 @@ const PoolAnalytics = ({
                 )
               }}
             />
-            <Bar dataKey="amount" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="amount"
+              radius={[4, 4, 0, 0]}
+              className="hover:cursor-pointer"
+            />
           </BarChart>
         </ChartContainer>
       </div>

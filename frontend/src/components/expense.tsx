@@ -30,7 +30,15 @@ export const formatCurrency = (amount: number) => {
 
 type Expense = components["schemas"]["RecentExpenseDetails"]
 
-export function Expense({ expense }: { expense: Expense }) {
+export function Expense({
+  expense,
+  selectedCategory,
+  setSelectedCategory,
+}: {
+  expense: Expense
+  selectedCategory: ExpenseCategory | undefined
+  setSelectedCategory: (category: ExpenseCategory | undefined) => void
+}) {
   const queryClient = useQueryClient()
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
 
@@ -83,9 +91,20 @@ export function Expense({ expense }: { expense: Expense }) {
         <div className="flex items-start justify-between">
           <div className="flex flex-col">
             <div className="flex flex-row items-center gap-x-3">
-              <div className="bg-primary/10 text-primary rounded-lg border p-2.5">
+              <Button
+                variant="ghost"
+                className="bg-primary/10 text-primary rounded-lg border p-2.5 hover:cursor-pointer border-primary hover:bg-primary/20 hover:text-primary"
+                onClick={() => {
+                  if (expense.category === selectedCategory) {
+                    setSelectedCategory(undefined)
+                  } else {
+                    setSelectedCategory(expense.category as ExpenseCategory)
+                  }
+                }}
+              >
                 <ExpenseIcon category={expense.category as ExpenseCategory} />
-              </div>
+              </Button>
+
               <div className="flex flex-col">
                 <span className="text-foreground font-medium">
                   {expense.name}

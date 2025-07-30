@@ -1,8 +1,8 @@
 import { usePool } from "@/hooks/use-pool"
 import { Link } from "@tanstack/react-router"
-import { Calendar, ChevronDown, ChevronRight, ScrollText } from "lucide-react"
+import { Calendar } from "lucide-react"
 import { useState } from "react"
-import { Expense, formatCurrency, formatDate } from "./expense"
+import { formatCurrency, formatDate } from "./expense"
 import { AddExpenseModal } from "./expense-modals"
 import { SettleUpModal } from "./settle-up-modal"
 import { Badge } from "./ui/badge"
@@ -17,7 +17,6 @@ import {
 } from "./ui/card"
 
 export function PoolSummary({ poolId }: { poolId: string }) {
-  const [isExpanded, setIsExpanded] = useState(false)
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
   const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false)
 
@@ -25,11 +24,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
     poolId,
   })
 
-  const { expenses, isExpensesLoading } = usePool({
-    poolId,
-    expenseOptions: { limit: 5 },
-  })
-  if (isDetailsLoading || !details || isExpensesLoading) {
+  if (isDetailsLoading || !details) {
     return null
   }
 
@@ -78,40 +73,13 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           </CardHeader>
         </Link>
 
-        <CardContent className="pt-4">
-          <div className="text-muted-foreground mb-2 flex items-center text-sm">
+        <CardContent className="py-4">
+          <div className="text-muted-foreground flex items-center text-sm">
             <Calendar className="mr-1 h-4 w-4" />
             <span>Created {formatDate(new Date(details.inserted_at))}</span>
             <span className="mx-2">•</span>
             <span>Updated {formatDate(new Date(details.updated_at))}</span>
           </div>
-
-          {expenses.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(prev => !prev)}
-              className="flex h-auto items-center p-2 hover:bg-transparent"
-            >
-              {isExpanded ? (
-                <ChevronDown className="mr-1 h-4 w-4" />
-              ) : (
-                <ChevronRight className="mr-1 h-4 w-4" />
-              )}
-              <span className="flex items-center">
-                <ScrollText className="mr-1 h-4 w-4" />
-                Recent Expenses
-              </span>
-            </Button>
-          )}
-
-          {isExpanded && (
-            <div className="mt-3 flex max-h-96 flex-col gap-y-2 overflow-y-auto rounded-md px-4">
-              {expenses.map((expense, index) => {
-                return <Expense key={index} expense={expense} />
-              })}
-            </div>
-          )}
         </CardContent>
 
         <CardFooter className="bg-muted/30 flex justify-end gap-2 py-2">
