@@ -1,12 +1,19 @@
 # Medici
 
-Medici is a minimalistic Splitwise-like app for managing group expenses. It's namesake is the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici). It only has the most important features:
+Medici is a minimalistic Splitwise-like app for managing group expenses. It's namesake is the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici).
 
-1. You can make groups ("pools")
-2. You can add friends and add them to pools
-3. You can add expenses to pools.
+## Features
+
+It only has the most important features:
+
+1. You can make groups ("pools") to manage expenses.
+2. You can add friends and add them to pools.
+3. You can add default split percentages to pools, to allow you to quickly add expenses that use the default split percentages (e.g. splitting expenses unevenly between roommates).
+4. You can add expenses to pools.
    - Expenses can be categorized
-   - Expenses can be split evenly or unevenly, or by a default split percentage
+   - Expenses can be split evenly or unevenly
+5. You can view some basic analytics on your pools, such as most common spending categories and who owes you money.
+6. You can add your Venmo handle to easily pay back and request payments from friends.
 
 Similarly to Splitwise, Medici will automatically simplify the debts between friends in the pool, so that you can pay each other back in the least number of transactions possible.
 
