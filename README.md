@@ -20,9 +20,9 @@ Similarly to Splitwise, Medici will automatically simplify the debts between fri
 
 ### Pool Details
 
-|            Roommates             |          Yosemite Trip          |
-| :------------------------------: | :-----------------------------: |
-| ![](./screenshots/roommates.png) | ![](./screenshots/yosemite.png) |
+|            Roommates             |            Yosemite Trip             |
+| :------------------------------: | :----------------------------------: |
+| ![](./screenshots/roommates.png) | ![](./screenshots/yosemite-trip.png) |
 
 ### Add Expenses
 
