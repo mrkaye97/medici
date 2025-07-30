@@ -1,21 +1,44 @@
 # Medici
 
-Medici is a minimalistic Splitwise-like app for managing group expenses. It's namesake is the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici).
+Medici is a minimalistic, self-hostable alternative to Splitwise for managing group expenses. Named after the Florentine [House of Medici](https://en.wikipedia.org/wiki/House_of_Medici), it focuses on simplicity and privacy while providing all the essential features you need.
+
+## Why Medici?
+
+- **Privacy-first**: Self-host your financial data instead of trusting third parties
+- **Minimalistic**: Clean, distraction-free interface with only essential features
+- **Fast & Modern**: Built with Rust + React for performance and reliability
+- **Easy deployment**: Single Docker Compose command to get started
+- **No subscriptions**: Own your data, no recurring fees
+- **Open Source**: Fully transparent codebase, no hidden agendas
+- **No tracking**: No ads, analytics, or data collection
+- **No limits**: Unlimited pools, friends, and expenses without hidden fees
 
 ## Features
 
-It only has the most important features:
+### Core Functionality
 
-1. You can make groups ("pools") to manage expenses.
-2. You can add friends and add them to pools.
-3. You can add default split percentages to pools, to allow you to quickly add expenses that use the default split percentages (e.g. splitting expenses unevenly between roommates).
-4. You can add expenses to pools.
-   - Expenses can be categorized
-   - Expenses can be split evenly or unevenly
-5. You can view some basic analytics on your pools, such as most common spending categories and who owes you money.
-6. You can add your Venmo handle to easily pay back and request payments from friends.
+1. **Expense Pools**: Create groups ("pools") to organize expenses by context (roommates, trips, etc.)
+2. **Friend Management**: Add friends and organize them into relevant pools
+3. **Smart Splitting**:
+   - Set default split percentages per pool for quick expense entry
+   - Split expenses evenly or with custom percentages
+   - Automatic debt simplification to minimize transactions
+4. **Expense Tracking**:
+   - Categorize expenses for better organization
+   - Add detailed descriptions and notes
+   - Track who paid and who owes what
 
-Similarly to Splitwise, Medici will automatically simplify the debts between friends in the pool, so that you can pay each other back in the least number of transactions possible.
+### Analytics & Insights
+
+5. **Spending Analytics**: View spending patterns, top categories, and expense trends
+6. **Debt Overview**: See who owes you money and how much you owe others at a glance
+7. **Payment Integration**: Add Venmo handles for easy payment requests and settlements
+
+### Privacy & Control
+
+8. **Self-hosted**: Keep your financial data on your own infrastructure
+9. **Open Source**: Full transparency and customizability
+10. **No tracking**: No analytics, ads, or data collection
 
 ## Screenshots
 
@@ -39,7 +62,7 @@ Similarly to Splitwise, Medici will automatically simplify the debts between fri
 
 Medici has three components (a server, a frontend, and a Postgres database), and is trivial to self-host. You can run it with Docker Compose using the `compose.example.yaml` file, or you can run it locally with the `just` tool.
 
-## Tools
+## Local Development
 
 Medici is a Rust (Axum) + React app, with a Postgres database. You can run it locally in a few steps:
 
