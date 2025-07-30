@@ -10,6 +10,12 @@ Medici is a minimalistic Splitwise-like app for managing group expenses. It's na
 
 Similarly to Splitwise, Medici will automatically simplify the debts between friends in the pool, so that you can pay each other back in the least number of transactions possible.
 
+![Medici Screenshot](./screenshots/add-expense.png)
+
+## Self-Hosting
+
+Medici has three components (a server, a frontend, and a Postgres database), and is trivial to self-host. You can run it with Docker Compose using the `compose.example.yaml` file, or you can run it locally with the `just` tool.
+
 ## Tools
 
 Medici is a Rust (Axum) + React app, with a Postgres database. You can run it locally in a few steps:

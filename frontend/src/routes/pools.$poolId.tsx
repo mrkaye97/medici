@@ -553,7 +553,7 @@ const PoolAnalytics = ({
           .reduce((sum, entry) => sum + entry.amount, 0),
         key: "other" as ExpenseCategory | "other",
       },
-    ]
+    ].filter(entry => entry.amount > 0)
 
     const maxAmount = Math.max(...withOtherCategory.map(e => e.amount))
     const minAmount = Math.min(...withOtherCategory.map(e => e.amount))
@@ -584,6 +584,20 @@ const PoolAnalytics = ({
       color: "hsl(var(--color-primary))",
     },
   } satisfies ChartConfig
+
+  if (expenseSummary.length === 0) {
+    return (
+      <div>
+        <h3 className="text-foreground flex items-center gap-2 font-semibold">
+          Spend Summary
+        </h3>
+        <div className="text-muted-foreground mt-4">
+          No expenses to display. Add some expenses to see your spending
+          summary.
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">

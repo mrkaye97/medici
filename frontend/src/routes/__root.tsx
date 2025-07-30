@@ -3,7 +3,6 @@ import { DefaultCatchBoundary } from "@/components/error-boundary"
 import { NotFound } from "@/components/not-found"
 import { AuthProvider } from "@/hooks/use-auth"
 import { type QueryClient } from "@tanstack/react-query"
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import {
   createRootRouteWithContext,
   Outlet,
@@ -44,7 +43,7 @@ function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
     <>
       <AuthProvider>
         {props.children}
-        <ReactQueryDevtools buttonPosition="bottom-left" />
+        {/* <ReactQueryDevtools buttonPosition="bottom-left" /> */}
         <Scripts />
       </AuthProvider>
     </>
