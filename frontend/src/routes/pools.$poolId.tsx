@@ -62,6 +62,7 @@ export const Route = createFileRoute("/pools/$poolId")({
 function Pool() {
   const { poolId } = Route.useParams()
   const { memberId } = useAuth()
+  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>()
 
   if (!memberId) {
     return null
@@ -69,8 +70,16 @@ function Pool() {
 
   return (
     <div className="bg-background flex flex-col overflow-auto md:h-dvh md:flex-row md:overflow-hidden">
-      <ExpensesPane poolId={poolId} />
-      <PoolDetailsPaneWrapper memberId={memberId} poolId={poolId} />
+      <ExpensesPane
+        poolId={poolId}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+      />
+      <PoolDetailsPaneWrapper
+        memberId={memberId}
+        poolId={poolId}
+        setSelectedCategory={setSelectedCategory}
+      />
     </div>
   )
 }
@@ -78,9 +87,14 @@ function Pool() {
 type PoolPaneProps = {
   memberId: string
   poolId: string
+  setSelectedCategory: (category: ExpenseCategory | undefined) => void
 }
 
-const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
+const PoolDetailsPaneWrapper = ({
+  memberId,
+  poolId,
+  setSelectedCategory,
+}: PoolPaneProps) => {
   const {
     details,
     isBalancesLoading,
@@ -102,12 +116,22 @@ const PoolDetailsPaneWrapper = ({ memberId, poolId }: PoolPaneProps) => {
     return null
   }
 
-  return <PoolDetailsPane memberId={memberId} poolId={poolId} />
+  return (
+    <PoolDetailsPane
+      memberId={memberId}
+      poolId={poolId}
+      setSelectedCategory={setSelectedCategory}
+    />
+  )
 }
 
-const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
+const PoolDetailsPane = ({
+  memberId,
+  poolId,
+  setSelectedCategory,
+}: PoolPaneProps) => {
   return (
-    <div className="bg-card border-border flex h-dvh flex-col overflow-auto border-l px-6 py-6 md:w-[480px] 2xl:w-[560px] md:overflow-hidden scrollbar-none">
+    <div className="bg-card border-border flex h-dvh flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden scrollbar-none">
       <div className="mb-6">
         <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
           <DollarSign className="text-primary h-6 w-6" />
@@ -121,9 +145,16 @@ const PoolDetailsPane = ({ memberId, poolId }: PoolPaneProps) => {
       <div className="space-y-6 overflow-auto h-full scrollbar-none">
         <PoolBalancesPane poolId={poolId} />
         <Separator />
-        <PoolAnalytics poolId={poolId} />
+        <PoolAnalytics
+          poolId={poolId}
+          setSelectedCategory={setSelectedCategory}
+        />
         <Separator />
-        <PoolMemberManagementPane poolId={poolId} memberId={memberId} />
+        <PoolMemberManagementPane
+          poolId={poolId}
+          memberId={memberId}
+          setSelectedCategory={setSelectedCategory}
+        />
       </div>
     </div>
   )
@@ -139,9 +170,16 @@ function ExpensesPaneLayout({ children }: { children: React.ReactNode }) {
   )
 }
 
-const ExpensesPane = ({ poolId }: { poolId: string }) => {
+const ExpensesPane = ({
+  poolId,
+  selectedCategory,
+  setSelectedCategory,
+}: {
+  poolId: string
+  selectedCategory: ExpenseCategory | undefined
+  setSelectedCategory: (category: ExpenseCategory | undefined) => void
+}) => {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>()
   const [selectedMemberId, setSelectedMemberId] = useState<string>()
   const [searchQuery, setSearchQuery] = useState("")
   const [showSettled, setShowSettled] = useState(false)
@@ -313,6 +351,7 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
                 setSelectedCategory(value as ExpenseCategory)
               }}
               defaultValue="all"
+              value={selectedCategory ?? "all"}
             >
               <SelectTrigger className="min-w-[250px]">
                 <SelectValue placeholder="Select category" />
@@ -429,10 +468,37 @@ const ExpensesPane = ({ poolId }: { poolId: string }) => {
   )
 }
 
-const PoolAnalytics = ({ poolId }: { poolId: string }) => {
+const PoolAnalytics = ({
+  poolId,
+  setSelectedCategory,
+}: {
+  poolId: string
+  setSelectedCategory: (category: ExpenseCategory | undefined) => void
+}) => {
   const { expenses } = usePool({
     poolId,
   })
+  const [numToShow, setNumToShow] = useState(3)
+
+  useEffect(() => {
+    const updateNumToShow = () => {
+      const width = window.innerWidth
+      if (width < 1024) {
+        setNumToShow(4)
+      } else if (width < 1280) {
+        setNumToShow(5)
+      } else if (width < 1560) {
+        setNumToShow(6)
+      } else {
+        setNumToShow(7)
+      }
+    }
+
+    updateNumToShow()
+    window.addEventListener("resize", updateNumToShow)
+
+    return () => window.removeEventListener("resize", updateNumToShow)
+  }, [])
 
   const expenseSummary = useMemo(() => {
     const agg = expenses.reduce(
@@ -456,8 +522,6 @@ const PoolAnalytics = ({ poolId }: { poolId: string }) => {
         amount,
       }))
       .sort((a, b) => b.amount - a.amount)
-
-    const numToShow = 5
 
     const withOtherCategory = [
       ...entries.slice(0, numToShow - 1),
@@ -490,7 +554,7 @@ const PoolAnalytics = ({ poolId }: { poolId: string }) => {
         fill: getGreenShade(intensity),
       }
     })
-  }, [expenses])
+  }, [expenses, numToShow])
 
   const chartConfig = {
     amount: {
@@ -506,13 +570,26 @@ const PoolAnalytics = ({ poolId }: { poolId: string }) => {
       </h3>
       <div>
         <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-          <BarChart accessibilityLayer data={expenseSummary}>
+          <BarChart
+            accessibilityLayer
+            data={expenseSummary}
+            onClick={e => {
+              if (e.activeLabel === "Other") {
+                setSelectedCategory(undefined)
+                return
+              }
+
+              setSelectedCategory(e.activeLabel as ExpenseCategory)
+            }}
+          >
             <CartesianGrid vertical={false} />
             <XAxis
               dataKey="name"
               tickLine={false}
-              tickMargin={10}
+              tickMargin={6}
               axisLine={false}
+              tick={{ fontSize: 10 }}
+              interval={0}
             />
             <ChartTooltip
               content={<ChartTooltipContent />}
