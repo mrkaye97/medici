@@ -6,7 +6,6 @@ Medici is a minimalistic, self-hostable alternative to Splitwise for managing gr
 
 - **Privacy-first**: Self-host your financial data instead of trusting third parties
 - **Minimalistic**: Clean, distraction-free interface with only essential features
-- **Fast & Modern**: Built with Rust + React for performance and reliability
 - **Easy deployment**: Single Docker Compose command to get started
 - **No subscriptions**: Own your data, no recurring fees
 - **Open Source**: Fully transparent codebase, no hidden agendas
@@ -17,7 +16,7 @@ Medici is a minimalistic, self-hostable alternative to Splitwise for managing gr
 
 ### Core Functionality
 
-1. **Expense Pools**: Create groups ("pools") to organize expenses by context (roommates, trips, etc.)
+1. **Pools**: Create groups ("pools") to organize expenses by context (roommates, trips, etc.)
 2. **Friend Management**: Add friends and organize them into relevant pools
 3. **Smart Splitting**:
    - Set default split percentages per pool for quick expense entry
@@ -30,7 +29,7 @@ Medici is a minimalistic, self-hostable alternative to Splitwise for managing gr
 
 ### Analytics & Insights
 
-5. **Spending Analytics**: View spending patterns, top categories, and expense trends
+5. **Spending Analytics**: View top spending categories
 6. **Debt Overview**: See who owes you money and how much you owe others at a glance
 7. **Payment Integration**: Add Venmo handles for easy payment requests and settlements
 
