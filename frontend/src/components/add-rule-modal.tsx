@@ -115,11 +115,13 @@ export function AddRuleModal({
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {expenseCategories.map((category: ExpenseCategory) => (
-                          <SelectItem key={category} value={category}>
-                            {categoryToDisplayName({ category })}
-                          </SelectItem>
-                        ))}
+                        {expenseCategories
+                          .sort((a, b) => a.localeCompare(b))
+                          .map((category: ExpenseCategory) => (
+                            <SelectItem key={category} value={category}>
+                              {categoryToDisplayName({ category })}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
