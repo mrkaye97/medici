@@ -1,5 +1,4 @@
 import { apiClient } from "@/api/client"
-import { AddFriendModal } from "@/components/add-friend-modal"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -13,11 +12,14 @@ import { useEffect, useState } from "react"
 import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 
-export const FriendsView = () => {
+export const FriendsView = ({
+  setIsAddFriendModalOpen,
+}: {
+  setIsAddFriendModalOpen: (isOpen: boolean) => void
+}) => {
   const queryClient = useQueryClient()
   const { memberId, createAuthHeader, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("friends")
-  const [isModalOpen, setIsModalOpen] = useState(false)
   const {
     friends,
     isFriendsLoading,
@@ -69,19 +71,7 @@ export const FriendsView = () => {
   return (
     <>
       <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Social</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Add Friend</span>
-          </Button>
-        </div>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-muted-foreground text-sm mt-4">
           Manage your friends and requests
         </p>
       </div>
@@ -126,7 +116,7 @@ export const FriendsView = () => {
                     </p>
                     <Button
                       variant="outline"
-                      onClick={() => setIsModalOpen(true)}
+                      onClick={() => setIsAddFriendModalOpen(true)}
                     >
                       Add your first friend
                     </Button>
@@ -396,8 +386,6 @@ export const FriendsView = () => {
           </div>
         </CardFooter>
       </Card>
-
-      <AddFriendModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
     </>
   )
 }

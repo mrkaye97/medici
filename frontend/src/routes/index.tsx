@@ -1,4 +1,5 @@
 import { apiClient } from "@/api/client"
+import { AddFriendModal } from "@/components/add-friend-modal"
 import { CreatePoolModal } from "@/components/create-pool-modal"
 import { FriendsView } from "@/components/friends-view"
 import { PoolSummary } from "@/components/pool-summay"
@@ -11,9 +12,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
 import { createFileRoute, Navigate } from "@tanstack/react-router"
-import { PlusCircle, Wallet } from "lucide-react"
+import { PlusCircle, UserPlus, Wallet } from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/")({
@@ -23,6 +25,7 @@ export const Route = createFileRoute("/")({
 function Home() {
   const { memberId, createAuthHeader, isAuthenticated } = useAuth()
   const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false)
+  const [isAddFriendOpen, setIsAddFriendModalOpen] = useState(false)
 
   const {
     data,
@@ -60,6 +63,10 @@ function Home() {
       <CreatePoolModal
         isOpen={isCreatePoolOpen}
         setIsOpen={setIsCreatePoolOpen}
+      />
+      <AddFriendModal
+        isOpen={isAddFriendOpen}
+        setIsOpen={setIsAddFriendModalOpen}
       />
       <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
         <Card className="bg-card border-border flex flex-col overflow-auto rounded-lg border shadow-sm transition-shadow duration-200 hover:shadow-md md:flex-1 md:overflow-hidden">
@@ -125,8 +132,40 @@ function Home() {
         </Card>
       </div>
 
-      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px]  md:overflow-hidden">
-        <FriendsView />
+      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden gap-y-4">
+        <Tabs defaultValue="social">
+          <div className="flex flex-row items-center justify-between">
+            <TabsList className="h-14 w-72 rounded-sm">
+              <TabsTrigger
+                className="hover:cursor-pointer h-12 font-bold text-pretty rounded-sm"
+                value="social"
+              >
+                Social
+              </TabsTrigger>
+              <TabsTrigger
+                className="hover:cursor-pointer h-12 font-bold text-pretty rounded-sm"
+                value="rules"
+              >
+                Rules
+              </TabsTrigger>
+            </TabsList>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddFriendModalOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              <span>Add Friend</span>
+            </Button>{" "}
+          </div>
+          <TabsContent value="social">
+            <FriendsView setIsAddFriendModalOpen={setIsAddFriendModalOpen} />
+          </TabsContent>
+          <TabsContent value="rules">
+            <FriendsView setIsAddFriendModalOpen={setIsAddFriendModalOpen} />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
