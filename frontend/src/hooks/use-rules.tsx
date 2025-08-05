@@ -8,7 +8,7 @@ function isValidRegex(pattern: string) {
   try {
     new RegExp(pattern, "i")
     return true
-  } catch (e) {
+  } catch {
     return false
   }
 }
