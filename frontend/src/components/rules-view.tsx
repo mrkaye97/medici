@@ -7,43 +7,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useRules } from "@/hooks/use-rules"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { motion } from "motion/react"
 import { useState } from "react"
 import type { components } from "schema"
-import {
-  categoryToDisplayName,
-  categoryToIcon,
-  expenseCategories,
-} from "./expense-modals"
+import { AddRuleModal } from "./add-rule-modal"
+import { categoryToDisplayName, categoryToIcon } from "./expense-modals"
 
-type ExpenseCategory = components["schemas"]["ExpenseCategory"]
 type ExpenseCategoryRule = components["schemas"]["ExpenseCategoryRule"]
 
 export const RulesView = () => {
-  const [newRule, setNewRule] = useState("")
-  const [newCategory, setNewCategory] = useState<ExpenseCategory>()
-  const [isCreating, setIsCreating] = useState(false)
-  const {
-    isLoading,
-    isCreatingRule,
-    isDeletingRule,
-    rules,
-    createRule,
-    deleteRule,
-  } = useRules({
-    setIsCreating,
-  })
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { isLoading, isDeletingRule, rules, deleteRule } = useRules()
 
   if (isLoading) {
     return null
@@ -66,7 +42,7 @@ export const RulesView = () => {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setIsCreating(!isCreating)}
+              onClick={() => setIsModalOpen(true)}
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
@@ -76,76 +52,6 @@ export const RulesView = () => {
         </CardHeader>
 
         <CardContent className="flex-1 overflow-auto space-y-4">
-          {isCreating && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2 }}
-              className="bg-muted/30 border rounded-lg p-4 space-y-4"
-            >
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">
-                  Rule (Supports regex)
-                </Label>
-                <Input
-                  placeholder="e.g., Uber, Lyft, taxi, bus"
-                  value={newRule}
-                  onChange={e => setNewRule(e.target.value)}
-                  className="w-full"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Enter the expression that should trigger this category
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Category</Label>
-                <Select
-                  value={newCategory}
-                  onValueChange={(value: ExpenseCategory) =>
-                    setNewCategory(value)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {expenseCategories.map((category: ExpenseCategory) => (
-                      <SelectItem key={category} value={category}>
-                        {categoryToDisplayName({ category })}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsCreating(false)
-                    setNewRule("")
-                    setNewCategory(undefined)
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={async () => {
-                    if (newCategory && newRule.trim()) {
-                      createRule(newRule.trim(), newCategory)
-                    }
-                  }}
-                  disabled={!newRule.trim() || !newCategory || isCreatingRule}
-                >
-                  Create Rule
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
           {rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="bg-muted mb-4 rounded-full p-4">
@@ -158,7 +64,7 @@ export const RulesView = () => {
                 Rules help automatically categorize your expenses based on
                 keywords
               </p>
-              <Button variant="outline" onClick={() => setIsCreating(true)}>
+              <Button variant="outline" onClick={() => setIsModalOpen(true)}>
                 Create your first rule
               </Button>
             </div>
@@ -210,6 +116,8 @@ export const RulesView = () => {
           </div>
         </CardFooter>
       </Card>
+
+      <AddRuleModal isOpen={isModalOpen} setIsOpen={setIsModalOpen} />
     </>
   )
 }
