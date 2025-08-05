@@ -4,11 +4,20 @@ import { useAuth } from "@/hooks/use-auth"
 import { useQueryClient } from "@tanstack/react-query"
 import { useCallback } from "react"
 
+function isValidRegex(pattern: string) {
+  try {
+    new RegExp(pattern, "i")
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
 export const useRules = ({
   setIsCreating,
 }: {
-  setIsCreating: (isCreating: boolean) => void
-}) => {
+  setIsCreating?: (isCreating: boolean) => void
+} = {}) => {
   const queryClient = useQueryClient()
   const { memberId, createAuthHeader } = useAuth()
 
@@ -36,7 +45,10 @@ export const useRules = ({
         await queryClient.invalidateQueries({
           queryKey: ["get", "/api/members/{member_id}/rules"],
         })
-        setIsCreating(false)
+
+        if (setIsCreating) {
+          setIsCreating(false)
+        }
       },
     })
 
@@ -53,6 +65,10 @@ export const useRules = ({
     async (rule: string, category: ExpenseCategory) => {
       if (!memberId) {
         return
+      }
+
+      if (!isValidRegex(rule)) {
+        throw new Error("Invalid regex pattern")
       }
 
       return createRuleMutation({
@@ -85,6 +101,28 @@ export const useRules = ({
     [deleteRuleMutation, memberId, createAuthHeader]
   )
 
+  const autoCategorizeName = useCallback(
+    (expenseName: string): ExpenseCategory | null => {
+      if (rules.length === 0 || !expenseName.trim()) {
+        return null
+      }
+
+      for (const rule of rules) {
+        if (!isValidRegex(rule.rule)) {
+          continue
+        }
+
+        const regex = new RegExp(rule.rule, "i")
+        if (regex.test(expenseName)) {
+          return rule.category
+        }
+      }
+
+      return null
+    },
+    [rules]
+  )
+
   return {
     rules,
     isLoading,
@@ -93,5 +131,6 @@ export const useRules = ({
     isCreatingRule,
     deleteRule,
     isDeletingRule,
+    autoCategorizeName,
   }
 }

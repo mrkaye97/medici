@@ -1,6 +1,7 @@
 import { apiClient } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { usePool } from "@/hooks/use-pool"
+import { useRules } from "@/hooks/use-rules"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
 import {
@@ -373,6 +374,8 @@ export function BaseExpenseModal({
   const { members, isMembersLoading: isLoading } = usePool({ poolId: pool.id })
   const [submitError, setSubmitError] = useState<string | null>(null)
 
+  const { autoCategorizeName } = useRules()
+
   const [splitAmounts, setSplitAmounts] = useState<SplitState>(
     defaultSplitAmounts || {
       splitMethod: "Default",
@@ -406,6 +409,22 @@ export function BaseExpenseModal({
       paidByMemberId: memberId || "",
     },
   })
+
+  const watchedAmount = form.watch("amount")
+  const watchedExpenseName = form.watch("expenseName")
+
+  useEffect(() => {
+    if (
+      !defaultValues &&
+      watchedExpenseName &&
+      form.getValues("category") === "Miscellaneous"
+    ) {
+      const suggestedCategory = autoCategorizeName(watchedExpenseName)
+      if (suggestedCategory) {
+        form.setValue("category", suggestedCategory)
+      }
+    }
+  }, [watchedExpenseName, autoCategorizeName, form, defaultValues])
 
   const handleUpdateSplitAmounts = useCallback(
     ({ splitMethod, total }: { splitMethod: SplitMethod; total: number }) => {
@@ -457,8 +476,6 @@ export function BaseExpenseModal({
     },
     [members]
   )
-
-  const watchedAmount = form.watch("amount")
 
   useEffect(() => {
     const splitMethod = form.getValues("splitMethod")
