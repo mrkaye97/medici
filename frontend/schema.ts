@@ -212,6 +212,22 @@ export interface paths {
     patch: operations["settle_up_pool_handler"]
     trace?: never
   }
+  "/api/members/{member_id}/rules": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations["list_expense_category_rules_handler"]
+    put?: never
+    post: operations["create_expense_category_rule_handler"]
+    delete: operations["delete_expense_category_rule_handler"]
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/pools/{pool_id}/expenses": {
     parameters: {
       query?: never
@@ -415,6 +431,16 @@ export interface components {
       | "Taxes"
       | "Childcare"
       | "ProfessionalServices"
+    ExpenseCategoryRule: {
+      category: components["schemas"]["ExpenseCategory"]
+      /** Format: date-time */
+      inserted_at: string
+      /** Format: uuid */
+      member_id: string
+      rule: string
+      /** Format: date-time */
+      updated_at: string
+    }
     ExpenseInput: {
       /** Format: double */
       amount: number
@@ -1122,6 +1148,113 @@ export interface operations {
         }
         content: {
           "application/json": components["schemas"]["PoolDetails"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  list_expense_category_rules_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description ID of the member to get expense category rules for */
+        member_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExpenseCategoryRule"][]
+      }
+    }
+    responses: {
+      /** @description Got rules */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ExpenseCategoryRule"][]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  create_expense_category_rule_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description ID of the member to get expense category rules for */
+        member_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExpenseCategoryRule"]
+      }
+    }
+    responses: {
+      /** @description Successfully created rule */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ExpenseCategoryRule"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  delete_expense_category_rule_handler: {
+    parameters: {
+      query: {
+        /** @description The rule to delete */
+        rule: string
+        /** @description The category of the rule to delete */
+        category: components["schemas"]["ExpenseCategory"]
+      }
+      header?: never
+      path: {
+        /** @description ID of the member to get expense category rules for */
+        member_id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ExpenseCategoryRule"]
+      }
+    }
+    responses: {
+      /** @description Successfully deleted rule */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["ExpenseCategoryRule"]
         }
       }
       /** @description Internal server error */
