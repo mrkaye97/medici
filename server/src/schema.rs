@@ -40,6 +40,19 @@ diesel::table! {
 }
 
 diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::ExpenseCategory;
+
+    expense_category_rule (member_id, rule, category) {
+        member_id -> Uuid,
+        rule -> Text,
+        category -> ExpenseCategory,
+        inserted_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
     expense_line_item (id) {
         id -> Uuid,
         expense_id -> Uuid,
@@ -156,6 +169,7 @@ diesel::table! {
 
 diesel::joinable!(expense -> member (paid_by_member_id));
 diesel::joinable!(expense -> pool (pool_id));
+diesel::joinable!(expense_category_rule -> member (member_id));
 diesel::joinable!(expense_line_item -> member (debtor_member_id));
 diesel::joinable!(expense_p_is_settled_false -> member (paid_by_member_id));
 diesel::joinable!(expense_p_is_settled_false -> pool (pool_id));
@@ -167,6 +181,7 @@ diesel::joinable!(pool_membership -> pool (pool_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     expense,
+    expense_category_rule,
     expense_line_item,
     expense_p_is_settled_false,
     expense_p_is_settled_true,
