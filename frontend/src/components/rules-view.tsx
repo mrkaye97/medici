@@ -1,4 +1,3 @@
-import { apiClient } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,8 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useAuth } from "@/hooks/use-auth"
-import { useQueryClient } from "@tanstack/react-query"
+import { useRules } from "@/hooks/use-rules"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { motion } from "motion/react"
 import { useState } from "react"
@@ -33,99 +31,21 @@ type ExpenseCategory = components["schemas"]["ExpenseCategory"]
 type ExpenseCategoryRule = components["schemas"]["ExpenseCategoryRule"]
 
 export const RulesView = () => {
-  const queryClient = useQueryClient()
-  const { memberId, createAuthHeader } = useAuth()
   const [newRule, setNewRule] = useState("")
-  const [newCategory, setNewCategory] = useState<ExpenseCategory | "">("")
+  const [newCategory, setNewCategory] = useState<ExpenseCategory>()
   const [isCreating, setIsCreating] = useState(false)
-  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null)
-
   const {
-    data: rules = [],
     isLoading,
-    isFetching,
-  } = apiClient.useQuery(
-    "get",
-    "/api/members/{member_id}/rules",
-    {
-      params: {
-        path: { member_id: memberId || "" },
-      },
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    }
-  )
+    isCreatingRule,
+    isDeletingRule,
+    rules,
+    createRule,
+    deleteRule,
+  } = useRules({
+    setIsCreating,
+  })
 
-  const { mutateAsync: createRule, isPending: isCreatingRule } =
-    apiClient.useMutation("post", "/api/members/{member_id}/rules")
-
-  const { mutateAsync: deleteRule } = apiClient.useMutation(
-    "delete",
-    "/api/members/{member_id}/rules"
-  )
-
-  const handleCreateRule = async () => {
-    if (!newRule.trim() || !newCategory || !memberId) return
-
-    try {
-      await createRule({
-        params: {
-          path: { member_id: memberId },
-        },
-        body: {
-          rule: newRule.trim(),
-          category: newCategory,
-        },
-        headers: createAuthHeader(),
-      })
-
-      setNewRule("")
-      setNewCategory("")
-      setIsCreating(false)
-
-      await queryClient.invalidateQueries({
-        queryKey: ["get", "/api/members/{member_id}/rules"],
-      })
-    } catch (error) {
-      console.error("Failed to create rule:", error)
-    }
-  }
-
-  const handleDeleteRule = async (rule: ExpenseCategoryRule) => {
-    if (!memberId) return
-
-    const ruleId = `${rule.category}-${rule.rule}`
-    setDeletingRuleId(ruleId)
-
-    try {
-      await deleteRule({
-        params: {
-          path: { member_id: memberId },
-          query: {
-            rule: rule.rule,
-            category: rule.category,
-          },
-        },
-        headers: createAuthHeader(),
-      })
-
-      await queryClient.invalidateQueries({
-        queryKey: ["get", "/api/members/{member_id}/rules"],
-      })
-    } catch (error) {
-      console.error("Failed to delete rule:", error)
-    } finally {
-      setDeletingRuleId(null)
-    }
-  }
-
-  const getCategoryLabel = (category: ExpenseCategory) => {
-    return categoryToDisplayName({ category })
-  }
-
-  if (isLoading || isFetching) {
+  if (isLoading) {
     return null
   }
 
@@ -164,7 +84,9 @@ export const RulesView = () => {
               className="bg-muted/30 border rounded-lg p-4 space-y-4"
             >
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Rule Text</Label>
+                <Label className="text-sm font-medium">
+                  Rule (Supports regex)
+                </Label>
                 <Input
                   placeholder="e.g., Uber, Lyft, taxi, bus"
                   value={newRule}
@@ -172,8 +94,7 @@ export const RulesView = () => {
                   className="w-full"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter keywords that should trigger this category
-                  (comma-separated)
+                  Enter the expression that should trigger this category
                 </p>
               </div>
 
@@ -205,14 +126,18 @@ export const RulesView = () => {
                   onClick={() => {
                     setIsCreating(false)
                     setNewRule("")
-                    setNewCategory("")
+                    setNewCategory(undefined)
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
                   size="sm"
-                  onClick={handleCreateRule}
+                  onClick={async () => {
+                    if (newCategory && newRule.trim()) {
+                      createRule(newRule.trim(), newCategory)
+                    }
+                  }}
                   disabled={!newRule.trim() || !newCategory || isCreatingRule}
                 >
                   Create Rule
@@ -254,7 +179,9 @@ export const RulesView = () => {
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge variant="secondary" className="text-xs">
-                          {getCategoryLabel(rule.category)}
+                          {categoryToDisplayName({
+                            category: rule.category,
+                          })}
                         </Badge>
                       </div>
                       <span className="text-sm text-muted-foreground truncate">
@@ -266,11 +193,8 @@ export const RulesView = () => {
                     variant="outline"
                     size="icon"
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 flex-shrink-0"
-                    disabled={
-                      deletingRuleId === `${rule.category}-${rule.rule}`
-                    }
-                    onClick={() => handleDeleteRule(rule)}
-                    aria-label={`Delete rule for ${getCategoryLabel(rule.category)}`}
+                    disabled={isDeletingRule}
+                    onClick={() => deleteRule(rule.rule, rule.category)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
