@@ -31,7 +31,9 @@ use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracer
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
 use server::models::{
-    self, Expense, ExpenseCategory, ExpenseCategoryRule, Friendship, Member, MemberChangeset, MemberPassword, NewExpenseCategoryRule, NewExpenseLineItem, NewPool, PoolMembership, SplitMethod
+    self, Expense, ExpenseCategory, ExpenseCategoryRule, Friendship, Member, MemberChangeset,
+    MemberPassword, NewExpenseCategoryRule, NewExpenseLineItem, NewPool, PoolMembership,
+    SplitMethod,
 };
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
@@ -1780,7 +1782,6 @@ pub async fn update_member_handler(
     params(
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
     ),
-    request_body = Vec<ExpenseCategoryRule>,
     responses(
         (status = 200, description = "Got rules", body = Vec<ExpenseCategoryRule>),
         (status = 500, description = "Internal server error")
@@ -1803,7 +1804,8 @@ pub async fn list_expense_category_rules_handler(
         .expect("Failed to get database connection");
 
     let rules = tokio::task::spawn_blocking(move || {
-        ExpenseCategoryRule::find_for_member(&mut conn, member_id).expect("Failed to list expense category rules")
+        ExpenseCategoryRule::find_for_member(&mut conn, member_id)
+            .expect("Failed to list expense category rules")
     })
     .await
     .expect("Task panicked");
@@ -1819,7 +1821,7 @@ pub async fn list_expense_category_rules_handler(
     params(
         ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
     ),
-    request_body = ExpenseCategoryRule,
+    request_body = NewExpenseCategoryRule,
     responses(
         (status = 200, description = "Successfully created rule", body = ExpenseCategoryRule),
         (status = 500, description = "Internal server error")
@@ -1843,7 +1845,8 @@ pub async fn create_expense_category_rule_handler(
         .expect("Failed to get database connection");
 
     let rule = tokio::task::spawn_blocking(move || {
-        ExpenseCategoryRule::create(&mut conn, &member_id, &rule).expect("Failed to create expense category rule")
+        ExpenseCategoryRule::create(&mut conn, &member_id, &rule)
+            .expect("Failed to create expense category rule")
     })
     .await
     .expect("Task panicked");
@@ -1851,6 +1854,12 @@ pub async fn create_expense_category_rule_handler(
     span.end();
 
     Json(rule)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct DeleteExpenseCategoryRuleQuery {
+    rule: String,
+    category: ExpenseCategory,
 }
 
 #[utoipa::path(
@@ -1861,7 +1870,6 @@ pub async fn create_expense_category_rule_handler(
         ("rule" = String, Query, description = "The rule to delete"),
         ("category" = ExpenseCategory, Query, description = "The category of the rule to delete"),
     ),
-    request_body = ExpenseCategoryRule,
     responses(
         (status = 200, description = "Successfully deleted rule", body = ExpenseCategoryRule),
         (status = 500, description = "Internal server error")
@@ -1869,8 +1877,7 @@ pub async fn create_expense_category_rule_handler(
 )]
 pub async fn delete_expense_category_rule_handler(
     Path(member_id): Path<uuid::Uuid>,
-    Query(rule): Query<String>,
-    Query(category): Query<ExpenseCategory>,
+    Query(query): Query<DeleteExpenseCategoryRuleQuery>,
 ) -> Json<serde_json::Value> {
     let tracer = get_tracer();
 
@@ -1886,7 +1893,8 @@ pub async fn delete_expense_category_rule_handler(
         .expect("Failed to get database connection");
 
     let count = tokio::task::spawn_blocking(move || {
-        ExpenseCategoryRule::delete(&mut conn, &member_id, &rule, category).expect("Failed to delete expense category rule")
+        ExpenseCategoryRule::delete(&mut conn, &member_id, &query.rule, query.category)
+            .expect("Failed to delete expense category rule")
     })
     .await
     .expect("Task panicked");

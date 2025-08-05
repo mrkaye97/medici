@@ -523,6 +523,10 @@ export interface components {
     ModifyDefaultSplitInput: {
       default_split_percentages: components["schemas"]["MemberIdSplitPercentage"][]
     }
+    NewExpenseCategoryRule: {
+      category: components["schemas"]["ExpenseCategory"]
+      rule: string
+    }
     /** @enum {string} */
     PaymentDirection: "inbound" | "outbound"
     Pool: {
@@ -1169,11 +1173,7 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ExpenseCategoryRule"][]
-      }
-    }
+    requestBody?: never
     responses: {
       /** @description Got rules */
       200: {
@@ -1205,7 +1205,7 @@ export interface operations {
     }
     requestBody: {
       content: {
-        "application/json": components["schemas"]["ExpenseCategoryRule"]
+        "application/json": components["schemas"]["NewExpenseCategoryRule"]
       }
     }
     responses: {
@@ -1242,11 +1242,7 @@ export interface operations {
       }
       cookie?: never
     }
-    requestBody: {
-      content: {
-        "application/json": components["schemas"]["ExpenseCategoryRule"]
-      }
-    }
+    requestBody?: never
     responses: {
       /** @description Successfully deleted rule */
       200: {

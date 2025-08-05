@@ -3,6 +3,7 @@ import { AddFriendModal } from "@/components/add-friend-modal"
 import { CreatePoolModal } from "@/components/create-pool-modal"
 import { FriendsView } from "@/components/friends-view"
 import { PoolSummary } from "@/components/pool-summay"
+import { RulesView } from "@/components/rules-view"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,18 +15,33 @@ import {
 } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
-import { createFileRoute, Navigate } from "@tanstack/react-router"
+import {
+  createFileRoute,
+  Navigate,
+  useNavigate,
+  useSearch,
+} from "@tanstack/react-router"
 import { PlusCircle, UserPlus, Wallet } from "lucide-react"
 import { useState } from "react"
+import { z } from "zod"
+
+const homeSearchSchema = z.object({
+  tab: z.enum(["social", "rules"]).optional().default("social"),
+})
 
 export const Route = createFileRoute("/")({
   component: Home,
+  validateSearch: homeSearchSchema,
 })
 
 function Home() {
   const { memberId, createAuthHeader, isAuthenticated } = useAuth()
+  const navigate = useNavigate()
+  const search = useSearch({ from: "/" })
   const [isCreatePoolOpen, setIsCreatePoolOpen] = useState(false)
   const [isAddFriendOpen, setIsAddFriendModalOpen] = useState(false)
+
+  const activeTab = search.tab
 
   const {
     data,
@@ -133,7 +149,15 @@ function Home() {
       </div>
 
       <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden gap-y-4">
-        <Tabs defaultValue="social">
+        <Tabs
+          value={activeTab}
+          onValueChange={value => {
+            navigate({
+              to: "/",
+              search: { tab: value as "social" | "rules" },
+            })
+          }}
+        >
           <div className="flex flex-row items-center justify-between">
             <TabsList className="h-14 w-72 rounded-sm">
               <TabsTrigger
@@ -163,7 +187,7 @@ function Home() {
             <FriendsView setIsAddFriendModalOpen={setIsAddFriendModalOpen} />
           </TabsContent>
           <TabsContent value="rules">
-            <FriendsView setIsAddFriendModalOpen={setIsAddFriendModalOpen} />
+            <RulesView />
           </TabsContent>
         </Tabs>
       </div>
