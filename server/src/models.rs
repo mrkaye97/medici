@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::schema::{
-    expense, expense_line_item, friendship, member, member_password, pool, pool_membership,
+    expense, expense_category_rule, expense_line_item, friendship, member, member_password, pool, pool_membership
 };
 
 #[derive(
@@ -48,7 +48,7 @@ pub enum SplitMethod {
 }
 
 #[derive(
-    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema,
+    diesel_derive_enum::DbEnum, Debug, Clone, Serialize, Deserialize, PartialEq, Eq, ToSchema, Hash,
 )]
 #[db_enum(
     existing_type_path = "crate::schema::sql_types::ExpenseCategory",
@@ -301,6 +301,25 @@ pub struct FriendshipChangeset {
     pub status: Option<FriendshipStatus>,
 }
 
+#[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
+#[diesel(table_name = expense_category_rule)]
+#[diesel(belongs_to(Member, foreign_key = member_id))]
+#[diesel(primary_key(member_id, rule, category))]
+pub struct ExpenseCategoryRule {
+    pub member_id: uuid::Uuid,
+    pub rule: String,
+    pub category: ExpenseCategory,
+    pub inserted_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Insertable, Deserialize, ToSchema)]
+#[diesel(table_name = expense_category_rule)]
+pub struct NewExpenseCategoryRule {
+    pub rule: String,
+    pub category: ExpenseCategory,
+}
+
 impl Member {
     pub fn create(conn: &mut PgConnection, new_member: &NewMember) -> QueryResult<Self> {
         diesel::insert_into(member::table)
@@ -341,6 +360,50 @@ impl Member {
             Ok((id, stored_hash)) => Ok((id, stored_hash == password_hash)),
             Err(e) => Err(e),
         }
+    }
+}
+
+impl ExpenseCategoryRule {
+    pub fn create(
+        conn: &mut PgConnection,
+        member_id: &uuid::Uuid,
+        rule: &NewExpenseCategoryRule,
+    ) -> QueryResult<Self> {
+        diesel::insert_into(expense_category_rule::table)
+            .values(
+                (
+                    expense_category_rule::member_id.eq(&member_id),
+                    expense_category_rule::rule.eq(&rule.rule),
+                    expense_category_rule::category.eq(&rule.category),
+                )
+            )
+            .get_result(conn)
+    }
+
+    pub fn find_for_member(
+        conn: &mut PgConnection,
+        member_id: uuid::Uuid,
+    ) -> QueryResult<Vec<Self>> {
+        expense_category_rule::table
+            .filter(expense_category_rule::member_id.eq(member_id))
+            .get_results(conn)
+    }
+
+    pub fn delete(
+        conn: &mut PgConnection,
+        member_id: &uuid::Uuid,
+        rule: &str,
+        expense_category: ExpenseCategory,
+    ) -> QueryResult<usize> {
+        diesel::delete(
+            expense_category_rule::table.filter(
+                expense_category_rule::member_id
+                    .eq(member_id)
+                    .and(expense_category_rule::rule.eq(rule))
+                    .and(expense_category_rule::category.eq(expense_category)),
+            ),
+        )
+        .execute(conn)
     }
 }
 

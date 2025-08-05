@@ -15,6 +15,7 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
 use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
+use diesel::dsl::count_distinct;
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -30,8 +31,7 @@ use opentelemetry_sdk::trace::{BatchConfigBuilder, BatchSpanProcessor, SdkTracer
 use serde::{Deserialize, Serialize};
 use server::compute_balances_for_member;
 use server::models::{
-    self, Expense, ExpenseCategory, Friendship, Member, MemberChangeset, MemberPassword,
-    NewExpenseLineItem, NewPool, PoolMembership, SplitMethod,
+    self, Expense, ExpenseCategory, ExpenseCategoryRule, Friendship, Member, MemberChangeset, MemberPassword, NewExpenseCategoryRule, NewExpenseLineItem, NewPool, PoolMembership, SplitMethod
 };
 use utoipa::ToSchema;
 use utoipa_axum::router::OpenApiRouter;
@@ -1774,6 +1774,128 @@ pub async fn update_member_handler(
     Json(membership)
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/members/{member_id}/rules",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
+    ),
+    request_body = Vec<ExpenseCategoryRule>,
+    responses(
+        (status = 200, description = "Got rules", body = Vec<ExpenseCategoryRule>),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn list_expense_category_rules_handler(
+    Path(member_id): Path<uuid::Uuid>,
+) -> Json<Vec<ExpenseCategoryRule>> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_expense_category_rules_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let rules = tokio::task::spawn_blocking(move || {
+        ExpenseCategoryRule::find_for_member(&mut conn, member_id).expect("Failed to list expense category rules")
+    })
+    .await
+    .expect("Task panicked");
+
+    span.end();
+
+    Json(rules)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/members/{member_id}/rules",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
+    ),
+    request_body = ExpenseCategoryRule,
+    responses(
+        (status = 200, description = "Successfully created rule", body = ExpenseCategoryRule),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn create_expense_category_rule_handler(
+    Path(member_id): Path<uuid::Uuid>,
+    Json(rule): Json<NewExpenseCategoryRule>,
+) -> Json<ExpenseCategoryRule> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_expense_category_rules_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let rule = tokio::task::spawn_blocking(move || {
+        ExpenseCategoryRule::create(&mut conn, &member_id, &rule).expect("Failed to create expense category rule")
+    })
+    .await
+    .expect("Task panicked");
+
+    span.end();
+
+    Json(rule)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/members/{member_id}/rules",
+    params(
+        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for"),
+        ("rule" = String, Query, description = "The rule to delete"),
+        ("category" = ExpenseCategory, Query, description = "The category of the rule to delete"),
+    ),
+    request_body = ExpenseCategoryRule,
+    responses(
+        (status = 200, description = "Successfully deleted rule", body = ExpenseCategoryRule),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn delete_expense_category_rule_handler(
+    Path(member_id): Path<uuid::Uuid>,
+    Query(rule): Query<String>,
+    Query(category): Query<ExpenseCategory>,
+) -> Json<serde_json::Value> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("list_expense_category_rules_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+
+    let mut conn = get_db_connection()
+        .await
+        .expect("Failed to get database connection");
+
+    let count = tokio::task::spawn_blocking(move || {
+        ExpenseCategoryRule::delete(&mut conn, &member_id, &rule, category).expect("Failed to delete expense category rule")
+    })
+    .await
+    .expect("Task panicked");
+
+    span.end();
+
+    Json(serde_json::json!({"deleted": count}))
+}
+
 pub fn handlers_routes() -> OpenApiRouter {
     let public_routes = OpenApiRouter::new()
         .routes(routes!(signup_handler))
@@ -1803,6 +1925,9 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(delete_expense_handler))
         .routes(routes!(update_member_handler))
         .routes(routes!(update_expense_handler))
+        .routes(routes!(list_expense_category_rules_handler))
+        .routes(routes!(create_expense_category_rule_handler))
+        .routes(routes!(delete_expense_category_rule_handler))
         .route_layer(middleware::from_fn(auth_middleware))
         .route_layer(middleware::from_fn(trace_middleware));
 
