@@ -119,38 +119,40 @@ export function Expense({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-x-1">
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
-              onClick={() => setIsUpdateModalOpen(true)}
-              aria-label={`Edit expense: ${expense.name}`}
-            >
-              <Edit className="size-4" />
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="text-destructive hover:text-destructive h-8 w-8 p-0"
-              onClick={async () => {
-                await deleteExpense({
-                  params: {
-                    path: {
-                      pool_id: expense.pool_id,
-                      member_id: memberId,
-                      expense_id: expense.id,
+          {expense.paid_by_member_id === memberId && (
+            <div className="flex items-center gap-x-1">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+                onClick={() => setIsUpdateModalOpen(true)}
+                aria-label={`Edit expense: ${expense.name}`}
+              >
+                <Edit className="size-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                onClick={async () => {
+                  await deleteExpense({
+                    params: {
+                      path: {
+                        pool_id: expense.pool_id,
+                        member_id: memberId,
+                        expense_id: expense.id,
+                      },
                     },
-                  },
-                  headers: createAuthHeader(),
-                })
-              }}
-              disabled={isPending}
-              aria-label={`Delete expense: ${expense.name}`}
-            >
-              <X className="size-4" />
-            </Button>
-          </div>
+                    headers: createAuthHeader(),
+                  })
+                }}
+                disabled={isPending}
+                aria-label={`Delete expense: ${expense.name}`}
+              >
+                <X className="size-4" />
+              </Button>
+            </div>
+          )}
         </div>
         {expense.description && (
           <div className="py-4">{expense.description}</div>

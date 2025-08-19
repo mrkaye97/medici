@@ -18,7 +18,7 @@ import { Input } from "./ui/input"
 
 const poolSchema = z.object({
   poolName: z.string().min(1, "Required"),
-  poolDescription: z.string().min(1, "Required"),
+  poolDescription: z.string().optional(),
 })
 
 type PoolFormValues = z.infer<typeof poolSchema>
@@ -71,7 +71,7 @@ export function CreatePoolModal({
                 await createPool({
                   body: {
                     name: data.poolName,
-                    description: data.poolDescription,
+                    description: data.poolDescription ?? undefined,
                   },
                   params: {
                     path: {
