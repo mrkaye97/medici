@@ -360,7 +360,7 @@ const ExpensesPane = ({
               defaultValue="all"
               value={selectedCategory ?? "all"}
             >
-              <SelectTrigger className="min-w-[250px]">
+              <SelectTrigger className="min-w-[250px] max-w-[300px]">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
@@ -404,7 +404,7 @@ const ExpensesPane = ({
               }}
               defaultValue="all"
             >
-              <SelectTrigger className="min-w-[250px]">
+              <SelectTrigger className="min-w-[250px] max-w-[300px]">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
