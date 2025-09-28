@@ -153,30 +153,32 @@ function Home() {
             })
           }}
         >
-          <div className="flex flex-row items-center justify-between">
-            <TabsList className="h-14 w-72 rounded-sm">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+            <TabsList className="h-10 w-full md:w-72 rounded-sm">
               <TabsTrigger
-                className="hover:cursor-pointer h-12 font-bold text-pretty rounded-sm"
+                className="hover:cursor-pointer h-8 font-bold text-pretty rounded-sm"
                 value="social"
               >
                 Social
               </TabsTrigger>
               <TabsTrigger
-                className="hover:cursor-pointer h-12 font-bold text-pretty rounded-sm"
+                className="hover:cursor-pointer h-8 font-bold text-pretty rounded-sm"
                 value="rules"
               >
                 Rules
               </TabsTrigger>
             </TabsList>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setIsAddFriendModalOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              <span>Add Friend</span>
-            </Button>{" "}
+            {activeTab === "social" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsAddFriendModalOpen(true)}
+                className="flex items-center gap-2 w-full md:w-auto"
+              >
+                <UserPlus className="h-4 w-4" />
+                <span>Add Friend</span>
+              </Button>
+            )}
           </div>
           <TabsContent value="social">
             <FriendsView setIsAddFriendModalOpen={setIsAddFriendModalOpen} />
