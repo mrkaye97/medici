@@ -27,11 +27,8 @@ export const useRules = ({
     isError,
   } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/rules",
+    "/api/rules",
     {
-      params: {
-        path: { member_id: memberId || "" },
-      },
       headers: createAuthHeader(),
     },
     {
@@ -40,10 +37,10 @@ export const useRules = ({
   )
 
   const { mutateAsync: createRuleMutation, isPending: isCreatingRule } =
-    apiClient.useMutation("post", "/api/members/{member_id}/rules", {
+    apiClient.useMutation("post", "/api/rules", {
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/members/{member_id}/rules"],
+          queryKey: ["get", "/api/rules"],
         })
 
         if (setIsCreating) {
@@ -53,10 +50,10 @@ export const useRules = ({
     })
 
   const { mutateAsync: deleteRuleMutation, isPending: isDeletingRule } =
-    apiClient.useMutation("delete", "/api/members/{member_id}/rules", {
+    apiClient.useMutation("delete", "/api/rules", {
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/members/{member_id}/rules"],
+          queryKey: ["get", "/api/rules"],
         })
       },
     })
@@ -72,7 +69,6 @@ export const useRules = ({
       }
 
       return createRuleMutation({
-        params: { path: { member_id: memberId } },
         body: {
           rule: rule,
           category: category,
@@ -89,7 +85,6 @@ export const useRules = ({
 
       return deleteRuleMutation({
         params: {
-          path: { member_id: memberId },
           query: {
             rule: rule,
             category: category,

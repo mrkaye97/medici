@@ -34,7 +34,7 @@ export function CreatePoolModal({
   const { memberId, createAuthHeader } = useAuth()
   const { mutateAsync: createPool, isPending } = apiClient.useMutation(
     "post",
-    "/api/members/{member_id}/pools"
+    "/api/pools"
   )
 
   const form = useForm<PoolFormValues>({
@@ -73,16 +73,11 @@ export function CreatePoolModal({
                     name: data.poolName,
                     description: data.poolDescription ?? undefined,
                   },
-                  params: {
-                    path: {
-                      member_id: memberId,
-                    },
-                  },
                   headers: createAuthHeader(),
                 })
 
                 await queryClient.invalidateQueries({
-                  queryKey: ["get", "/api/members/{member_id}/pools"],
+                  queryKey: ["get", "/api/pools"],
                 })
 
                 setIsOpen(false)

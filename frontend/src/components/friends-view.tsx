@@ -30,9 +30,8 @@ export const FriendsView = ({
 
   const { data: member } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}",
+    "/api/members/me",
     {
-      params: { path: { member_id: memberId || "" } },
       headers: createAuthHeader(),
     },
     {
@@ -42,7 +41,7 @@ export const FriendsView = ({
 
   const { mutateAsync: updateMember, isPending } = apiClient.useMutation(
     "patch",
-    "/api/members/{member_id}"
+    "/api/members/me"
   )
 
   const email = member?.email
@@ -322,9 +321,6 @@ export const FriendsView = ({
                         onClick={async () => {
                           if (memberId) {
                             await updateMember({
-                              params: {
-                                path: { member_id: memberId },
-                              },
                               body: {
                                 venmo_handle: venmoHandle || null,
                               },
@@ -332,7 +328,7 @@ export const FriendsView = ({
                             })
 
                             await queryClient.invalidateQueries({
-                              queryKey: ["get", "/api/members/{member_id}"],
+                              queryKey: ["get", "/api"],
                             })
                           }
                         }}

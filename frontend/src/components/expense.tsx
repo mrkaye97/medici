@@ -54,20 +54,14 @@ export function Expense({
   })
   const { mutateAsync: deleteExpense, isPending } = apiClient.useMutation(
     "delete",
-    "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    "/api/pools/{pool_id}/expenses/{expense_id}",
     {
       onSuccess: async () => {
         await queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/pools/{pool_id}/members/{member_id}/expenses",
-          ],
+          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
         })
         await queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/pools/{pool_id}/members/{member_id}/balances",
-          ],
+          queryKey: ["get", "/api/pools/{pool_id}/balances"],
         })
 
         await invalidate()
@@ -139,7 +133,6 @@ export function Expense({
                     params: {
                       path: {
                         pool_id: expense.pool_id,
-                        member_id: memberId,
                         expense_id: expense.id,
                       },
                     },

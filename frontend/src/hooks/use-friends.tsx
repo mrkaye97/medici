@@ -9,13 +9,8 @@ export const useFriends = () => {
 
   const { data, isLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/friends",
+    "/api/friends",
     {
-      params: {
-        path: {
-          member_id: memberId || "",
-        },
-      },
       headers: createAuthHeader(),
     },
     { enabled: !!memberId }
@@ -24,11 +19,8 @@ export const useFriends = () => {
   const { data: friendRequestsRaw, isLoading: isFriendRequestsLoading } =
     apiClient.useQuery(
       "get",
-      "/api/members/{member_id}/friend-requests",
+      "/api/friend-requests",
       {
-        params: {
-          path: { member_id: memberId || "" },
-        },
         headers: createAuthHeader(),
       },
       {
@@ -43,10 +35,10 @@ export const useFriends = () => {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friend-requests"],
+            queryKey: ["get", "/api/friend-requests"],
           })
           queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friends"],
+            queryKey: ["get", "/api/friends"],
           })
         },
       }
@@ -59,7 +51,7 @@ export const useFriends = () => {
       {
         onSuccess: async () => {
           await queryClient.invalidateQueries({
-            queryKey: ["get", "/api/members/{member_id}/friend-requests"],
+            queryKey: ["get", "/api/friend-requests"],
           })
         },
       }
@@ -97,7 +89,7 @@ export const useFriends = () => {
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
-      queryKey: ["get", "/api/members/{member_id}/friends"],
+      queryKey: ["get", "/api/friends"],
     })
   }
 

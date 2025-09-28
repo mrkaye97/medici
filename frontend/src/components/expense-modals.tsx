@@ -341,7 +341,7 @@ type SplitState = {
 type Pool = components["schemas"]["PoolDetails"]
 
 type Members =
-  paths["/api/members/{member_id}/pools/{pool_id}/members"]["get"]["responses"]["200"]["content"]["application/json"]
+  paths["/api/pools/{pool_id}/members"]["get"]["responses"]["200"]["content"]["application/json"]
 
 export function round(num: number) {
   return Number(num.toFixed(2))
@@ -827,10 +827,7 @@ export function AddExpenseModal({
         })
 
         await queryClient.invalidateQueries({
-          queryKey: [
-            "get",
-            "/api/pools/{pool_id}/members/{member_id}/expenses",
-          ],
+          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
         })
 
         return { success: true }
@@ -872,7 +869,7 @@ export function UpdateExpenseModal({
 
   const { data: expense, isLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    "/api/pools/{pool_id}/expenses/{expense_id}",
     {
       params: {
         path: {
@@ -965,16 +962,10 @@ export function UpdateExpenseModal({
 
         await Promise.all([
           queryClient.invalidateQueries({
-            queryKey: [
-              "get",
-              "/api/pools/{pool_id}/members/{member_id}/expenses",
-            ],
+            queryKey: ["get", "/api/pools/{pool_id}/expenses"],
           }),
           queryClient.invalidateQueries({
-            queryKey: [
-              "get",
-              "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
-            ],
+            queryKey: ["get", "/api/pools/{pool_id}/expenses/{expense_id}"],
           }),
         ])
 

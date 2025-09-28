@@ -49,13 +49,8 @@ function Home() {
     isFetching,
   } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/pools",
+    "/api/pools",
     {
-      params: {
-        path: {
-          member_id: memberId || "",
-        },
-      },
       headers: createAuthHeader(),
     },
     {

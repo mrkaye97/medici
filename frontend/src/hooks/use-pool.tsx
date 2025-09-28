@@ -29,7 +29,7 @@ export const usePool = ({
 
   const { data: members, isLoading: isMembersLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/pools/{pool_id}/members",
+    "/api/pools/{pool_id}/members",
     {
       params: {
         path: {
@@ -43,7 +43,7 @@ export const usePool = ({
 
   const { data: details, isLoading: isDetailsLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}/pools/{pool_id}",
+    "/api/pools/{pool_id}",
     {
       params: {
         path: {
@@ -64,7 +64,7 @@ export const usePool = ({
     isRefetching: isExpensesRefetching,
   } = apiClient.useQuery(
     "get",
-    "/api/pools/{pool_id}/members/{member_id}/expenses",
+    "/api/pools/{pool_id}/expenses",
     {
       params: {
         path: {
@@ -92,19 +92,15 @@ export const usePool = ({
   )
 
   const { data: rawBalances, isLoading: isBalancesLoading } =
-    apiClient.useQuery(
-      "get",
-      "/api/pools/{pool_id}/members/{member_id}/balances",
-      {
-        params: {
-          path: {
-            member_id: memberId || "",
-            pool_id: poolId,
-          },
+    apiClient.useQuery("get", "/api/pools/{pool_id}/balances", {
+      params: {
+        path: {
+          member_id: memberId || "",
+          pool_id: poolId,
         },
-        headers: createAuthHeader(),
-      }
-    )
+      },
+      headers: createAuthHeader(),
+    })
 
   const balances = useMemo(() => {
     return (rawBalances || [])
@@ -129,7 +125,7 @@ export const usePool = ({
 
   const invalidate = useCallback(async () => {
     await queryClient.invalidateQueries({
-      queryKey: ["get", "/api/members/{member_id}/pools/{pool_id}/members"],
+      queryKey: ["get", "/api/pools/{pool_id}/members"],
     })
   }, [queryClient])
 
@@ -142,10 +138,7 @@ export const usePool = ({
   const {
     mutateAsync: modifyDefaultSplitMutation,
     isPending: isModifyDefaultSplitPending,
-  } = apiClient.useMutation(
-    "patch",
-    "/api/members/{member_id}/pools/{pool_id}/default-splits"
-  )
+  } = apiClient.useMutation("patch", "/api/pools/{pool_id}/default-splits")
 
   const addFriend = useCallback(
     async (friendMemberId: string) => {
@@ -191,7 +184,6 @@ export const usePool = ({
         params: {
           path: {
             pool_id: poolId,
-            member_id: memberId,
           },
         },
         body: {

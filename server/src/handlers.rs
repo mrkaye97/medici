@@ -1,8 +1,8 @@
 use std::sync::OnceLock;
 use std::time::{Duration as BuiltInDuration, SystemTime, UNIX_EPOCH};
 
-use axum::extract::{MatchedPath, Query};
-use axum::http::StatusCode;
+use axum::extract::{MatchedPath, Query, FromRequestParts};
+use axum::http::{StatusCode, request::Parts};
 use axum::middleware;
 use axum::{Json, extract::Path};
 use axum::{
@@ -15,7 +15,6 @@ use axum_extra::headers::Authorization;
 use axum_extra::headers::authorization::Bearer;
 use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
-use diesel::dsl::count_distinct;
 use diesel::pg::PgConnection;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -132,6 +131,39 @@ pub struct Claims {
     pub iat: usize,
 }
 
+pub struct AuthenticatedUser(pub uuid::Uuid);
+
+impl<S> FromRequestParts<S> for AuthenticatedUser
+where
+    S: Send + Sync,
+{
+    type Rejection = (StatusCode, Json<serde_json::Value>);
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let TypedHeader(auth) = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::UNAUTHORIZED,
+                    Json(serde_json::json!({
+                        "error": "Missing or invalid authorization header"
+                    })),
+                )
+            })?;
+
+        let user_id = verify_jwt(auth.token()).map_err(|_| {
+            (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "error": "Invalid token"
+                })),
+            )
+        })?;
+
+        Ok(AuthenticatedUser(user_id))
+    }
+}
+
 fn generate_jwt(member_id: uuid::Uuid) -> Result<String, jsonwebtoken::errors::Error> {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -188,22 +220,6 @@ pub enum AuthResult {
     },
 }
 
-pub async fn auth_middleware(
-    TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
-    request: Request,
-    next: Next,
-) -> Response {
-    match verify_jwt(auth.token()) {
-        Ok(_) => next.run(request).await,
-        Err(_) => (
-            StatusCode::UNAUTHORIZED,
-            axum::Json(serde_json::json!({
-                "error": "Invalid token"
-            })),
-        )
-            .into_response(),
-    }
-}
 
 pub async fn trace_middleware(request: Request, next: Next) -> Response {
     let tracer = get_tracer();
@@ -305,18 +321,15 @@ pub struct FriendRequestInput {
 
 #[utoipa::path(
     post,
-    path = "/api/members/{member_id}/pools",
+    path = "/api/pools",
     request_body = PoolInput,
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to create a pool under")
-    ),
     responses(
         (status = 200, description = "Create a pool successfully", body = models::Pool),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn create_pool_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Json(pool_input): Json<PoolInput>,
 ) -> Json<models::Pool> {
     let tracer = get_tracer();
@@ -462,17 +475,14 @@ pub async fn remove_friend_from_pool_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch")
-    ),
+    path = "/api/members/me",
     responses(
         (status = 200, description = "Get a member successfully", body = Member),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn get_member_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
 ) -> Result<Json<Member>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
@@ -649,16 +659,13 @@ pub async fn authenticate_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/friends",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch friends for")
-    ),
+    path = "/api/friends",
     responses(
         (status = 200, description = "List friends of a member successfully", body = Vec<Member>),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn list_friends_handler(Path(member_id): Path<uuid::Uuid>) -> Json<Vec<Member>> {
+pub async fn list_friends_handler(AuthenticatedUser(member_id): AuthenticatedUser) -> Json<Vec<Member>> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -698,17 +705,14 @@ pub struct FriendRequestsList {
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/friend-requests",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch friend requests for")
-    ),
+    path = "/api/friend-requests",
     responses(
         (status = 200, description = "List inbound friend requests of a member successfully", body = Vec<FriendRequestsList>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_inbound_friend_requests_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
 ) -> Json<Vec<FriendRequestsList>> {
     let tracer = get_tracer();
 
@@ -747,10 +751,7 @@ pub async fn list_inbound_friend_requests_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/members/{member_id}/friend-requests",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to create a friend request for")
-    ),
+    path = "/api/friend-requests",
     request_body = FriendRequestInput,
     responses(
         (status = 200, description = "Create a friend request successfully", body = serde_json::Value),
@@ -758,7 +759,7 @@ pub async fn list_inbound_friend_requests_handler(
     )
 )]
 pub async fn create_friend_request_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Json(input): Json<FriendRequestInput>,
 ) -> Json<serde_json::Value> {
     let tracer = get_tracer();
@@ -900,16 +901,14 @@ pub async fn delete_friend_request(
 
 #[derive(Deserialize, ToSchema)]
 pub struct ExpensePath {
-    member_id: uuid::Uuid,
     pool_id: uuid::Uuid,
     expense_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    path = "/api/pools/{pool_id}/expenses/{expense_id}",
     params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
         ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to fetch")
     ),
@@ -919,6 +918,7 @@ pub struct ExpensePath {
     )
 )]
 pub async fn get_expense_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::ExpenseWithLineItems>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
@@ -928,7 +928,7 @@ pub async fn get_expense_handler(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
 
@@ -940,7 +940,7 @@ pub async fn get_expense_handler(
         models::Expense::find_with_line_items(
             &mut conn,
             path.expense_id,
-            path.member_id,
+            member_id,
             path.pool_id,
             false,
         )
@@ -948,7 +948,7 @@ pub async fn get_expense_handler(
             models::Expense::find_with_line_items(
                 &mut conn,
                 path.expense_id,
-                path.member_id,
+                member_id,
                 path.pool_id,
                 true,
             )
@@ -970,9 +970,8 @@ pub async fn get_expense_handler(
 
 #[utoipa::path(
     delete,
-    path = "/api/members/{member_id}/pools/{pool_id}/expenses/{expense_id}",
+    path = "/api/pools/{pool_id}/expenses/{expense_id}",
     params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to delete the expense for"),
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to delete the expense for"),
         ("expense_id" = uuid::Uuid, Path, description = "ID of the expense to delete")
     ),
@@ -982,6 +981,7 @@ pub async fn get_expense_handler(
     )
 )]
 pub async fn delete_expense_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
@@ -991,7 +991,7 @@ pub async fn delete_expense_handler(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
 
@@ -1257,23 +1257,24 @@ pub struct PoolDetails {
 
 #[derive(Deserialize, ToSchema)]
 pub struct PoolDetailsPath {
-    member_id: uuid::Uuid,
     pool_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/pools/{pool_id}",
+    path = "/api/pools/{pool_id}",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch details for"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch details for")
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch details for")
     ),
     responses(
         (status = 200, description = "Create expense", body = PoolDetails),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+pub async fn get_pool_details_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
+    Path(path): Path<PoolDetailsPath>,
+) -> Json<PoolDetails> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -1281,7 +1282,6 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    let member_id = path.member_id;
     let pool_id = path.pool_id;
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
@@ -1311,17 +1311,19 @@ pub async fn get_pool_details_handler(Path(path): Path<PoolDetailsPath>) -> Json
 
 #[utoipa::path(
     patch,
-    path = "/api/members/{member_id}/pools/{pool_id}/settle-up",
+    path = "/api/pools/{pool_id}/settle-up",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to settle up"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member who confirmed the settle up")
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to settle up")
     ),
     responses(
         (status = 200, description = "Pool settled up", body = PoolDetails),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<PoolDetails> {
+pub async fn settle_up_pool_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
+    Path(path): Path<PoolDetailsPath>,
+) -> Json<PoolDetails> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -1329,7 +1331,6 @@ pub async fn settle_up_pool_handler(Path(path): Path<PoolDetailsPath>) -> Json<P
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    let member_id = path.member_id;
     let pool_id = path.pool_id;
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
@@ -1376,10 +1377,9 @@ pub struct ModifyDefaultSplitInput {
 
 #[utoipa::path(
     patch,
-    path = "/api/members/{member_id}/pools/{pool_id}/default-splits",
+    path = "/api/pools/{pool_id}/default-splits",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to modify default split percentages for"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member who confirmed the modification")
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to modify default split percentages for")
     ),
     request_body = ModifyDefaultSplitInput,
     responses(
@@ -1388,6 +1388,7 @@ pub struct ModifyDefaultSplitInput {
     )
 )]
 pub async fn modify_default_splits_handler(
+    AuthenticatedUser(_member_id): AuthenticatedUser,
     Path(path): Path<PoolDetailsPath>,
     Json(input): Json<ModifyDefaultSplitInput>,
 ) -> Json<Vec<PoolMembershipWithMemberDetails>> {
@@ -1458,15 +1459,13 @@ pub struct RecentExpensesQuery {
 #[derive(Deserialize, ToSchema)]
 pub struct RecentExpensesPath {
     pool_id: uuid::Uuid,
-    member_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/pools/{pool_id}/members/{member_id}/expenses",
+    path = "/api/pools/{pool_id}/expenses",
     params(
         ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch expenses for"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch expenses for"),
         ("category" = Option<ExpenseCategory>, Query, description = "Filter expenses by category"),
         ("limit" = Option<i64>, Query, description = "Limit the number of expenses returned"),
         ("is_settled" = bool, Query, description = "Filter expenses by settle status"),
@@ -1480,6 +1479,7 @@ pub struct RecentExpensesPath {
     )
 )]
 pub async fn get_pool_recent_expenses_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<RecentExpensesPath>,
     Query(query): Query<RecentExpensesQuery>,
 ) -> Json<Vec<RecentExpenseDetails>> {
@@ -1497,7 +1497,7 @@ pub async fn get_pool_recent_expenses_handler(
     let until = query.until.unwrap_or_else(|| Utc::now());
 
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
-    span.set_attribute(KeyValue::new("member_id", path.member_id.to_string()));
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("limit", limit.to_string()));
 
     let mut conn = get_db_connection()
@@ -1508,7 +1508,7 @@ pub async fn get_pool_recent_expenses_handler(
         models::Expense::get_recent_for_member_in_pool(
             &mut conn,
             path.pool_id,
-            path.member_id,
+            member_id,
             limit,
             query.category,
             query.paid_by_member_id,
@@ -1537,15 +1537,13 @@ pub async fn get_pool_recent_expenses_handler(
 #[derive(Deserialize, ToSchema)]
 pub struct PoolBalancesForMemberPath {
     pool_id: uuid::Uuid,
-    member_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/pools/{pool_id}/members/{member_id}/balances",
+    path = "/api/pools/{pool_id}/balances",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch balances for"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch balances for"),
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch balances for")
     ),
     responses(
         (status = 200, description = "Got balances", body = Vec<models::Balance>),
@@ -1553,6 +1551,7 @@ pub struct PoolBalancesForMemberPath {
     )
 )]
 pub async fn get_pool_balances_for_member(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<PoolBalancesForMemberPath>,
 ) -> Json<Vec<models::Balance>> {
     let tracer = get_tracer();
@@ -1563,7 +1562,6 @@ pub async fn get_pool_balances_for_member(
         .start(tracer);
 
     let pool_id = path.pool_id;
-    let member_id = path.member_id;
 
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
@@ -1587,15 +1585,13 @@ pub async fn get_pool_balances_for_member(
 #[derive(Deserialize, Serialize, ToSchema)]
 pub struct MembersOfPoolPath {
     pool_id: uuid::Uuid,
-    member_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/pools/{pool_id}/members",
+    path = "/api/pools/{pool_id}/members",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch members for"),
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch members for")
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch members for")
     ),
     responses(
         (status = 200, description = "List all members of a pool successfully", body = Vec<PoolMembershipWithMemberDetails>),
@@ -1603,6 +1599,7 @@ pub struct MembersOfPoolPath {
     )
 )]
 pub async fn list_members_of_pool_handler(
+    AuthenticatedUser(_member_id): AuthenticatedUser,
     Path(path): Path<MembersOfPoolPath>,
 ) -> Json<Vec<PoolMembershipWithMemberDetails>> {
     let tracer = get_tracer();
@@ -1643,17 +1640,14 @@ pub async fn list_members_of_pool_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/pools",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to fetch pools for")
-    ),
+    path = "/api/pools",
     responses(
         (status = 200, description = "List pools for member", body = Vec<models::Pool>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_pools_for_member_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
 ) -> Json<Vec<models::Pool>> {
     let tracer = get_tracer();
 
@@ -1738,10 +1732,7 @@ pub async fn create_pool_membership_handler(
 
 #[utoipa::path(
     patch,
-    path = "/api/members/{member_id}",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to update")
-    ),
+    path = "/api/members/me",
     request_body = MemberChangeset,
     responses(
         (status = 200, description = "Updated member", body = Member),
@@ -1749,7 +1740,7 @@ pub async fn create_pool_membership_handler(
     )
 )]
 pub async fn update_member_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Json(json): Json<MemberChangeset>,
 ) -> Json<Member> {
     let tracer = get_tracer();
@@ -1778,17 +1769,14 @@ pub async fn update_member_handler(
 
 #[utoipa::path(
     get,
-    path = "/api/members/{member_id}/rules",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
-    ),
+    path = "/api/rules",
     responses(
         (status = 200, description = "Got rules", body = Vec<ExpenseCategoryRule>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_expense_category_rules_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
 ) -> Json<Vec<ExpenseCategoryRule>> {
     let tracer = get_tracer();
 
@@ -1817,10 +1805,7 @@ pub async fn list_expense_category_rules_handler(
 
 #[utoipa::path(
     post,
-    path = "/api/members/{member_id}/rules",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for")
-    ),
+    path = "/api/rules",
     request_body = NewExpenseCategoryRule,
     responses(
         (status = 200, description = "Successfully created rule", body = ExpenseCategoryRule),
@@ -1828,7 +1813,7 @@ pub async fn list_expense_category_rules_handler(
     )
 )]
 pub async fn create_expense_category_rule_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Json(rule): Json<NewExpenseCategoryRule>,
 ) -> Json<ExpenseCategoryRule> {
     let tracer = get_tracer();
@@ -1864,9 +1849,8 @@ pub struct DeleteExpenseCategoryRuleQuery {
 
 #[utoipa::path(
     delete,
-    path = "/api/members/{member_id}/rules",
+    path = "/api/rules",
     params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to get expense category rules for"),
         ("rule" = String, Query, description = "The rule to delete"),
         ("category" = ExpenseCategory, Query, description = "The category of the rule to delete"),
     ),
@@ -1876,7 +1860,7 @@ pub struct DeleteExpenseCategoryRuleQuery {
     )
 )]
 pub async fn delete_expense_category_rule_handler(
-    Path(member_id): Path<uuid::Uuid>,
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Query(query): Query<DeleteExpenseCategoryRuleQuery>,
 ) -> Json<serde_json::Value> {
     let tracer = get_tracer();
@@ -1936,7 +1920,6 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(list_expense_category_rules_handler))
         .routes(routes!(create_expense_category_rule_handler))
         .routes(routes!(delete_expense_category_rule_handler))
-        .route_layer(middleware::from_fn(auth_middleware))
         .route_layer(middleware::from_fn(trace_middleware));
 
     public_routes.merge(protected_routes)

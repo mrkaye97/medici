@@ -22,13 +22,8 @@ export const MemberProfile = ({ id }: { id: string }) => {
 
   const { data: member, isLoading } = apiClient.useQuery(
     "get",
-    "/api/members/{member_id}",
+    "/api/members/me",
     {
-      params: {
-        path: {
-          member_id: id,
-        },
-      },
       headers: createAuthHeader(),
     },
     {
