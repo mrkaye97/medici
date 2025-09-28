@@ -204,9 +204,7 @@ export const FriendsView = ({
                                   className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full"
                                   disabled={mutations.isDeleting}
                                   onClick={async () => {
-                                    await mutations.deleteFriendRequest(
-                                      request.member.id
-                                    )
+                                    await mutations.deleteFriendRequest()
                                   }}
                                   aria-label={`Decline friend request from ${request.member.first_name} ${request.member.last_name}`}
                                 >
@@ -266,9 +264,7 @@ export const FriendsView = ({
                                   size="icon"
                                   className="h-8 w-8"
                                   onClick={async () => {
-                                    mutations.deleteFriendRequest(
-                                      request.member.id
-                                    )
+                                    mutations.deleteFriendRequest()
                                   }}
                                   aria-label={`Cancel friend request to ${request.member.first_name} ${request.member.last_name}`}
                                 >

@@ -775,7 +775,6 @@ pub async fn create_friend_request_handler(
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
-    let member_id = member_id;
     let friend_email = input.friend_email.clone();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -792,16 +791,14 @@ pub async fn create_friend_request_handler(
 
 #[derive(Deserialize, ToSchema)]
 pub struct AcceptFriendRequestPath {
-    inviting_member_id: uuid::Uuid,
-    invitee_member_id: uuid::Uuid,
+    friend_member_id: uuid::Uuid,
 }
 
 #[utoipa::path(
     post,
-    path = "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept",
+    path = "/api/friend-requests/{friend_member_id}/accept",
     params(
-        ("inviting_member_id" = uuid::Uuid, Path, description = "ID of the member accepting the request"),
-        ("invitee_member_id" = uuid::Uuid, Path, description = "ID of the friend request to accept")
+        ("friend_member_id" = uuid::Uuid, Path, description = "ID of the friend to accept request from")
     ),
     responses(
         (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
@@ -809,6 +806,7 @@ pub struct AcceptFriendRequestPath {
     )
 )]
 pub async fn accept_friend_request_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
     let tracer = get_tracer();
@@ -818,16 +816,12 @@ pub async fn accept_friend_request_handler(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    let inviting_member_id = path.inviting_member_id;
-    let invitee_member_id = path.invitee_member_id;
+    let friend_member_id = path.friend_member_id;
 
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new(
-        "inviting_member_id",
-        inviting_member_id.to_string(),
-    ));
-    span.set_attribute(KeyValue::new(
-        "invitee_member_id",
-        invitee_member_id.to_string(),
+        "friend_member_id",
+        friend_member_id.to_string(),
     ));
 
     let mut conn = get_db_connection()
@@ -836,8 +830,8 @@ pub async fn accept_friend_request_handler(
     let result = tokio::task::spawn_blocking(move || {
         Friendship::update_status(
             &mut conn,
-            inviting_member_id,
-            invitee_member_id,
+            friend_member_id,
+            member_id,
             models::FriendshipStatus::Accepted,
         )
         .expect("Failed to accept friend request")
@@ -852,17 +846,17 @@ pub async fn accept_friend_request_handler(
 
 #[utoipa::path(
     delete,
-    path = "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}",
+    path = "/api/friend-requests/{friend_member_id}",
     params(
-        ("inviting_member_id" = uuid::Uuid, Path, description = "ID of the member delete the request"),
-        ("invitee_member_id" = uuid::Uuid, Path, description = "ID of the friend request to delete")
+        ("friend_member_id" = uuid::Uuid, Path, description = "ID of the friend request to delete")
     ),
     responses(
-        (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
+        (status = 200, description = "Delete a friend request successfully", body = serde_json::Value),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn delete_friend_request(
+    AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<AcceptFriendRequestPath>,
 ) -> Json<serde_json::Value> {
     let tracer = get_tracer();
@@ -872,23 +866,19 @@ pub async fn delete_friend_request(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
-    let inviting_member_id = path.inviting_member_id;
-    let invitee_member_id = path.invitee_member_id;
+    let friend_member_id = path.friend_member_id;
 
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new(
-        "inviting_member_id",
-        inviting_member_id.to_string(),
-    ));
-    span.set_attribute(KeyValue::new(
-        "invitee_member_id",
-        invitee_member_id.to_string(),
+        "friend_member_id",
+        friend_member_id.to_string(),
     ));
 
     let mut conn = get_db_connection()
         .await
         .expect("Failed to get database connection");
     let result = tokio::task::spawn_blocking(move || {
-        Friendship::delete(&mut conn, inviting_member_id, invitee_member_id)
+        Friendship::delete(&mut conn, friend_member_id, member_id)
             .expect("Failed to delete friend request")
     })
     .await

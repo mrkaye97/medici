@@ -31,7 +31,7 @@ export const useFriends = () => {
   const { mutate: acceptFriendRequestMutation, isPending: isAccepting } =
     apiClient.useMutation(
       "post",
-      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}/accept",
+      "/api/friend-requests/{friend_member_id}/accept",
       {
         onSuccess: () => {
           queryClient.invalidateQueries({
@@ -45,47 +45,38 @@ export const useFriends = () => {
     )
 
   const { mutate: deleteFriendRequestMutation, isPending: isDeleting } =
-    apiClient.useMutation(
-      "delete",
-      "/api/members/{inviting_member_id}/friend-requests/{invitee_member_id}",
-      {
-        onSuccess: async () => {
-          await queryClient.invalidateQueries({
-            queryKey: ["get", "/api/friend-requests"],
-          })
-        },
-      }
-    )
+    apiClient.useMutation("delete", "/api/friend-requests/{friend_member_id}", {
+      onSuccess: async () => {
+        await queryClient.invalidateQueries({
+          queryKey: ["get", "/api/friend-requests"],
+        })
+      },
+    })
 
   const acceptFriendRequest = useCallback(
     async (invitingMemberId: string) => {
       return acceptFriendRequestMutation({
         params: {
           path: {
-            invitee_member_id: memberId || "",
-            inviting_member_id: invitingMemberId,
+            friend_member_id: invitingMemberId,
           },
         },
         headers: createAuthHeader(),
       })
     },
-    [acceptFriendRequestMutation, memberId, createAuthHeader]
+    [acceptFriendRequestMutation, createAuthHeader]
   )
 
-  const deleteFriendRequest = useCallback(
-    async (inviteeMemberId: string) => {
-      deleteFriendRequestMutation({
-        params: {
-          path: {
-            inviting_member_id: memberId || "",
-            invitee_member_id: inviteeMemberId || "",
-          },
+  const deleteFriendRequest = useCallback(async () => {
+    deleteFriendRequestMutation({
+      params: {
+        path: {
+          friend_member_id: memberId || "",
         },
-        headers: createAuthHeader(),
-      })
-    },
-    [deleteFriendRequestMutation, memberId, createAuthHeader]
-  )
+      },
+      headers: createAuthHeader(),
+    })
+  }, [deleteFriendRequestMutation, memberId, createAuthHeader])
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
