@@ -67,16 +67,19 @@ export const useFriends = () => {
     [acceptFriendRequestMutation, createAuthHeader]
   )
 
-  const deleteFriendRequest = useCallback(async () => {
-    deleteFriendRequestMutation({
-      params: {
-        path: {
-          friend_member_id: memberId || "",
+  const deleteFriendRequest = useCallback(
+    async (friendMemberId: string) => {
+      deleteFriendRequestMutation({
+        params: {
+          path: {
+            friend_member_id: friendMemberId,
+          },
         },
-      },
-      headers: createAuthHeader(),
-    })
-  }, [deleteFriendRequestMutation, memberId, createAuthHeader])
+        headers: createAuthHeader(),
+      })
+    },
+    [deleteFriendRequestMutation, createAuthHeader]
+  )
 
   const invalidate = async () => {
     await queryClient.invalidateQueries({
