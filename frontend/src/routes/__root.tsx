@@ -43,7 +43,6 @@ function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
     <>
       <AuthProvider>
         {props.children}
-        {/* <ReactQueryDevtools buttonPosition="bottom-left" /> */}
         <Scripts />
       </AuthProvider>
     </>

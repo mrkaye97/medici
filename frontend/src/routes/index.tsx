@@ -79,8 +79,8 @@ function Home() {
         isOpen={isAddFriendOpen}
         setIsOpen={setIsAddFriendModalOpen}
       />
-      <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
-        <Card className="bg-card border-border flex flex-col overflow-auto rounded-lg border shadow-sm transition-shadow duration-200 hover:shadow-md md:flex-1 md:overflow-hidden">
+      <div className="flex flex-col overflow-auto md:px-6 md:py-6 md:flex-1 md:overflow-hidden">
+        <Card className="bg-card border-none md:border-border flex flex-col overflow-auto rounded-none md:rounded-lg md:border md:shadow-sm md:transition-shadow md:duration-200 hover:shadow-md md:flex-1 md:overflow-hidden">
           <CardHeader className="flex-shrink-0 pb-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-foreground text-2xl font-semibold">

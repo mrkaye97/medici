@@ -136,7 +136,7 @@ const PoolDetailsPane = ({
   setSelectedCategory,
 }: PoolPaneProps) => {
   return (
-    <div className="bg-card border-border flex h-dvh flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden scrollbar-none">
+    <div className="bg-card md:border-border flex h-dvh flex-col overflow-auto md:border-l p-6 w-full lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden scrollbar-none">
       <div className="mb-6">
         <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
           <DollarSign className="text-primary h-6 w-6" />
@@ -169,8 +169,8 @@ const PoolDetailsPane = ({
 
 function ExpensesPaneLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col overflow-auto px-6 py-6 md:flex-1 md:overflow-hidden">
-      <Card className="border-border flex flex-col overflow-auto rounded-lg border shadow-sm md:flex-1 md:overflow-hidden">
+    <div className="flex flex-col overflow-auto px-0 md:px-6 md:py-6 md:flex-1 md:overflow-hidden">
+      <Card className="md:border-border flex flex-col overflow-auto border-none rounded-none md:rounded-lg md:border md:shadow-sm md:flex-1 md:overflow-hidden">
         {children}
       </Card>
     </div>
@@ -271,9 +271,9 @@ const ExpensesPane = ({
           pool={details}
         />
       )}
-      <CardHeader className="bg-card flex-shrink-0 rounded-t-lg pb-4">
-        <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row">
-          <div className="flex flex-col gap-3">
+      <CardHeader className="bg-card flex-shrink-0 md:rounded-t-lg pb-4">
+        <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row w-full">
+          <div className="flex flex-col gap-3 w-full">
             <Link
               to="/"
               className="text-muted-foreground hover:text-primary group flex w-fit items-center gap-2 transition-colors"
@@ -285,11 +285,15 @@ const ExpensesPane = ({
             <h1 className="text-foreground text-4xl font-semibold tracking-tight">
               {details.name}
             </h1>
-            <div className="text-muted-foreground flex items-center gap-2">
+            <div className="text-muted-foreground flex  items-center gap-2">
               <UsersRound className="text-primary h-5 w-5" />
-              <span className="font-medium">{members.length} members</span>
+              <span className="text-sm md:text-base font-medium">
+                {members.length} members
+              </span>
               <DollarSign className="text-primary h-5 w-5 ml-2" />
-              <span className="font-medium">{expenses.length} expenses</span>
+              <span className="text-sm md:text-base font-medium">
+                {expenses.length} expenses
+              </span>
               {details.role === "ADMIN" && (
                 <Badge
                   variant="outline"
@@ -360,7 +364,7 @@ const ExpensesPane = ({
               defaultValue="all"
               value={selectedCategory ?? "all"}
             >
-              <SelectTrigger className="min-w-[250px] max-w-[300px]">
+              <SelectTrigger className="md:min-w-[250px] md:max-w-[300px] w-full md:w-auto">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
@@ -404,7 +408,7 @@ const ExpensesPane = ({
               }}
               defaultValue="all"
             >
-              <SelectTrigger className="min-w-[250px] max-w-[300px]">
+              <SelectTrigger className="md:min-w-[250px] md:max-w-[300px] w-full md:w-auto">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent className="bg-card border-border/50">
