@@ -390,13 +390,14 @@ pub async fn create_pool_handler(
     ),
     responses(
         (status = 200, description = "Add a friend to a pool successfully", body = PoolMembership),
+        (status = 404, description = "Pool or member not found"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn add_friend_to_pool_handler(
     Path(pool_id): Path<uuid::Uuid>,
     Json(input): Json<PoolMembershipInput>,
-) -> Json<PoolMembership> {
+) -> Result<Json<PoolMembership>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -413,14 +414,23 @@ pub async fn add_friend_to_pool_handler(
 
     let result = tokio::task::spawn_blocking(move || {
         PoolMembership::add_member(&mut conn, pool_id, input.member_id)
-            .expect("Failed to add friend to pool")
     })
     .await
     .expect("Task panicked");
 
     span.end();
 
-    Json(result)
+    match result {
+        Ok(membership) => Ok(Json(membership)),
+        Err(diesel::result::Error::NotFound) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Pool or member not found"})),
+        )),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to add friend to pool"})),
+        )),
+    }
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -755,13 +765,14 @@ pub async fn list_inbound_friend_requests_handler(
     request_body = FriendRequestInput,
     responses(
         (status = 200, description = "Create a friend request successfully", body = serde_json::Value),
+        (status = 404, description = "Friend not found"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn create_friend_request_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Json(input): Json<FriendRequestInput>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -779,14 +790,23 @@ pub async fn create_friend_request_handler(
 
     let result = tokio::task::spawn_blocking(move || {
         Friendship::send_request_by_email(&mut conn, member_id, &friend_email)
-            .expect("Failed to create friend request")
     })
     .await
     .expect("Task panicked");
 
     span.end();
 
-    Json(serde_json::json!({"success": true, "request": result}))
+    match result {
+        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "request": friendship}))),
+        Err(diesel::result::Error::NotFound) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "User with that email not found"})),
+        )),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to create friend request"})),
+        )),
+    }
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -802,13 +822,14 @@ pub struct AcceptFriendRequestPath {
     ),
     responses(
         (status = 200, description = "Accept a friend request successfully", body = serde_json::Value),
+        (status = 404, description = "Friend request not found"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn accept_friend_request_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<AcceptFriendRequestPath>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -834,14 +855,23 @@ pub async fn accept_friend_request_handler(
             member_id,
             models::FriendshipStatus::Accepted,
         )
-        .expect("Failed to accept friend request")
     })
     .await
     .expect("Task panicked");
 
     span.end();
 
-    Json(serde_json::json!({"success": true, "friendship": result}))
+    match result {
+        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "friendship": friendship}))),
+        Err(diesel::result::Error::NotFound) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Friend request not found"})),
+        )),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to accept friend request"})),
+        )),
+    }
 }
 
 #[utoipa::path(
@@ -852,13 +882,14 @@ pub async fn accept_friend_request_handler(
     ),
     responses(
         (status = 200, description = "Delete a friend request successfully", body = serde_json::Value),
+        (status = 404, description = "Friend request not found"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn delete_friend_request(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<AcceptFriendRequestPath>,
-) -> Json<serde_json::Value> {
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -879,14 +910,23 @@ pub async fn delete_friend_request(
         .expect("Failed to get database connection");
     let result = tokio::task::spawn_blocking(move || {
         Friendship::delete(&mut conn, friend_member_id, member_id)
-            .expect("Failed to delete friend request")
     })
     .await
     .expect("Task panicked");
 
     span.end();
 
-    Json(serde_json::json!({"success": true, "friendship": result}))
+    match result {
+        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "friendship": friendship}))),
+        Err(diesel::result::Error::NotFound) => Err((
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Friend request not found"})),
+        )),
+        Err(_) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to delete friend request"})),
+        )),
+    }
 }
 
 #[derive(Deserialize, ToSchema)]
