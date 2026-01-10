@@ -40,7 +40,6 @@ import {
   ArrowLeft,
   ArrowUpDown,
   BanknoteIcon,
-  CheckCircle,
   Clock,
   DollarSign,
   Home,
@@ -872,8 +871,6 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
 }
 
 const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
-  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false)
-
   const {
     details,
     balances,
@@ -897,24 +894,12 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
 
   return (
     <div className="space-y-4">
-      <SettleUpModal
-        isOpen={isSettleUpModalOpen}
-        setIsOpen={isOpen => setIsSettleUpModalOpen(isOpen)}
-        poolId={poolId}
-      />
       <div className="flex items-center justify-between">
         <h3 className="text-foreground flex items-center gap-2 font-semibold">
           <ArrowUpDown className="text-primary h-5 w-5" />
           Balances
         </h3>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setIsSettleUpModalOpen(true)}
-        >
-          <CheckCircle className="mr-1 h-4 w-4" />
-          Settle Up
-        </Button>
+        <SettleUpModal poolId={poolId} />
       </div>
 
       {balances.length === 0 ? (

@@ -18,7 +18,6 @@ import {
 
 export function PoolSummary({ poolId }: { poolId: string }) {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
-  const [isSettleUpModalOpen, setIsSettleUpModalOpen] = useState(false)
 
   const { details, isDetailsLoading } = usePool({
     poolId,
@@ -37,11 +36,6 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           setIsOpen={setIsAddExpenseModalOpen}
         />
       )}
-      <SettleUpModal
-        poolId={poolId}
-        isOpen={isSettleUpModalOpen}
-        setIsOpen={setIsSettleUpModalOpen}
-      />
       <Card key={poolId} className="overflow-hidden border">
         <Link to="/pools/$poolId" params={{ poolId }}>
           <CardHeader className="bg-muted/30 hover:bg-muted/50 pb-2 transition-colors">
@@ -83,13 +77,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
         </CardContent>
 
         <CardFooter className="bg-muted/30 flex justify-end gap-2 py-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsSettleUpModalOpen(true)}
-          >
-            Settle Up
-          </Button>
+          <SettleUpModal poolId={poolId} />
           <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
             Add Expense
           </Button>
