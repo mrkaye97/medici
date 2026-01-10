@@ -61,18 +61,16 @@ Medici is a minimalistic, self-hostable alternative to Splitwise for managing gr
 
 ### Docker Compose (Recommended for Self-Hosting)
 
-The easiest way to get Medici running in production is to run the `compose.example.yaml` file, which will pull the necessary Docker images. You'll need a `.env` for the backend like this:
+The easiest way to get Medici running is with Docker Compose:
 
-```
-DATABASE_URL=postgres://postgres:postgres@localhost:5442/medici
-AUTH_SECRET_KEY=medici-key
+```bash
+curl -O https://raw.githubusercontent.com/mrkaye97/medici/main/compose.example.yaml
+docker compose -f compose.example.yaml up
 ```
 
-and for the frontend like this:
+Then visit `http://localhost:3000` to get started.
 
-```
-VITE_API_URL=http://medici-server:8000
-```
+For production, make sure to change `AUTH_SECRET_KEY` to a secure value in the compose file.
 
 ### Local Development Setup
 
