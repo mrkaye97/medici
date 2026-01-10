@@ -1,0 +1,27 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+server/target
+frontend/node_modules
+frontend/dist
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Env files
+.env*
+!.env.example
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Misc
+*.md
+LICENSE

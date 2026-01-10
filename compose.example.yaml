@@ -5,8 +5,6 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: medici
-    ports:
-      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -20,23 +18,16 @@ services:
       retries: 5
     restart: unless-stopped
 
-  medici-server:
-    image: mrkaye97/medici-server:latest
-    env_file: ./server/.env
+  medici:
+    image: mrkaye97/medici:latest
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/medici
+      AUTH_SECRET_KEY: change-me-in-production
     ports:
-      - "8000:8000"
+      - "3000:80"
     depends_on:
       db:
         condition: service_healthy
-    restart: unless-stopped
-
-  medici-frontend:
-    image: mrkaye97/medici-frontend:latest
-    env_file: ./frontend/.env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - medici-server
     restart: unless-stopped
 
 volumes:
