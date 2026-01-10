@@ -7,7 +7,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
 use crate::schema::{
-    expense, expense_category_rule, expense_line_item, friendship, member, member_password, pool, pool_membership
+    expense, expense_category_rule, expense_line_item, friendship, member, member_password, pool,
+    pool_membership,
 };
 
 #[derive(
@@ -140,6 +141,7 @@ pub struct Pool {
     pub description: Option<String>,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub is_hidden: bool,
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
@@ -370,13 +372,11 @@ impl ExpenseCategoryRule {
         rule: &NewExpenseCategoryRule,
     ) -> QueryResult<Self> {
         diesel::insert_into(expense_category_rule::table)
-            .values(
-                (
-                    expense_category_rule::member_id.eq(&member_id),
-                    expense_category_rule::rule.eq(&rule.rule),
-                    expense_category_rule::category.eq(&rule.category),
-                )
-            )
+            .values((
+                expense_category_rule::member_id.eq(&member_id),
+                expense_category_rule::rule.eq(&rule.rule),
+                expense_category_rule::category.eq(&rule.category),
+            ))
             .get_result(conn)
     }
 
@@ -416,6 +416,16 @@ impl MemberPassword {
 }
 
 impl Pool {
+    pub fn toggle_hide(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        is_hidden: bool,
+    ) -> QueryResult<Self> {
+        diesel::update(pool::table.filter(pool::id.eq(pool_id)))
+            .set(pool::is_hidden.eq(is_hidden))
+            .get_result(conn)
+    }
+
     pub fn create(conn: &mut PgConnection, new_pool: &NewPool) -> QueryResult<Self> {
         diesel::insert_into(pool::table)
             .values(new_pool)

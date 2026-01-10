@@ -1,0 +1,3 @@
+-- Your SQL goes here
+ALTER TABLE pool
+ADD COLUMN is_hidden BOOLEAN NOT NULL DEFAULT FALSE;

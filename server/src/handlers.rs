@@ -1,7 +1,7 @@
 use std::sync::OnceLock;
 use std::time::{Duration as BuiltInDuration, SystemTime, UNIX_EPOCH};
 
-use axum::extract::{MatchedPath, Query, FromRequestParts};
+use axum::extract::{FromRequestParts, MatchedPath, Query};
 use axum::http::{StatusCode, request::Parts};
 use axum::middleware;
 use axum::{Json, extract::Path};
@@ -16,6 +16,7 @@ use axum_extra::headers::authorization::Bearer;
 use bcrypt::{DEFAULT_COST, hash_with_salt};
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
+use diesel::prelude::Insertable;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use once_cell::sync::Lazy;
@@ -140,16 +141,17 @@ where
     type Rejection = (StatusCode, Json<serde_json::Value>);
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let TypedHeader(auth) = TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
-            .await
-            .map_err(|_| {
-                (
-                    StatusCode::UNAUTHORIZED,
-                    Json(serde_json::json!({
-                        "error": "Missing or invalid authorization header"
-                    })),
-                )
-            })?;
+        let TypedHeader(auth) =
+            TypedHeader::<Authorization<Bearer>>::from_request_parts(parts, state)
+                .await
+                .map_err(|_| {
+                    (
+                        StatusCode::UNAUTHORIZED,
+                        Json(serde_json::json!({
+                            "error": "Missing or invalid authorization header"
+                        })),
+                    )
+                })?;
 
         let user_id = verify_jwt(auth.token()).map_err(|_| {
             (
@@ -219,7 +221,6 @@ pub enum AuthResult {
         expires_at: Option<DateTime<Utc>>,
     },
 }
-
 
 pub async fn trace_middleware(request: Request, next: Next) -> Response {
     let tracer = get_tracer();
@@ -341,36 +342,32 @@ pub async fn create_pool_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let new_pool = NewPool {
         name: pool_input.name,
         description: pool_input.description,
     };
 
-    let pool = tokio::task::spawn_blocking(move || {
-        models::Pool::create(&mut conn, &new_pool)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to create pool"})),
-        )
-    })?;
+    let pool = tokio::task::spawn_blocking(move || models::Pool::create(&mut conn, &new_pool))
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Task panicked"})),
+            )
+        })?
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to create pool"})),
+            )
+        })?;
 
     let pool_id = pool.id;
 
@@ -381,31 +378,27 @@ pub async fn create_pool_handler(
         default_split_percentage: 100.0,
     };
 
-    let mut conn = get_db_connection()
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
+
+    tokio::task::spawn_blocking(move || PoolMembership::create(&mut conn, &new_membership))
         .await
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
+                Json(serde_json::json!({"error": "Task panicked"})),
+            )
+        })?
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to create pool membership"})),
             )
         })?;
-
-    tokio::task::spawn_blocking(move || {
-        PoolMembership::create(&mut conn, &new_membership)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to create pool membership"})),
-        )
-    })?;
 
     span.end();
 
@@ -439,14 +432,12 @@ pub async fn add_friend_to_pool_handler(
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", input.member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let result = tokio::task::spawn_blocking(move || {
         PoolMembership::add_member(&mut conn, pool_id, input.member_id)
@@ -508,14 +499,12 @@ pub async fn remove_friend_from_pool_handler(
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let result = tokio::task::spawn_blocking(move || {
         PoolMembership::remove_member(&mut conn, pool_id, member_id)
@@ -559,14 +548,12 @@ pub async fn get_member_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let member = tokio::task::spawn_blocking(move || Member::find(&mut conn, member_id))
         .await
@@ -610,19 +597,17 @@ pub async fn login_handler(
 
     span.set_attribute(KeyValue::new("email", input.email.clone()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(AuthResult::Unauthenticated {
-                    id: None,
-                    token: None,
-                    is_authenticated: false,
-                    expires_at: None,
-                }),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(AuthResult::Unauthenticated {
+                id: None,
+                token: None,
+                is_authenticated: false,
+                expires_at: None,
+            }),
+        )
+    })?;
     let email = input.email;
     let password = input.password;
 
@@ -761,7 +746,9 @@ pub async fn authenticate_handler(
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn list_friends_handler(AuthenticatedUser(member_id): AuthenticatedUser) -> Result<Json<Vec<Member>>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn list_friends_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
+) -> Result<Json<Vec<Member>>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -771,31 +758,28 @@ pub async fn list_friends_handler(AuthenticatedUser(member_id): AuthenticatedUse
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
-
-    let friends = tokio::task::spawn_blocking(move || {
-        Friendship::get_friends(&mut conn, member_id)
-    })
-    .await
-    .map_err(|_| {
+    let mut conn = get_db_connection().await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to list friends"})),
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
         )
     })?;
+
+    let friends =
+        tokio::task::spawn_blocking(move || Friendship::get_friends(&mut conn, member_id))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Task panicked"})),
+                )
+            })?
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Failed to list friends"})),
+                )
+            })?;
 
     span.end();
 
@@ -835,41 +819,38 @@ pub async fn list_inbound_friend_requests_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
-    let requests = tokio::task::spawn_blocking(move || {
-        Friendship::get_pending_requests(&mut conn, member_id)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to list friend requests"})),
-        )
-    })?
-    .into_iter()
-    .map(|(member, is_inbound)| FriendRequestsList {
-        member,
-        direction: if is_inbound {
-            FriendshipDirection::Inbound
-        } else {
-            FriendshipDirection::Outbound
-        },
-    })
-    .collect();
+    let requests =
+        tokio::task::spawn_blocking(move || Friendship::get_pending_requests(&mut conn, member_id))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Task panicked"})),
+                )
+            })?
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Failed to list friend requests"})),
+                )
+            })?
+            .into_iter()
+            .map(|(member, is_inbound)| FriendRequestsList {
+                member,
+                direction: if is_inbound {
+                    FriendshipDirection::Inbound
+                } else {
+                    FriendshipDirection::Outbound
+                },
+            })
+            .collect();
 
     span.end();
 
@@ -900,14 +881,12 @@ pub async fn create_friend_request_handler(
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("friend_email", input.friend_email.clone()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
     let friend_email = input.friend_email.clone();
 
     let result = tokio::task::spawn_blocking(move || {
@@ -924,7 +903,9 @@ pub async fn create_friend_request_handler(
     span.end();
 
     match result {
-        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "request": friendship}))),
+        Ok(friendship) => Ok(Json(
+            serde_json::json!({"success": true, "request": friendship}),
+        )),
         Err(diesel::result::Error::NotFound) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "User with that email not found"})),
@@ -972,14 +953,12 @@ pub async fn accept_friend_request_handler(
         friend_member_id.to_string(),
     ));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
     let result = tokio::task::spawn_blocking(move || {
         Friendship::update_status(
             &mut conn,
@@ -999,7 +978,9 @@ pub async fn accept_friend_request_handler(
     span.end();
 
     match result {
-        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "friendship": friendship}))),
+        Ok(friendship) => Ok(Json(
+            serde_json::json!({"success": true, "friendship": friendship}),
+        )),
         Err(diesel::result::Error::NotFound) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "Friend request not found"})),
@@ -1042,14 +1023,12 @@ pub async fn delete_friend_request(
         friend_member_id.to_string(),
     ));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
     let result = tokio::task::spawn_blocking(move || {
         Friendship::delete(&mut conn, friend_member_id, member_id)
     })
@@ -1064,7 +1043,9 @@ pub async fn delete_friend_request(
     span.end();
 
     match result {
-        Ok(friendship) => Ok(Json(serde_json::json!({"success": true, "friendship": friendship}))),
+        Ok(friendship) => Ok(Json(
+            serde_json::json!({"success": true, "friendship": friendship}),
+        )),
         Err(diesel::result::Error::NotFound) => Err((
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({"error": "Friend request not found"})),
@@ -1109,14 +1090,12 @@ pub async fn get_expense_handler(
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let expense = tokio::task::spawn_blocking(move || {
         models::Expense::find_with_line_items(
@@ -1182,14 +1161,12 @@ pub async fn delete_expense_handler(
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let expense = tokio::task::spawn_blocking(move || {
         models::Expense::delete(&mut conn, path.expense_id, path.pool_id, false)
@@ -1234,14 +1211,12 @@ pub async fn signup_handler(
 
     span.set_attribute(KeyValue::new("email", input.email.clone()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let password_hash = hash_password(&input.password);
     let new_member = models::NewMember {
@@ -1304,7 +1279,9 @@ pub async fn signup_handler(
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
+pub async fn add_expense_handler(
+    Json(input): Json<ExpenseInput>,
+) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -1319,14 +1296,12 @@ pub async fn add_expense_handler(Json(input): Json<ExpenseInput>) -> Result<Json
     ));
     span.set_attribute(KeyValue::new("amount", input.amount.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let new_expense = models::NewExpense {
         name: input.name,
@@ -1419,14 +1394,12 @@ pub async fn update_expense_handler(
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("expense_id", path.expense_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let result = conn
         .build_transaction()
@@ -1520,14 +1493,12 @@ pub async fn get_pool_details_handler(
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let pool_details = tokio::task::spawn_blocking(move || {
         models::Pool::get_with_debt_for_member(&mut conn, pool_id, member_id)
@@ -1539,17 +1510,15 @@ pub async fn get_pool_details_handler(
             Json(serde_json::json!({"error": "Task panicked"})),
         )
     })?
-    .map_err(|e| {
-        match e {
-            diesel::result::Error::NotFound => (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({"error": "Pool not found"})),
-            ),
-            _ => (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get pool details"})),
-            ),
-        }
+    .map_err(|e| match e {
+        diesel::result::Error::NotFound => (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({"error": "Pool not found"})),
+        ),
+        _ => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get pool details"})),
+        ),
     })?;
 
     let details = PoolDetails {
@@ -1561,6 +1530,71 @@ pub async fn get_pool_details_handler(
     span.end();
 
     Ok(Json(details))
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct TogglePoolHiddenRequestBody {
+    pub is_hidden: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct GenericPostSuccessResponse {
+    pub success: bool,
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/pools/{pool_id}/toggle-hidden",
+    params(
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to fetch details for")
+    ),
+    request_body = TogglePoolHiddenRequestBody,
+    responses(
+        (status = 200, description = "Toggle pool hidden", body = GenericPostSuccessResponse),
+        (status = 500, description = "Internal server error")
+    )
+)]
+pub async fn toggle_pool_hidden_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
+    Path(path): Path<PoolDetailsPath>,
+    Json(input): Json<TogglePoolHiddenRequestBody>,
+) -> Result<Json<PoolDetails>, (StatusCode, Json<serde_json::Value>)> {
+    let tracer = get_tracer();
+
+    let mut span = tracer
+        .span_builder("get_pool_details_handler")
+        .with_kind(SpanKind::Server)
+        .start(tracer);
+
+    let pool_id = path.pool_id;
+
+    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
+    span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
+
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
+
+    let update = tokio::task::spawn_blocking(move || {
+        models::Pool::toggle_hide(&mut conn, pool_id, input.is_hidden)
+    });
+
+    match update.await {
+        Ok(Ok(_)) => {
+            span.end();
+            get_pool_details_handler(AuthenticatedUser(member_id), Path(path)).await
+        }
+        Ok(Err(_)) | Err(_) => {
+            span.end();
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to toggle pool hidden"})),
+            ))
+        }
+    }
 }
 
 #[utoipa::path(
@@ -1590,14 +1624,12 @@ pub async fn settle_up_pool_handler(
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     tokio::task::spawn_blocking(move || models::Pool::settle_up(&mut conn, pool_id, member_id))
         .await
@@ -1608,14 +1640,12 @@ pub async fn settle_up_pool_handler(
             )
         })?;
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let pool_details = tokio::task::spawn_blocking(move || {
         models::Pool::get_with_debt_for_member(&mut conn, pool_id, member_id)
@@ -1684,14 +1714,12 @@ pub async fn modify_default_splits_handler(
 
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     tokio::task::spawn_blocking(move || {
         models::PoolMembership::update_default_split_percentage(
@@ -1714,31 +1742,27 @@ pub async fn modify_default_splits_handler(
         )
     })?;
 
-    let mut conn = get_db_connection()
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
+
+    let members = tokio::task::spawn_blocking(move || PoolMembership::list(&mut conn, pool_id))
         .await
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
+                Json(serde_json::json!({"error": "Task panicked"})),
+            )
+        })?
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to list members of pool"})),
             )
         })?;
-
-    let members = tokio::task::spawn_blocking(move || {
-        PoolMembership::list(&mut conn, pool_id)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to list members of pool"})),
-        )
-    })?;
 
     span.end();
 
@@ -1815,14 +1839,12 @@ pub async fn get_pool_recent_expenses_handler(
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
     span.set_attribute(KeyValue::new("limit", limit.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let expenses = tokio::task::spawn_blocking(move || {
         models::Expense::get_recent_for_member_in_pool(
@@ -1896,14 +1918,12 @@ pub async fn get_pool_balances_for_member(
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let expenses = tokio::task::spawn_blocking(move || {
         models::Expense::list_unpaid_for_balance_computation(&mut conn, pool_id)
@@ -1958,31 +1978,27 @@ pub async fn list_members_of_pool_handler(
 
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
-    let mut conn = get_db_connection()
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
+
+    let members = tokio::task::spawn_blocking(move || PoolMembership::list(&mut conn, pool_id))
         .await
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
+                Json(serde_json::json!({"error": "Task panicked"})),
+            )
+        })?
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "Failed to list members of pool"})),
             )
         })?;
-
-    let members = tokio::task::spawn_blocking(move || {
-        PoolMembership::list(&mut conn, pool_id)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to list members of pool"})),
-        )
-    })?;
 
     span.end();
 
@@ -2019,31 +2035,28 @@ pub async fn list_pools_for_member_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
-
-    let pools = tokio::task::spawn_blocking(move || {
-        models::Pool::find_by_member_id(&mut conn, member_id)
-    })
-    .await
-    .map_err(|_| {
+    let mut conn = get_db_connection().await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to list pools for member"})),
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
         )
     })?;
+
+    let pools =
+        tokio::task::spawn_blocking(move || models::Pool::find_by_member_id(&mut conn, member_id))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Task panicked"})),
+                )
+            })?
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Failed to list pools for member"})),
+                )
+            })?;
 
     span.end();
 
@@ -2083,14 +2096,12 @@ pub async fn create_pool_membership_handler(
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let new_membership = models::NewPoolMembership {
         pool_id: pool_id,
@@ -2099,22 +2110,21 @@ pub async fn create_pool_membership_handler(
         default_split_percentage: 0.0,
     };
 
-    let membership = tokio::task::spawn_blocking(move || {
-        PoolMembership::create(&mut conn, &new_membership)
-    })
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to create pool membership"})),
-        )
-    })?;
+    let membership =
+        tokio::task::spawn_blocking(move || PoolMembership::create(&mut conn, &new_membership))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Task panicked"})),
+                )
+            })?
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Failed to create pool membership"})),
+                )
+            })?;
 
     span.end();
 
@@ -2143,31 +2153,28 @@ pub async fn update_member_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
-
-    let membership = tokio::task::spawn_blocking(move || {
-        Member::update(&mut conn, member_id, &json)
-    })
-    .await
-    .map_err(|_| {
+    let mut conn = get_db_connection().await.map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to update member"})),
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
         )
     })?;
+
+    let membership =
+        tokio::task::spawn_blocking(move || Member::update(&mut conn, member_id, &json))
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Task panicked"})),
+                )
+            })?
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": "Failed to update member"})),
+                )
+            })?;
 
     span.end();
 
@@ -2194,14 +2201,12 @@ pub async fn list_expense_category_rules_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let rules = tokio::task::spawn_blocking(move || {
         ExpenseCategoryRule::find_for_member(&mut conn, member_id)
@@ -2247,14 +2252,12 @@ pub async fn create_expense_category_rule_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let rule = tokio::task::spawn_blocking(move || {
         ExpenseCategoryRule::create(&mut conn, &member_id, &rule)
@@ -2309,14 +2312,12 @@ pub async fn delete_expense_category_rule_handler(
 
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
 
-    let mut conn = get_db_connection()
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to get database connection"})),
-            )
-        })?;
+    let mut conn = get_db_connection().await.map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({"error": "Failed to get database connection"})),
+        )
+    })?;
 
     let count = tokio::task::spawn_blocking(move || {
         ExpenseCategoryRule::delete(&mut conn, &member_id, &query.rule, query.category)
@@ -2372,6 +2373,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(list_expense_category_rules_handler))
         .routes(routes!(create_expense_category_rule_handler))
         .routes(routes!(delete_expense_category_rule_handler))
+        .routes(routes!(toggle_pool_hidden_handler))
         .route_layer(middleware::from_fn(trace_middleware));
 
     public_routes.merge(protected_routes)
