@@ -107,16 +107,7 @@ brew install node pnpm
 
 2. **Database Setup:**
 
-```bash
-# Start PostgreSQL (method varies by OS)
-# On macOS with Homebrew:
-brew services start postgresql
-
-# Create database and user
-psql postgres -c "CREATE DATABASE medici;"
-psql postgres -c "CREATE USER medici WITH PASSWORD 'medici';"
-psql postgres -c "GRANT ALL PRIVILEGES ON DATABASE medici TO medici;"
-```
+Run the database with docker compose: `docker compose up -d`
 
 3. **Clone and Configure:**
 
