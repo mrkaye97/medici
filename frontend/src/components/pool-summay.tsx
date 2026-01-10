@@ -1,6 +1,6 @@
 import { usePool } from "@/hooks/use-pool"
 import { Link } from "@tanstack/react-router"
-import { Calendar } from "lucide-react"
+import { Calendar, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 import { formatCurrency, formatDate } from "./expense"
 import { AddExpenseModal } from "./expense-modals"
@@ -19,7 +19,11 @@ import {
 export function PoolSummary({ poolId }: { poolId: string }) {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
 
-  const { details, isDetailsLoading } = usePool({
+  const {
+    details,
+    isDetailsLoading,
+    mutations: { togglePoolHidden, isToggleHiddenPending },
+  } = usePool({
     poolId,
   })
 
@@ -76,11 +80,29 @@ export function PoolSummary({ poolId }: { poolId: string }) {
           </div>
         </CardContent>
 
-        <CardFooter className="bg-muted/30 flex justify-end gap-2 py-2">
-          <SettleUpModal poolId={poolId} />
-          <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
-            Add Expense
+        <CardFooter className="bg-muted/30 flex justify-between gap-2 py-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isToggleHiddenPending}
+            className="text-muted-foreground hover:bg-muted hover:text-foreground"
+            onClick={() => {
+              togglePoolHidden(!details.is_hidden)
+            }}
+          >
+            {details.is_hidden ? (
+              <Eye className="size-4" />
+            ) : (
+              <EyeOff className="size-4" />
+            )}
+            {details.is_hidden ? "Unhide" : "Hide"}
           </Button>
+          <div className="flex flex-row gap-2">
+            <SettleUpModal poolId={poolId} />
+            <Button size="sm" onClick={() => setIsAddExpenseModalOpen(true)}>
+              Add Expense
+            </Button>
+          </div>
         </CardFooter>
       </Card>
     </>

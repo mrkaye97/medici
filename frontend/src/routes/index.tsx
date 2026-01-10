@@ -13,6 +13,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -21,8 +26,9 @@ import {
   useNavigate,
   useSearch,
 } from "@tanstack/react-router"
-import { PlusCircle, UserPlus, Wallet } from "lucide-react"
-import { useState } from "react"
+import { ChevronDown, PlusCircle, UserPlus, Wallet } from "lucide-react"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useRef, useState } from "react"
 import { z } from "zod"
 
 const homeSearchSchema = z.object({
@@ -59,7 +65,18 @@ function Home() {
   )
 
   const pools = data || []
+  const visiblePools = pools.filter(pool => !pool.is_hidden)
+  const hiddenPools = pools.filter(pool => pool.is_hidden)
+  const [isHiddenPoolsOpen, setIsHiddenPoolsOpen] = useState(false)
   const isLoading = isPoolsLoading
+
+  const prevHiddenCount = useRef(hiddenPools.length)
+  useEffect(() => {
+    if (hiddenPools.length > prevHiddenCount.current) {
+      setIsHiddenPoolsOpen(true)
+    }
+    prevHiddenCount.current = hiddenPools.length
+  }, [hiddenPools.length])
 
   if (isLoading || isFetching) {
     return null
@@ -121,14 +138,51 @@ function Home() {
             ) : (
               <div className="flex-1 overflow-auto">
                 <div className="space-y-3">
-                  {pools.map(pool => (
-                    <div
-                      key={pool.id}
-                      className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
+                  <AnimatePresence mode="popLayout">
+                    {visiblePools.map(pool => (
+                      <motion.div
+                        key={pool.id}
+                        initial={false}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
+                      >
+                        <PoolSummary poolId={pool.id} />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+
+                  {hiddenPools.length > 0 && (
+                    <Collapsible
+                      open={isHiddenPoolsOpen}
+                      onOpenChange={setIsHiddenPoolsOpen}
                     >
-                      <PoolSummary poolId={pool.id} />
-                    </div>
-                  ))}
+                      <CollapsibleTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:bg-muted hover:text-foreground w-full justify-start gap-2"
+                        >
+                          <ChevronDown
+                            className={`size-4 transition-transform ${isHiddenPoolsOpen ? "rotate-180" : ""}`}
+                          />
+                          {hiddenPools.length} hidden{" "}
+                          {hiddenPools.length === 1 ? "pool" : "pools"}
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-3 pt-3">
+                        {hiddenPools.map(pool => (
+                          <div
+                            key={pool.id}
+                            className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
+                          >
+                            <PoolSummary poolId={pool.id} />
+                          </div>
+                        ))}
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
                 </div>
               </div>
             )}
@@ -136,8 +190,8 @@ function Home() {
 
           <CardFooter className="border-border flex-shrink-0 border-t pt-4">
             <div className="text-muted-foreground text-sm">
-              {pools.length}{" "}
-              {pools.length === 1 ? "active pool" : "active pools"}
+              {visiblePools.length}{" "}
+              {visiblePools.length === 1 ? "active pool" : "active pools"}
             </div>
           </CardFooter>
         </Card>

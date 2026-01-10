@@ -135,6 +135,9 @@ export const usePool = ({
   const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
     apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}")
 
+  const { mutateAsync: toggleHidden, isPending: isToggleHiddenPending } =
+    apiClient.useMutation("post", "/api/pools/{pool_id}/toggle-hidden")
+
   const {
     mutateAsync: modifyDefaultSplitMutation,
     isPending: isModifyDefaultSplitPending,
@@ -197,6 +200,32 @@ export const usePool = ({
     [createAuthHeader, invalidate, memberId, modifyDefaultSplitMutation, poolId]
   )
 
+  const togglePoolHidden = useCallback(
+    async (hide: boolean) => {
+      await toggleHidden({
+        body: {
+          is_hidden: hide,
+        },
+        params: {
+          path: {
+            pool_id: poolId,
+          },
+        },
+        headers: createAuthHeader(),
+      })
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/api/pools/{pool_id}"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/api/pools"],
+        }),
+      ])
+    },
+    [toggleHidden, queryClient, createAuthHeader, poolId]
+  )
+
   const friendsEligibleToAdd = friends.filter(
     f => !members?.find(m => m.member.id === f.id)
   )
@@ -224,6 +253,8 @@ export const usePool = ({
       isAddPending,
       isRemovePending,
       isModifyDefaultSplitPending,
+      togglePoolHidden,
+      isToggleHiddenPending,
     },
   }
 }
