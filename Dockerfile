@@ -1,5 +1,5 @@
 # Stage 1: Build Rust backend
-FROM rust:1.87-slim AS backend-builder
+FROM rust:1.91-slim-bookworm AS backend-builder
 
 WORKDIR /app
 
@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install diesel_cli --no-default-features --features postgres
+RUN cargo install diesel_cli --locked --no-default-features --features postgres
 
 COPY server/ .
 
@@ -60,6 +60,10 @@ COPY --from=frontend-builder /app/dist ./static
 # Caddy config
 COPY <<EOF /app/Caddyfile
 :80 {
+    # Password reset links carry a token in the URL; never send it to other
+    # sites in the Referer header.
+    header Referrer-Policy no-referrer
+
     handle /api/* {
         reverse_proxy localhost:8000
     }

@@ -6,9 +6,11 @@ use diesel::sql_types::{Double, Uuid as SqlUuid};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
+diesel::define_sql_function!(fn lower(x: diesel::sql_types::Text) -> diesel::sql_types::Text);
+
 use crate::schema::{
-    expense, expense_category_rule, expense_line_item, friendship, member, member_password, pool,
-    pool_membership,
+    expense, expense_category_rule, expense_line_item, friendship, member, member_password,
+    password_reset_token, pool, pool_membership,
 };
 
 #[derive(
@@ -124,6 +126,7 @@ pub struct MemberPassword {
     pub password_hash: String,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub password_changed_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
@@ -347,21 +350,26 @@ impl Member {
         member::table.find(id).get_result(conn)
     }
 
-    pub fn authenticate(
+    /// Find a member by email, ignoring case and surrounding spaces.
+    pub fn find_by_email(conn: &mut PgConnection, email: &str) -> QueryResult<Option<Self>> {
+        member::table
+            .filter(lower(member::email).eq(crate::normalize_email(email)))
+            .first(conn)
+            .optional()
+    }
+
+    /// Look up the member ID and stored bcrypt hash for an email, if any.
+    /// Verifying the password against the hash is the caller's job.
+    pub fn find_password_hash_by_email(
         conn: &mut PgConnection,
         email: &str,
-        password_hash: &str,
-    ) -> QueryResult<(uuid::Uuid, bool)> {
-        let result: QueryResult<(uuid::Uuid, String)> = member::table
+    ) -> QueryResult<Option<(uuid::Uuid, String)>> {
+        member::table
             .inner_join(member_password::table.on(member::id.eq(member_password::member_id)))
-            .filter(member::email.eq(email))
+            .filter(lower(member::email).eq(crate::normalize_email(email)))
             .select((member::id, member_password::password_hash))
-            .first(conn);
-
-        match result {
-            Ok((id, stored_hash)) => Ok((id, stored_hash == password_hash)),
-            Err(e) => Err(e),
-        }
+            .first(conn)
+            .optional()
     }
 }
 
@@ -413,6 +421,126 @@ impl MemberPassword {
             .values(new_password)
             .get_result(conn)
     }
+    /// When the member last changed their password, or `None` if the member
+    /// doesn't exist. Sessions issued before this are rejected.
+    pub fn password_changed_at(
+        conn: &mut PgConnection,
+        member_id: uuid::Uuid,
+    ) -> QueryResult<Option<DateTime<Utc>>> {
+        member_password::table
+            .filter(member_password::member_id.eq(member_id))
+            .select(member_password::password_changed_at)
+            .first(conn)
+            .optional()
+    }
+}
+
+pub struct PasswordResetToken;
+
+impl PasswordResetToken {
+    /// Create a reset token for the account with this email. Returns the
+    /// member and the raw token (only its hash is stored), or `None` if no
+    /// account uses the email or, when `throttle` is set, one was issued
+    /// within the last minute. Any older tokens for the member stop working.
+    pub fn issue(
+        conn: &mut PgConnection,
+        email: &str,
+        throttle: bool,
+    ) -> QueryResult<Option<(Member, String)>> {
+        conn.transaction(|conn| {
+            let now = Utc::now();
+
+            // Housekeeping: expired tokens are useless, so drop them.
+            diesel::delete(
+                password_reset_token::table.filter(password_reset_token::expires_at.lt(now)),
+            )
+            .execute(conn)?;
+
+            let Some(member) = Member::find_by_email(conn, email)? else {
+                return Ok(None);
+            };
+
+            if throttle {
+                let cutoff =
+                    now - chrono::Duration::seconds(crate::PASSWORD_RESET_THROTTLE_SECONDS);
+                let recently_issued: bool = diesel::select(diesel::dsl::exists(
+                    password_reset_token::table
+                        .filter(password_reset_token::member_id.eq(member.id))
+                        .filter(password_reset_token::inserted_at.gt(cutoff)),
+                ))
+                .get_result(conn)?;
+
+                if recently_issued {
+                    return Ok(None);
+                }
+            }
+
+            diesel::delete(
+                password_reset_token::table.filter(password_reset_token::member_id.eq(member.id)),
+            )
+            .execute(conn)?;
+
+            let token = crate::generate_reset_token();
+            diesel::insert_into(password_reset_token::table)
+                .values((
+                    password_reset_token::member_id.eq(member.id),
+                    password_reset_token::token_hash.eq(crate::hash_reset_token(&token)),
+                    password_reset_token::expires_at
+                        .eq(now + chrono::Duration::minutes(crate::PASSWORD_RESET_TTL_MINUTES)),
+                    password_reset_token::inserted_at.eq(now),
+                ))
+                .execute(conn)?;
+
+            Ok(Some((member, token)))
+        })
+    }
+
+    /// Use a reset token to set a new password. The token is deleted in the
+    /// same statement that checks it, so it works at most once even if two
+    /// requests race. Returns the member ID, or `None` if the token is
+    /// unknown, already used, or expired.
+    pub fn consume(
+        conn: &mut PgConnection,
+        token: &str,
+        new_password_hash: &str,
+    ) -> QueryResult<Option<uuid::Uuid>> {
+        conn.transaction(|conn| {
+            let now = Utc::now();
+
+            let member_id: Option<uuid::Uuid> = diesel::delete(
+                password_reset_token::table
+                    .filter(password_reset_token::token_hash.eq(crate::hash_reset_token(token)))
+                    .filter(password_reset_token::expires_at.gt(now)),
+            )
+            .returning(password_reset_token::member_id)
+            .get_result(conn)
+            .optional()?;
+
+            let Some(member_id) = member_id else {
+                return Ok(None);
+            };
+
+            let updated = diesel::update(
+                member_password::table.filter(member_password::member_id.eq(member_id)),
+            )
+            .set((
+                member_password::password_hash.eq(new_password_hash),
+                member_password::password_changed_at.eq(now),
+            ))
+            .execute(conn)?;
+
+            if updated != 1 {
+                return Err(diesel::result::Error::NotFound);
+            }
+
+            diesel::delete(
+                password_reset_token::table.filter(password_reset_token::member_id.eq(member_id)),
+            )
+            .execute(conn)?;
+
+            Ok(Some(member_id))
+        })
+    }
 }
 
 impl Pool {
@@ -455,6 +583,11 @@ impl Pool {
             .select((pool::all_columns, pool_membership::role))
             .load::<(Pool, PoolRole)>(conn)?;
 
+        let (p, role) = pool
+            .into_iter()
+            .next()
+            .ok_or(diesel::result::Error::NotFound)?;
+
         let debts = expense_line_item::table
             .inner_join(
                 expense::table.on(expense_line_item::expense_id
@@ -478,8 +611,6 @@ impl Pool {
                 total_debt += line_amount;
             }
         }
-
-        let (p, role) = pool.into_iter().next().unwrap();
 
         Ok((p, role, total_debt))
     }
@@ -518,6 +649,31 @@ impl Pool {
     }
 }
 
+#[derive(Debug)]
+pub enum RemoveMemberError {
+    NotAMember,
+    OutstandingBalance,
+    Database(diesel::result::Error),
+}
+
+impl From<diesel::result::Error> for RemoveMemberError {
+    fn from(e: diesel::result::Error) -> Self {
+        Self::Database(e)
+    }
+}
+
+#[derive(Debug)]
+pub enum UpdateSplitsError {
+    Invalid(crate::SplitValidationError),
+    Database(diesel::result::Error),
+}
+
+impl From<diesel::result::Error> for UpdateSplitsError {
+    fn from(e: diesel::result::Error) -> Self {
+        Self::Database(e)
+    }
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct MemberIdSplitPercentage {
     pub member_id: uuid::Uuid,
@@ -525,6 +681,30 @@ pub struct MemberIdSplitPercentage {
 }
 
 impl PoolMembership {
+    /// The member's role in the pool, or `None` if they aren't in it.
+    pub fn find_role(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
+    ) -> QueryResult<Option<PoolRole>> {
+        pool_membership::table
+            .filter(pool_membership::pool_id.eq(pool_id))
+            .filter(pool_membership::member_id.eq(member_id))
+            .select(pool_membership::role)
+            .first(conn)
+            .optional()
+    }
+
+    pub fn member_ids(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+    ) -> QueryResult<Vec<uuid::Uuid>> {
+        pool_membership::table
+            .filter(pool_membership::pool_id.eq(pool_id))
+            .select(pool_membership::member_id)
+            .load(conn)
+    }
+
     pub fn create(
         conn: &mut PgConnection,
         new_membership: &NewPoolMembership,
@@ -549,87 +729,88 @@ impl PoolMembership {
         Self::create(conn, &new_membership)
     }
 
+    /// Remove a member from a pool and share their default split among the
+    /// remaining members. Refuses if the member still has an unsettled
+    /// balance, since removing them would hide money that's owed.
     pub fn remove_member(
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
         member_id: uuid::Uuid,
-    ) -> QueryResult<usize> {
-        let num_updated = conn.transaction::<usize, diesel::result::Error, _>(|conn| {
-            let _ = diesel::delete(
+        remainder_to: uuid::Uuid,
+    ) -> Result<(), RemoveMemberError> {
+        conn.transaction::<_, RemoveMemberError, _>(|conn| {
+            if Self::find_role(conn, pool_id, member_id)?.is_none() {
+                return Err(RemoveMemberError::NotAMember);
+            }
+
+            let debts = Expense::list_unpaid_for_balance_computation(conn, pool_id)?;
+            if crate::has_outstanding_balance(member_id, debts) {
+                return Err(RemoveMemberError::OutstandingBalance);
+            }
+
+            diesel::delete(
                 pool_membership::table
                     .filter(pool_membership::pool_id.eq(pool_id))
                     .filter(pool_membership::member_id.eq(member_id)),
             )
-            .execute(conn);
+            .execute(conn)?;
 
-            let existing_memberships = pool_membership::table
-                .filter(
-                    pool_membership::pool_id
-                        .eq(pool_id)
-                        .and(pool_membership::member_id.ne(member_id)),
-                )
-                .select(pool_membership::all_columns)
-                .load::<PoolMembership>(conn)?;
+            let remaining: Vec<(uuid::Uuid, f64)> = pool_membership::table
+                .filter(pool_membership::pool_id.eq(pool_id))
+                .order(pool_membership::inserted_at.asc())
+                .select((
+                    pool_membership::member_id,
+                    pool_membership::default_split_percentage,
+                ))
+                .load(conn)?;
 
-            let mut inputs: Vec<MemberIdSplitPercentage> = Vec::new();
-            let num_existing_memberships = existing_memberships.len();
-            let total_split_percentage_remaining: f64 = existing_memberships
-                .iter()
-                .clone()
-                .map(|x| x.default_split_percentage)
-                .collect::<Vec<f64>>()
-                .iter()
-                .sum();
+            Self::write_splits(
+                conn,
+                pool_id,
+                &crate::redistribute_splits(&remaining, remainder_to),
+            )?;
 
-            let to_assign = 100.0 - total_split_percentage_remaining;
-            let share_per_member = to_assign / num_existing_memberships as f64;
-
-            for membership in existing_memberships {
-                inputs.push(MemberIdSplitPercentage {
-                    member_id: membership.member_id,
-                    split_percentage: membership.default_split_percentage + share_per_member,
-                })
-            }
-
-            let num_updated = Self::update_default_split_percentage(conn, pool_id, inputs);
-
-            return Ok(num_updated.unwrap_or(0));
-        });
-
-        return Ok(num_updated.unwrap_or(0));
+            Ok(())
+        })
     }
 
+    /// Replace every member's default split. The whole set is validated first
+    /// (everyone included once, 0-100 each, total of 100%).
     pub fn update_default_split_percentage(
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
         inputs: Vec<MemberIdSplitPercentage>,
-    ) -> QueryResult<usize> {
-        let total: f64 = inputs
-            .iter()
-            .map(|item| item.split_percentage)
-            .collect::<Vec<f64>>()
-            .into_iter()
-            .sum();
+    ) -> Result<(), UpdateSplitsError> {
+        conn.transaction::<_, UpdateSplitsError, _>(|conn| {
+            let member_ids: std::collections::HashSet<uuid::Uuid> =
+                Self::member_ids(conn, pool_id)?.into_iter().collect();
 
-        if total != 100.0 {
-            return Ok(0);
-        }
+            let splits: Vec<(uuid::Uuid, f64)> = inputs
+                .iter()
+                .map(|i| (i.member_id, i.split_percentage))
+                .collect();
 
-        conn.transaction::<_, diesel::result::Error, _>(|conn| {
-            for input in inputs {
-                diesel::update(pool_membership::table)
-                    .filter(
-                        pool_membership::member_id
-                            .eq(input.member_id)
-                            .and(pool_membership::pool_id.eq(pool_id)),
-                    )
-                    .set(pool_membership::default_split_percentage.eq(input.split_percentage))
-                    .execute(conn)?;
-            }
+            let validated = crate::validate_default_splits(&member_ids, &splits)
+                .map_err(UpdateSplitsError::Invalid)?;
+
+            Self::write_splits(conn, pool_id, &validated)?;
             Ok(())
-        })?;
+        })
+    }
 
-        return Ok(1);
+    fn write_splits(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        splits: &[(uuid::Uuid, f64)],
+    ) -> QueryResult<()> {
+        for &(member_id, percent) in splits {
+            diesel::update(pool_membership::table)
+                .filter(pool_membership::member_id.eq(member_id))
+                .filter(pool_membership::pool_id.eq(pool_id))
+                .set(pool_membership::default_split_percentage.eq(percent))
+                .execute(conn)?;
+        }
+        Ok(())
     }
 
     pub fn list(conn: &mut PgConnection, pool_id: uuid::Uuid) -> QueryResult<Vec<(Self, Member)>> {
@@ -817,10 +998,12 @@ impl Expense {
     pub fn update(
         conn: &mut PgConnection,
         expense_id: &uuid::Uuid,
+        pool_id: &uuid::Uuid,
         new_expense: &ExpenseChangeset,
     ) -> QueryResult<Self> {
         let expense = diesel::update(expense::table)
             .filter(expense::id.eq(expense_id))
+            .filter(expense::pool_id.eq(pool_id))
             .set(new_expense)
             .get_result(conn)?;
 
@@ -943,6 +1126,23 @@ impl Friendship {
         diesel::delete(friendship::table.find((inviting_id, friend_id))).execute(conn)
     }
 
+    /// Whether the two members have an accepted friendship, in either direction.
+    pub fn are_friends(conn: &mut PgConnection, a: uuid::Uuid, b: uuid::Uuid) -> QueryResult<bool> {
+        diesel::select(diesel::dsl::exists(
+            friendship::table
+                .filter(friendship::status.eq(FriendshipStatus::Accepted))
+                .filter(
+                    (friendship::inviting_member_id
+                        .eq(a)
+                        .and(friendship::friend_member_id.eq(b)))
+                    .or(friendship::inviting_member_id
+                        .eq(b)
+                        .and(friendship::friend_member_id.eq(a))),
+                ),
+        ))
+        .get_result(conn)
+    }
+
     pub fn get_friends(conn: &mut PgConnection, member_id: uuid::Uuid) -> QueryResult<Vec<Member>> {
         let inviter_friends = friendship::table
             .filter(friendship::inviting_member_id.eq(member_id))
@@ -990,32 +1190,114 @@ impl Friendship {
             .get_results(conn)
     }
 
+    /// The friendship row between two members, whichever of them sent it.
+    pub fn find_between(
+        conn: &mut PgConnection,
+        a: uuid::Uuid,
+        b: uuid::Uuid,
+    ) -> QueryResult<Option<Self>> {
+        friendship::table
+            .filter(
+                (friendship::inviting_member_id
+                    .eq(a)
+                    .and(friendship::friend_member_id.eq(b)))
+                .or(friendship::inviting_member_id
+                    .eq(b)
+                    .and(friendship::friend_member_id.eq(a))),
+            )
+            .first(conn)
+            .optional()
+    }
+
+    /// Send a friend request by email and report what happened. If the other
+    /// person had already sent the caller a request, this accepts it rather
+    /// than failing on the one-friendship-per-pair index.
     pub fn send_request_by_email(
         conn: &mut PgConnection,
         inviting_id: uuid::Uuid,
         friend_email: &str,
-    ) -> QueryResult<Option<Self>> {
-        let potential_friend = member::table
-            .filter(member::email.eq(friend_email))
-            .filter(member::id.ne(inviting_id))
-            .select(member::id)
-            .first::<uuid::Uuid>(conn);
+    ) -> Result<(Member, FriendRequestOutcome), SendFriendRequestError> {
+        conn.transaction(|conn| {
+            let friend = Member::find_by_email(conn, friend_email)?
+                .ok_or(SendFriendRequestError::NotFound)?;
 
-        match potential_friend {
-            Ok(friend_id) => {
-                let new_friendship = NewFriendship {
-                    inviting_member_id: inviting_id,
-                    friend_member_id: friend_id,
-                    status: FriendshipStatus::Pending,
-                };
+            let existing = Self::find_between(conn, inviting_id, friend.id)?;
+            let relationship = crate::relationship_between(
+                inviting_id,
+                friend.id,
+                existing.map(|f| (f.inviting_member_id, f.status)),
+            );
 
-                match Self::find(conn, inviting_id, friend_id) {
-                    Ok(_) => Ok(None),
-                    Err(_) => Self::create(conn, &new_friendship).map(Some),
+            let outcome = match relationship {
+                crate::Relationship::Yourself => return Err(SendFriendRequestError::Yourself),
+                crate::Relationship::AlreadyFriends => FriendRequestOutcome::AlreadyFriends,
+                crate::Relationship::RequestSent => FriendRequestOutcome::AlreadySent,
+                crate::Relationship::RequestReceived => {
+                    Self::update_status(conn, friend.id, inviting_id, FriendshipStatus::Accepted)?;
+                    FriendRequestOutcome::Accepted
                 }
-            }
-            Err(e) => Err(e),
-        }
+                crate::Relationship::NotFriends => {
+                    Self::create(
+                        conn,
+                        &NewFriendship {
+                            inviting_member_id: inviting_id,
+                            friend_member_id: friend.id,
+                            status: FriendshipStatus::Pending,
+                        },
+                    )?;
+                    FriendRequestOutcome::Sent
+                }
+            };
+
+            Ok((friend, outcome))
+        })
+    }
+
+    /// Delete a pending request between the two members, in either direction:
+    /// declining one you received or cancelling one you sent. Accepted
+    /// friendships are left alone. Returns how many rows were deleted.
+    pub fn delete_pending_between(
+        conn: &mut PgConnection,
+        a: uuid::Uuid,
+        b: uuid::Uuid,
+    ) -> QueryResult<usize> {
+        diesel::delete(
+            friendship::table
+                .filter(friendship::status.eq(FriendshipStatus::Pending))
+                .filter(
+                    (friendship::inviting_member_id
+                        .eq(a)
+                        .and(friendship::friend_member_id.eq(b)))
+                    .or(friendship::inviting_member_id
+                        .eq(b)
+                        .and(friendship::friend_member_id.eq(a))),
+                ),
+        )
+        .execute(conn)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum FriendRequestOutcome {
+    /// A new request was sent.
+    Sent,
+    /// They had already invited you, so you're now friends.
+    Accepted,
+    AlreadyFriends,
+    AlreadySent,
+}
+
+#[derive(Debug)]
+pub enum SendFriendRequestError {
+    NotFound,
+    Yourself,
+    Database(diesel::result::Error),
+}
+
+impl From<diesel::result::Error> for SendFriendRequestError {
+    fn from(e: diesel::result::Error) -> Self {
+        Self::Database(e)
     }
 }
 

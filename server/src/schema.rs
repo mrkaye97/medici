@@ -139,6 +139,17 @@ diesel::table! {
         password_hash -> Text,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
+        password_changed_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    password_reset_token (id) {
+        id -> Uuid,
+        member_id -> Uuid,
+        token_hash -> Text,
+        expires_at -> Timestamptz,
+        inserted_at -> Timestamptz,
     }
 }
 
@@ -177,6 +188,7 @@ diesel::joinable!(expense_p_is_settled_false -> pool (pool_id));
 diesel::joinable!(expense_p_is_settled_true -> member (paid_by_member_id));
 diesel::joinable!(expense_p_is_settled_true -> pool (pool_id));
 diesel::joinable!(member_password -> member (member_id));
+diesel::joinable!(password_reset_token -> member (member_id));
 diesel::joinable!(pool_membership -> member (member_id));
 diesel::joinable!(pool_membership -> pool (pool_id));
 
@@ -189,6 +201,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     friendship,
     member,
     member_password,
+    password_reset_token,
     pool,
     pool_membership,
 );

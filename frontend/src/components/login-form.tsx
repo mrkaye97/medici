@@ -25,14 +25,20 @@ type LoginFormProps = {
     }
   ) => void
   formType: "login" | "signup"
-  hasError?: boolean
+  /** Shown under the form when set. */
+  error?: string | null
+  /** Show "Forgot password?" (only when the server can send reset emails). */
+  showForgotPassword?: boolean
+  isSubmitting?: boolean
 }
 
 export function LoginForm({
   className,
   onSubmit,
   formType,
-  hasError,
+  error,
+  showForgotPassword,
+  isSubmitting,
 }: LoginFormProps) {
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
@@ -80,12 +86,34 @@ export function LoginForm({
               <div className="grid gap-2">
                 <div className="flex items-center">
                   <Label htmlFor="password">Password</Label>
+                  {formType === "login" && showForgotPassword && (
+                    <Link
+                      to="/forgot-password"
+                      className="text-muted-foreground hover:text-foreground ml-auto text-sm underline-offset-4 hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  )}
                 </div>
-                <Input id="password" name="password" type="password" required />
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete={
+                    formType === "login" ? "current-password" : "new-password"
+                  }
+                  minLength={formType === "signup" ? 8 : undefined}
+                  required
+                />
+                {formType === "signup" && (
+                  <p className="text-muted-foreground text-xs">
+                    At least 8 characters
+                  </p>
+                )}
               </div>
               {formType === "signup" && (
                 <div className="grid gap-2">
-                  <Label htmlFor="email">First Name</Label>
+                  <Label htmlFor="firstName">First Name</Label>
                   <Input
                     id="firstName"
                     name="firstName"
@@ -97,7 +125,7 @@ export function LoginForm({
               )}
               {formType === "signup" && (
                 <div className="grid gap-2">
-                  <Label htmlFor="email">Last Name</Label>
+                  <Label htmlFor="lastName">Last Name</Label>
                   <Input
                     id="lastName"
                     name="lastName"
@@ -107,7 +135,7 @@ export function LoginForm({
                   />
                 </div>
               )}
-              <Button type="submit" className="w-full">
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {formType === "login" ? "Login" : "Sign Up"}
               </Button>
             </div>
@@ -127,11 +155,13 @@ export function LoginForm({
               </div>
             </Link>
           )}{" "}
-          {hasError && (
+          {error && (
             <div className="mt-4">
               <Alert variant="destructive">
-                <AlertTitle>Login failed</AlertTitle>
-                <AlertDescription>Invalid email or password</AlertDescription>
+                <AlertTitle>
+                  {formType === "login" ? "Login failed" : "Sign up failed"}
+                </AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
               </Alert>
             </div>
           )}

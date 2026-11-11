@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/client"
+import { apiClient, errorMessage } from "@/api/client"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { jwtDecode } from "jwt-decode"
@@ -81,6 +81,12 @@ export function useAuthInner() {
     await queryClient.invalidateQueries()
   }
 
+  /** Store a session token from the server and go to the home page. */
+  const completeLogin = async (token: string) => {
+    await setAuthMetadata({ token })
+    navigate({ to: "/", reloadDocument: true })
+  }
+
   const login = async (email: string, password: string) => {
     try {
       const result = await loginMutation.mutateAsync({
@@ -88,12 +94,7 @@ export function useAuthInner() {
       })
 
       if (result.is_authenticated && result.token) {
-        await setAuthMetadata({
-          token: result.token,
-        })
-
-        navigate({ to: "/", reloadDocument: true })
-
+        await completeLogin(result.token)
         return true
       }
 
@@ -110,12 +111,13 @@ export function useAuthInner() {
     navigate({ to: "/login", reloadDocument: true })
   }
 
+  /** Returns `null` on success, or a message saying what went wrong. */
   const signup = async (
     email: string,
     password: string,
     firstName: string,
     lastName: string
-  ) => {
+  ): Promise<string | null> => {
     try {
       const result = await signupMutation.mutateAsync({
         body: {
@@ -127,20 +129,17 @@ export function useAuthInner() {
       })
 
       if (result.is_authenticated && result.token) {
-        await setAuthMetadata({
-          token: result.token,
-        })
-
-        navigate({ to: "/", reloadDocument: true })
-
-        return true
+        await completeLogin(result.token)
+        return null
       }
 
-      return false
-    } catch {
+      return "Couldn't create your account. Please try again."
+    } catch (error) {
       await clearAuthMetadata()
-
-      return false
+      return errorMessage(
+        error,
+        "Couldn't create your account. Please try again."
+      )
     }
   }
 
@@ -155,6 +154,7 @@ export function useAuthInner() {
     login,
     logout,
     signup,
+    completeLogin,
     createAuthHeader,
     memberId,
   }

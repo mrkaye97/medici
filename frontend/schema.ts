@@ -100,6 +100,22 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  "/api/members/lookup": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations["lookup_member_handler"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/members/me": {
     parameters: {
       query?: never
@@ -114,6 +130,54 @@ export interface paths {
     options?: never
     head?: never
     patch: operations["update_member_handler"]
+    trace?: never
+  }
+  "/api/password-reset/config": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get: operations["password_reset_config_handler"]
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/password-reset/confirm": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations["confirm_password_reset_handler"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  "/api/password-reset/request": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post: operations["request_password_reset_handler"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
     trace?: never
   }
   "/api/pools": {
@@ -239,22 +303,6 @@ export interface paths {
     put?: never
     post?: never
     delete: operations["remove_friend_from_pool_handler"]
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
-  "/api/pools/{pool_id}/memberships": {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get?: never
-    put?: never
-    post: operations["create_pool_membership_handler"]
-    delete?: never
     options?: never
     head?: never
     patch?: never
@@ -452,6 +500,16 @@ export interface components {
     FriendRequestInput: {
       friend_email: string
     }
+    /** @enum {string} */
+    FriendRequestOutcome:
+      | "sent"
+      | "accepted"
+      | "already_friends"
+      | "already_sent"
+    FriendRequestResponse: {
+      member: components["schemas"]["MemberSummary"]
+      outcome: components["schemas"]["FriendRequestOutcome"]
+    }
     FriendRequestsList: {
       direction: components["schemas"]["FriendshipDirection"]
       member: components["schemas"]["Member"]
@@ -491,12 +549,35 @@ export interface components {
       /** Format: double */
       split_percentage: number
     }
+    MemberLookupResponse: {
+      member?: null | components["schemas"]["MemberSummary"]
+      relationship?: null | components["schemas"]["Relationship"]
+    }
+    /** @description The public part of a member that someone looking them up gets to see. */
+    MemberSummary: {
+      email: string
+      first_name: string
+      /** Format: uuid */
+      id: string
+      last_name: string
+    }
     ModifyDefaultSplitInput: {
       default_split_percentages: components["schemas"]["MemberIdSplitPercentage"][]
     }
     NewExpenseCategoryRule: {
       category: components["schemas"]["ExpenseCategory"]
       rule: string
+    }
+    PasswordResetConfig: {
+      /** @description Whether "Forgot password?" should be offered (email is configured). */
+      enabled: boolean
+    }
+    PasswordResetConfirmInput: {
+      new_password: string
+      token: string
+    }
+    PasswordResetRequestInput: {
+      email: string
     }
     /** @enum {string} */
     PaymentDirection: "inbound" | "outbound"
@@ -549,6 +630,16 @@ export interface components {
       /** Format: double */
       line_amount: number
     }
+    /**
+     * @description How the current user relates to someone they looked up by email.
+     * @enum {string}
+     */
+    Relationship:
+      | "yourself"
+      | "not_friends"
+      | "already_friends"
+      | "request_sent"
+      | "request_received"
     SignupInput: {
       email: string
       first_name: string
@@ -652,16 +743,23 @@ export interface operations {
       }
     }
     responses: {
-      /** @description Create a friend request successfully */
+      /** @description What happened: request sent, accepted their pending request, or nothing to do */
       200: {
         headers: {
           [name: string]: unknown
         }
         content: {
-          "application/json": unknown
+          "application/json": components["schemas"]["FriendRequestResponse"]
         }
       }
-      /** @description Friend not found */
+      /** @description Tried to add yourself */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description No account with that email */
       404: {
         headers: {
           [name: string]: unknown
@@ -818,6 +916,36 @@ export interface operations {
       }
     }
   }
+  lookup_member_handler: {
+    parameters: {
+      query: {
+        /** @description Email to look up (case-insensitive) */
+        email: string
+      }
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Who uses this email, and how they relate to you */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["MemberLookupResponse"]
+        }
+      }
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
   get_member_handler: {
     parameters: {
       query?: never
@@ -869,6 +997,88 @@ export interface operations {
       }
       /** @description Internal server error */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  password_reset_config_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Whether password reset by email is available */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["PasswordResetConfig"]
+        }
+      }
+    }
+  }
+  confirm_password_reset_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetConfirmInput"]
+      }
+    }
+    responses: {
+      /** @description Password changed; logged in with a new session */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["AuthResult"]
+        }
+      }
+      /** @description Link invalid or expired, or password too weak */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  request_password_reset_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetRequestInput"]
+      }
+    }
+    responses: {
+      /** @description Accepted. The response is the same whether or not the email has an account */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["GenericPostSuccessResponse"]
+        }
+      }
+      /** @description Password reset by email isn't configured on this server */
+      503: {
         headers: {
           [name: string]: unknown
         }
@@ -1297,39 +1507,6 @@ export interface operations {
         }
         content: {
           "application/json": unknown
-        }
-      }
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
-  create_pool_membership_handler: {
-    parameters: {
-      query: {
-        /** @description ID of the member to create membership for */
-        member_id: string
-      }
-      header?: never
-      path: {
-        /** @description ID of the pool to create membership for */
-        pool_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Create pool membership */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["PoolMembership"]
         }
       }
       /** @description Internal server error */

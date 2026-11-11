@@ -11,6 +11,331 @@ use std::{
 #[cfg(test)]
 mod tests;
 
+/// The level of access a request needs to a pool.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PoolAccess {
+    Member,
+    Admin,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PoolAccessError {
+    /// The caller is not in the pool. Handlers report this as "not found" so
+    /// non-members can't probe which pool IDs exist.
+    NotMember,
+    /// The caller is in the pool but the action needs an admin.
+    NotAdmin,
+}
+
+/// Decide whether a caller with `role` in a pool (`None` = not a member) may
+/// perform an action that needs `required` access.
+pub fn check_pool_access(
+    role: Option<models::PoolRole>,
+    required: PoolAccess,
+) -> Result<models::PoolRole, PoolAccessError> {
+    match (role, required) {
+        (None, _) => Err(PoolAccessError::NotMember),
+        (Some(models::PoolRole::PARTICIPANT), PoolAccess::Admin) => Err(PoolAccessError::NotAdmin),
+        (Some(role), _) => Ok(role),
+    }
+}
+
+/// An expense may only reference people who are in the pool: both the payer
+/// and every debtor on its line items.
+pub fn expense_participants_are_pool_members(
+    pool_member_ids: &HashSet<uuid::Uuid>,
+    paid_by_member_id: Option<uuid::Uuid>,
+    debtor_member_ids: &[uuid::Uuid],
+) -> bool {
+    paid_by_member_id.map_or(true, |id| pool_member_ids.contains(&id))
+        && debtor_member_ids
+            .iter()
+            .all(|id| pool_member_ids.contains(id))
+}
+
+/// Default splits must add up to 100% within this many hundredths of a
+/// percent, so 33.33 x 3 = 99.99 is accepted. Stored splits are then rounded
+/// to exactly 100.00. The database trigger allows 0.015 so float noise in an
+/// exact 100.00 can't trip it.
+pub const SPLIT_TOTAL_TOLERANCE_HUNDREDTHS: i64 = 1;
+
+/// Below this, a balance counts as settled (a fraction of a cent).
+pub const BALANCE_EPSILON: f64 = 0.005;
+
+fn to_hundredths(percent: f64) -> i64 {
+    (percent * 100.0).round() as i64
+}
+
+fn from_hundredths(hundredths: i64) -> f64 {
+    hundredths as f64 / 100.0
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SplitValidationError {
+    /// A pool member was left out of the update.
+    MissingMember(uuid::Uuid),
+    /// The update names someone who isn't in the pool.
+    UnknownMember(uuid::Uuid),
+    /// The same member appears more than once.
+    DuplicateMember(uuid::Uuid),
+    /// A percentage is negative, over 100, or not a number.
+    OutOfRange(uuid::Uuid),
+    /// The percentages don't add up to 100. Holds the actual total.
+    BadTotal(f64),
+}
+
+impl std::fmt::Display for SplitValidationError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingMember(_) => write!(f, "Every pool member needs a split percentage"),
+            Self::UnknownMember(_) => write!(f, "Splits can only include members of this pool"),
+            Self::DuplicateMember(_) => write!(f, "Each member can only appear once"),
+            Self::OutOfRange(_) => write!(f, "Split percentages must be between 0 and 100"),
+            Self::BadTotal(total) => {
+                write!(
+                    f,
+                    "Split percentages must add up to 100% (got {:.2}%)",
+                    total
+                )
+            }
+        }
+    }
+}
+
+/// Validate a full set of default splits for a pool and round each to two
+/// decimal places. Every member must appear exactly once.
+pub fn validate_default_splits(
+    pool_member_ids: &HashSet<uuid::Uuid>,
+    splits: &[(uuid::Uuid, f64)],
+) -> Result<Vec<(uuid::Uuid, f64)>, SplitValidationError> {
+    let mut seen = HashSet::new();
+    let mut rounded = Vec::with_capacity(splits.len());
+
+    for &(member_id, percent) in splits {
+        if !pool_member_ids.contains(&member_id) {
+            return Err(SplitValidationError::UnknownMember(member_id));
+        }
+        if !seen.insert(member_id) {
+            return Err(SplitValidationError::DuplicateMember(member_id));
+        }
+        if !percent.is_finite() || percent < 0.0 || percent > 100.0 {
+            return Err(SplitValidationError::OutOfRange(member_id));
+        }
+        rounded.push((member_id, percent));
+    }
+
+    if let Some(missing) = pool_member_ids.iter().find(|id| !seen.contains(id)) {
+        return Err(SplitValidationError::MissingMember(*missing));
+    }
+
+    let total: f64 = rounded.iter().map(|(_, p)| p).sum();
+    if (to_hundredths(total) - 10_000).abs() > SPLIT_TOTAL_TOLERANCE_HUNDREDTHS {
+        return Err(SplitValidationError::BadTotal(total));
+    }
+
+    Ok(round_to_exact_hundred(&rounded))
+}
+
+/// Round percentages to two decimals so they add up to exactly 100.00, using
+/// the largest-remainder method: floor everything to hundredths, then give
+/// the missing hundredths to the values that lost the most in rounding.
+/// Rounding each value on its own can drift (33.333 x 3 -> 99.99).
+fn round_to_exact_hundred(splits: &[(uuid::Uuid, f64)]) -> Vec<(uuid::Uuid, f64)> {
+    let total: f64 = splits.iter().map(|(_, p)| p).sum();
+    if total <= 0.0 {
+        return splits.to_vec();
+    }
+
+    // Scale to exactly 10,000 hundredths first so small input noise is absorbed.
+    let scaled: Vec<f64> = splits.iter().map(|(_, p)| p / total * 10_000.0).collect();
+    let mut hundredths: Vec<i64> = scaled.iter().map(|x| x.floor() as i64).collect();
+
+    let mut order: Vec<usize> = (0..splits.len()).collect();
+    order.sort_by(|&a, &b| {
+        let ra = scaled[a] - scaled[a].floor();
+        let rb = scaled[b] - scaled[b].floor();
+        rb.partial_cmp(&ra)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then(a.cmp(&b))
+    });
+
+    let missing = 10_000 - hundredths.iter().sum::<i64>();
+    for &i in order.iter().take(missing.max(0) as usize) {
+        hundredths[i] += 1;
+    }
+
+    splits
+        .iter()
+        .zip(hundredths)
+        .map(|(&(id, _), h)| (id, from_hundredths(h)))
+        .collect()
+}
+
+/// After a member leaves, share out whatever is missing from 100% evenly
+/// among the remaining members. The math is done in whole hundredths of a
+/// percent, so the result adds up to exactly 100.00. Any leftover hundredths
+/// that don't divide evenly go to `remainder_to` (the admin doing the removal).
+pub fn redistribute_splits(
+    remaining: &[(uuid::Uuid, f64)],
+    remainder_to: uuid::Uuid,
+) -> Vec<(uuid::Uuid, f64)> {
+    if remaining.is_empty() {
+        return Vec::new();
+    }
+
+    let current: Vec<(uuid::Uuid, i64)> = remaining
+        .iter()
+        .map(|&(id, p)| (id, to_hundredths(p)))
+        .collect();
+
+    let to_assign = 10_000 - current.iter().map(|(_, h)| h).sum::<i64>();
+    let n = current.len() as i64;
+    let per_member = to_assign.div_euclid(n);
+    let leftover = to_assign.rem_euclid(n);
+
+    let has_remainder_target = current.iter().any(|(id, _)| *id == remainder_to);
+
+    current
+        .iter()
+        .enumerate()
+        .map(|(i, &(id, h))| {
+            let gets_leftover = if has_remainder_target {
+                id == remainder_to
+            } else {
+                i == 0
+            };
+            let extra = if gets_leftover { leftover } else { 0 };
+            (id, from_hundredths(h + per_member + extra))
+        })
+        .collect()
+}
+
+/// Whether `member_id` still owes or is owed anything in the pool, given the
+/// pool's unsettled debts.
+pub fn has_outstanding_balance(member_id: uuid::Uuid, debts: Vec<models::DebtPair>) -> bool {
+    compute_balances_for_member(member_id, debts)
+        .iter()
+        .any(|b| b.amount > BALANCE_EPSILON)
+}
+
+/// Emails are matched case-insensitively and without surrounding spaces, so
+/// "Anna@Example.com " finds the account for "anna@example.com".
+pub fn normalize_email(email: &str) -> String {
+    email.trim().to_lowercase()
+}
+
+pub const MIN_PASSWORD_LENGTH: usize = 8;
+/// bcrypt ignores everything after 72 bytes, so longer passwords would give
+/// a false sense of strength.
+pub const MAX_PASSWORD_BYTES: usize = 72;
+
+pub fn validate_new_password(password: &str) -> Result<(), String> {
+    if password.chars().count() < MIN_PASSWORD_LENGTH {
+        return Err(format!(
+            "Password must be at least {} characters",
+            MIN_PASSWORD_LENGTH
+        ));
+    }
+    if password.len() > MAX_PASSWORD_BYTES {
+        return Err(format!(
+            "Password must be at most {} bytes",
+            MAX_PASSWORD_BYTES
+        ));
+    }
+    Ok(())
+}
+
+/// How the current user relates to someone they looked up by email.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Relationship {
+    /// The email is the caller's own.
+    Yourself,
+    /// No friendship in either direction yet; a request can be sent.
+    NotFriends,
+    AlreadyFriends,
+    /// The caller already sent a request that's still pending.
+    RequestSent,
+    /// The other person already sent the caller a request.
+    RequestReceived,
+}
+
+/// Work out the relationship from the friendship row between the two members,
+/// if any, given as `(inviting_member_id, status)`.
+pub fn relationship_between(
+    me: uuid::Uuid,
+    other: uuid::Uuid,
+    friendship: Option<(uuid::Uuid, models::FriendshipStatus)>,
+) -> Relationship {
+    if me == other {
+        return Relationship::Yourself;
+    }
+    match friendship {
+        None => Relationship::NotFriends,
+        Some((_, models::FriendshipStatus::Accepted)) => Relationship::AlreadyFriends,
+        Some((inviter, models::FriendshipStatus::Pending)) if inviter == me => {
+            Relationship::RequestSent
+        }
+        Some((_, models::FriendshipStatus::Pending)) => Relationship::RequestReceived,
+    }
+}
+
+/// How long a password reset link works.
+pub const PASSWORD_RESET_TTL_MINUTES: i64 = 30;
+/// At most one reset email per account in this window, so the endpoint can't
+/// be used to flood someone's inbox.
+pub const PASSWORD_RESET_THROTTLE_SECONDS: i64 = 60;
+
+/// A new reset token: 32 bytes from the OS's secure random generator, as hex.
+pub fn generate_reset_token() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 32];
+    rand::rngs::OsRng.fill_bytes(&mut bytes);
+    to_hex(&bytes)
+}
+
+/// What gets stored for a reset token. Tokens are long and random, so a
+/// plain SHA-256 is enough (no need for a slow hash like bcrypt).
+pub fn hash_reset_token(token: &str) -> String {
+    use sha2::{Digest, Sha256};
+    to_hex(&Sha256::digest(token.trim().as_bytes()))
+}
+
+fn to_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+}
+
+/// A session token is only valid if it was issued no earlier than the last
+/// password change. JWT `iat` is whole seconds, so compare at that precision;
+/// otherwise a session issued right after a reset would be rejected.
+pub fn session_is_current(
+    issued_at_seconds: i64,
+    password_changed_at: chrono::DateTime<chrono::Utc>,
+) -> bool {
+    issued_at_seconds >= password_changed_at.timestamp()
+}
+
+/// A real bcrypt hash of a throwaway value. Login checks against it when the
+/// email doesn't exist, so a failed login takes the same time whether or not
+/// the account exists.
+static DUMMY_PASSWORD_HASH: once_cell::sync::Lazy<String> = once_cell::sync::Lazy::new(|| {
+    bcrypt::hash("medici-dummy-password", bcrypt::DEFAULT_COST).expect("bcrypt hash")
+});
+
+/// Check a login attempt against the stored `(member_id, bcrypt_hash)`, if
+/// any. Returns the member ID when the password is correct. Works for both
+/// new random-salt hashes and the older fixed-salt hashes, because bcrypt
+/// stores the salt inside the hash.
+pub fn verify_login(password: &str, stored: Option<(uuid::Uuid, String)>) -> Option<uuid::Uuid> {
+    match stored {
+        Some((id, hash)) => matches!(bcrypt::verify(password, &hash), Ok(true)).then_some(id),
+        None => {
+            let _ = bcrypt::verify(password, DUMMY_PASSWORD_HASH.as_str());
+            None
+        }
+    }
+}
+
 pub fn establish_connection() -> PgConnection {
     dotenv().ok();
 

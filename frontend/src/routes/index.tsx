@@ -49,11 +49,7 @@ function Home() {
 
   const activeTab = search.tab
 
-  const {
-    data,
-    isLoading: isPoolsLoading,
-    isFetching,
-  } = apiClient.useQuery(
+  const { data, isLoading: isPoolsLoading } = apiClient.useQuery(
     "get",
     "/api/pools",
     {
@@ -78,7 +74,10 @@ function Home() {
     prevHiddenCount.current = hiddenPools.length
   }, [hiddenPools.length])
 
-  if (isLoading || isFetching) {
+  // Only blank the page on the first load. Background refetches (e.g. when
+  // the window regains focus) used to unmount everything, closing open
+  // dialogs and losing whatever was typed in them.
+  if (isLoading) {
     return null
   }
 

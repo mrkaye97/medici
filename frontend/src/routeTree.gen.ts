@@ -10,67 +10,95 @@
 
 // Import Routes
 
-import { Route as rootRoute } from "./routes/__root"
-import { Route as IndexImport } from "./routes/index"
-import { Route as LoginImport } from "./routes/login"
-import { Route as PoolsPoolIdImport } from "./routes/pools.$poolId"
-import { Route as SignupImport } from "./routes/signup"
+import { Route as rootRoute } from './routes/__root'
+import { Route as SignupImport } from './routes/signup'
+import { Route as ResetPasswordImport } from './routes/reset-password'
+import { Route as LoginImport } from './routes/login'
+import { Route as ForgotPasswordImport } from './routes/forgot-password'
+import { Route as IndexImport } from './routes/index'
+import { Route as PoolsPoolIdImport } from './routes/pools.$poolId'
 
 // Create/Update Routes
 
 const SignupRoute = SignupImport.update({
-  id: "/signup",
-  path: "/signup",
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ResetPasswordRoute = ResetPasswordImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRoute,
 } as any)
 
 const LoginRoute = LoginImport.update({
-  id: "/login",
-  path: "/login",
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const ForgotPasswordRoute = ForgotPasswordImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => rootRoute,
 } as any)
 
 const IndexRoute = IndexImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRoute,
 } as any)
 
 const PoolsPoolIdRoute = PoolsPoolIdImport.update({
-  id: "/pools/$poolId",
-  path: "/pools/$poolId",
+  id: '/pools/$poolId',
+  path: '/pools/$poolId',
   getParentRoute: () => rootRoute,
 } as any)
 
 // Populate the FileRoutesByPath interface
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
-    "/login": {
-      id: "/login"
-      path: "/login"
-      fullPath: "/login"
+    '/forgot-password': {
+      id: '/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof ForgotPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
       preLoaderRoute: typeof LoginImport
       parentRoute: typeof rootRoute
     }
-    "/signup": {
-      id: "/signup"
-      path: "/signup"
-      fullPath: "/signup"
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordImport
+      parentRoute: typeof rootRoute
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
       preLoaderRoute: typeof SignupImport
       parentRoute: typeof rootRoute
     }
-    "/pools/$poolId": {
-      id: "/pools/$poolId"
-      path: "/pools/$poolId"
-      fullPath: "/pools/$poolId"
+    '/pools/$poolId': {
+      id: '/pools/$poolId'
+      path: '/pools/$poolId'
+      fullPath: '/pools/$poolId'
       preLoaderRoute: typeof PoolsPoolIdImport
       parentRoute: typeof rootRoute
     }
@@ -80,46 +108,75 @@ declare module "@tanstack/react-router" {
 // Create and export the route tree
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
-  "/login": typeof LoginRoute
-  "/signup": typeof SignupRoute
-  "/pools/$poolId": typeof PoolsPoolIdRoute
+  '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
-  "/login": typeof LoginRoute
-  "/signup": typeof SignupRoute
-  "/pools/$poolId": typeof PoolsPoolIdRoute
+  '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
-  "/": typeof IndexRoute
-  "/login": typeof LoginRoute
-  "/signup": typeof SignupRoute
-  "/pools/$poolId": typeof PoolsPoolIdRoute
+  '/': typeof IndexRoute
+  '/forgot-password': typeof ForgotPasswordRoute
+  '/login': typeof LoginRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
+  '/pools/$poolId': typeof PoolsPoolIdRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/login" | "/signup" | "/pools/$poolId"
+  fullPaths:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/pools/$poolId'
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/login" | "/signup" | "/pools/$poolId"
-  id: "__root__" | "/" | "/login" | "/signup" | "/pools/$poolId"
+  to:
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/pools/$poolId'
+  id:
+    | '__root__'
+    | '/'
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/signup'
+    | '/pools/$poolId'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   SignupRoute: typeof SignupRoute
   PoolsPoolIdRoute: typeof PoolsPoolIdRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   SignupRoute: SignupRoute,
   PoolsPoolIdRoute: PoolsPoolIdRoute,
 }
@@ -135,7 +192,9 @@ export const routeTree = rootRoute
       "filePath": "__root.tsx",
       "children": [
         "/",
+        "/forgot-password",
         "/login",
+        "/reset-password",
         "/signup",
         "/pools/$poolId"
       ]
@@ -143,8 +202,14 @@ export const routeTree = rootRoute
     "/": {
       "filePath": "index.tsx"
     },
+    "/forgot-password": {
+      "filePath": "forgot-password.tsx"
+    },
     "/login": {
       "filePath": "login.tsx"
+    },
+    "/reset-password": {
+      "filePath": "reset-password.tsx"
     },
     "/signup": {
       "filePath": "signup.tsx"

@@ -70,7 +70,31 @@ docker compose -f compose.example.yaml up
 
 Then visit `http://localhost:3000` to get started.
 
-For production, make sure to change `AUTH_SECRET_KEY` to a secure value in the compose file.
+For production, set `AUTH_SECRET_KEY` to a long random value, e.g. from `openssl rand -base64 48`. Anyone who knows it can log in as any user, so don't use the example value, and keep it out of version control.
+
+### Password reset (optional)
+
+Medici can email password reset links over SMTP. Any SMTP service works: Gmail with an [app password](https://myaccount.google.com/apppasswords), Fastmail, Postmark, Resend, Amazon SES, and so on. Set these on the `medici` service:
+
+| Variable         | Example                      | Notes                                              |
+| ---------------- | ---------------------------- | -------------------------------------------------- |
+| `APP_URL`        | `https://medici.example.com` | Public URL of your Medici; reset links point here  |
+| `SMTP_HOST`      | `smtp.gmail.com`             |                                                    |
+| `SMTP_PORT`      | `587`                        | `587` for STARTTLS (default) or `465` for TLS      |
+| `SMTP_USERNAME`  | `you@gmail.com`              |                                                    |
+| `SMTP_PASSWORD`  | app password                 | Keep it in an untracked env file, not in git       |
+| `SMTP_FROM`      | `you@gmail.com`              | Optional; defaults to `SMTP_USERNAME`              |
+| `SMTP_FROM_NAME` | `Medici`                     | Optional; defaults to `Medici`                     |
+
+"Forgot password?" appears on the login page only when `APP_URL`, `SMTP_HOST`, `SMTP_USERNAME` and `SMTP_PASSWORD` are all set. Links expire after 30 minutes and work once. Using one logs the account out everywhere else.
+
+Without SMTP, you can still create a one-time reset link from the server and send it yourself:
+
+```bash
+docker compose exec medici ./server reset-link someone@example.com
+```
+
+This needs `APP_URL` set.
 
 ### Local Development Setup
 

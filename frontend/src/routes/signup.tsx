@@ -2,6 +2,7 @@ import { LoginForm } from "@/components/login-form"
 
 import { useAuth } from "@/hooks/use-auth"
 import { createFileRoute, Navigate } from "@tanstack/react-router"
+import { useState } from "react"
 import { z } from "zod"
 
 const fallback = "/" as const
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const { isAuthenticated, signup } = useAuth()
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (isAuthenticated) {
     return <Navigate to={fallback} />
@@ -23,15 +26,23 @@ function SignupPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <LoginForm
-        onSubmit={async e => {
-          const email = e.currentTarget.email.value as string
-          const password = e.currentTarget.password.value as string
-          const firstName = e.currentTarget.firstName.value as string
-          const lastName = e.currentTarget.lastName.value as string
+        onSubmit={async (_e, { email, password, firstName, lastName }) => {
+          setError(null)
+          setIsSubmitting(true)
 
-          await signup(email, password, firstName, lastName)
+          const failure = await signup(
+            email,
+            password,
+            firstName ?? "",
+            lastName ?? ""
+          )
+
+          setIsSubmitting(false)
+          setError(failure)
         }}
         formType="signup"
+        error={error}
+        isSubmitting={isSubmitting}
       />
     </div>
   )

@@ -1,3 +1,4 @@
+import { apiClient } from "@/api/client"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/hooks/use-auth"
 import { createFileRoute, Navigate } from "@tanstack/react-router"
@@ -15,7 +16,12 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const { isAuthenticated, login } = useAuth()
-  const [isError, setIsError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const { data: resetConfig } = apiClient.useQuery(
+    "get",
+    "/api/password-reset/config"
+  )
 
   if (isAuthenticated) {
     return <Navigate to={fallback} />
@@ -24,19 +30,21 @@ function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <LoginForm
-        onSubmit={async e => {
-          setIsError(false)
-          const email = e.currentTarget.email.value as string
-          const password = e.currentTarget.password.value as string
+        onSubmit={async (_e, { email, password }) => {
+          setError(null)
+          setIsSubmitting(true)
 
           const result = await login(email, password)
 
+          setIsSubmitting(false)
           if (!result) {
-            setIsError(true)
+            setError("Invalid email or password")
           }
         }}
         formType="login"
-        hasError={isError}
+        error={error}
+        isSubmitting={isSubmitting}
+        showForgotPassword={resetConfig?.enabled ?? false}
       />
     </div>
   )

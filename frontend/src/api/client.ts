@@ -26,3 +26,15 @@ export const fetchClient = createFetchClient<paths>({
   fetch: fetchWithStatus,
 })
 export const apiClient = createClient(fetchClient)
+
+/** The server's error message for a failed request, or `fallback`. */
+export const errorMessage = (error: unknown, fallback: string): string => {
+  if (
+    error instanceof Error &&
+    error.message &&
+    error.message !== "Request failed"
+  ) {
+    return error.message
+  }
+  return fallback
+}

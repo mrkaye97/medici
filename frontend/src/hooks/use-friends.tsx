@@ -28,7 +28,7 @@ export const useFriends = () => {
       }
     )
 
-  const { mutate: acceptFriendRequestMutation, isPending: isAccepting } =
+  const { mutateAsync: acceptFriendRequestMutation, isPending: isAccepting } =
     apiClient.useMutation(
       "post",
       "/api/friend-requests/{friend_member_id}/accept",
@@ -44,7 +44,7 @@ export const useFriends = () => {
       }
     )
 
-  const { mutate: deleteFriendRequestMutation, isPending: isDeleting } =
+  const { mutateAsync: deleteFriendRequestMutation, isPending: isDeleting } =
     apiClient.useMutation("delete", "/api/friend-requests/{friend_member_id}", {
       onSuccess: async () => {
         await queryClient.invalidateQueries({
@@ -69,7 +69,7 @@ export const useFriends = () => {
 
   const deleteFriendRequest = useCallback(
     async (friendMemberId: string) => {
-      deleteFriendRequestMutation({
+      return deleteFriendRequestMutation({
         params: {
           path: {
             friend_member_id: friendMemberId,

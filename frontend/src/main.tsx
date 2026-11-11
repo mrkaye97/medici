@@ -11,8 +11,16 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: (failureCount, error: FetchError) => {
-        if (error?.status === 401 || error?.status === 403) {
+        if (error?.status === 401) {
+          // The server rejected the session (expired, or ended by a password
+          // reset). Drop the stored token first: otherwise the login page
+          // still thinks we're logged in and bounces straight back here.
+          localStorage.removeItem("token")
           window.location.href = "/login"
+          return false
+        }
+        // Not found / not allowed won't change on retry.
+        if (error?.status === 403 || error?.status === 404) {
           return false
         }
         return failureCount < 3

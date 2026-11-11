@@ -105,7 +105,12 @@ export const usePool = ({
   const balances = useMemo(() => {
     return (rawBalances || [])
       .map(b => {
-        const otherMember = friends.find(m => m.id === b.member_id)
+        // Look people up among the pool's members, not your friends: someone
+        // another admin added may not be your friend, and their balance
+        // used to be silently dropped.
+        const otherMember =
+          members?.find(m => m.member.id === b.member_id)?.member ??
+          friends.find(m => m.id === b.member_id)
 
         if (!otherMember) {
           return null
@@ -121,12 +126,17 @@ export const usePool = ({
         }
       })
       .filter(b => b !== null)
-  }, [rawBalances, friends])
+  }, [rawBalances, members, friends])
 
   const invalidate = useCallback(async () => {
-    await queryClient.invalidateQueries({
-      queryKey: ["get", "/api/pools/{pool_id}/members"],
-    })
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: ["get", "/api/pools/{pool_id}/members"],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ["get", "/api/pools/{pool_id}/balances"],
+      }),
+    ])
   }, [queryClient])
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =

@@ -1,3 +1,4 @@
+import { errorMessage } from "@/api/client"
 import { Expense, formatCurrency } from "@/components/expense"
 import {
   AddExpenseModal,
@@ -7,6 +8,7 @@ import {
   round,
 } from "@/components/expense-modals"
 import { SettleUpModal } from "@/components/settle-up-modal"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -52,7 +54,6 @@ import {
 import MiniSearch from "minisearch"
 import { useEffect, useMemo, useState } from "react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
-import { components } from "schema"
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
@@ -667,42 +668,74 @@ const PoolAnalytics = ({
   )
 }
 
+/** Even split in hundredths of a percent, with any leftover going to
+ * `remainderTo` so it adds up to exactly 100 (same rule as the server). */
+const evenSplit = (memberIds: string[], remainderTo: string) => {
+  const per = Math.floor(10000 / memberIds.length)
+  const leftover = 10000 - per * memberIds.length
+  const remainderIndex = Math.max(memberIds.indexOf(remainderTo), 0)
+
+  return Object.fromEntries(
+    memberIds.map((id, i) => [
+      id,
+      String((per + (i === remainderIndex ? leftover : 0)) / 100),
+    ])
+  )
+}
+
 const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
-  const { members, details, invalidate, mutations, friendsEligibleToAdd } =
-    usePool({
-      poolId,
-    })
-
-  const [
-    maybeModifiedDefaultSplitPercentages,
-    setMaybeModifiedDefaultSplitPercentages,
-  ] = useState<components["schemas"]["MemberIdSplitPercentage"][]>([])
-
-  useEffect(() => {
-    async function maybeUpdate() {
-      const isValid =
-        maybeModifiedDefaultSplitPercentages.reduce((acc, curr) => {
-          return (acc += curr.split_percentage)
-        }, 0) === 100
-
-      if (isValid && memberId) {
-        await mutations.modifyDefaultSplit(maybeModifiedDefaultSplitPercentages)
-
-        setMaybeModifiedDefaultSplitPercentages([])
-      }
-    }
-
-    maybeUpdate()
-  }, [
-    maybeModifiedDefaultSplitPercentages,
-    memberId,
+  const { members, details, mutations, friendsEligibleToAdd } = usePool({
     poolId,
-    mutations,
-    invalidate,
-  ])
+  })
+
+  // Unsaved split edits, keyed by member ID. Kept as strings so a field can
+  // be empty mid-edit. `null` means nothing has been changed.
+  const [draft, setDraft] = useState<Record<string, string> | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   if (!details) {
     return null
+  }
+
+  const isAdmin = details.role === "ADMIN"
+  const sortedMembers = [...members].sort((a, b) =>
+    a.member.first_name.localeCompare(b.member.first_name)
+  )
+
+  const savedSplits = Object.fromEntries(
+    members.map(m => [
+      m.member.id,
+      String(m.pool_membership.default_split_percentage),
+    ])
+  )
+  const shownSplits = draft ?? savedSplits
+
+  const parsed = members.map(m => ({
+    member_id: m.member.id,
+    split_percentage: Number(shownSplits[m.member.id]),
+  }))
+  const allValid = parsed.every(
+    p =>
+      shownSplits[p.member_id]?.trim() !== "" &&
+      Number.isFinite(p.split_percentage) &&
+      p.split_percentage >= 0 &&
+      p.split_percentage <= 100
+  )
+  const total = parsed.reduce(
+    (sum, p) =>
+      sum + (Number.isFinite(p.split_percentage) ? p.split_percentage : 0),
+    0
+  )
+  const totalIsValid = Math.abs(total - 100) <= 0.011
+  const canSave = draft !== null && allValid && totalIsValid
+
+  const run = async (action: () => Promise<void>, fallback: string) => {
+    setError(null)
+    try {
+      await action()
+    } catch (e) {
+      setError(errorMessage(e, fallback))
+    }
   }
 
   return (
@@ -712,7 +745,31 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
           <UsersRound className="h-4 w-4" />
           Members
         </h3>
+        {isAdmin && members.length > 1 && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-xs"
+            onClick={() => {
+              setError(null)
+              setDraft(
+                evenSplit(
+                  sortedMembers.map(m => m.member.id),
+                  memberId
+                )
+              )
+            }}
+          >
+            Split evenly
+          </Button>
+        )}
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       <div className="space-y-2">
         {members.length === 0 ? (
@@ -720,115 +777,140 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
             No members yet
           </p>
         ) : (
-          members
-            .sort((a, b) =>
-              a.member.first_name.localeCompare(b.member.first_name)
-            )
-            .map(member => (
-              <Card key={member.member.id} className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full">
-                      <span className="text-xs font-medium">
-                        {member.member.first_name[0]}
-                        {member.member.last_name[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-sm font-medium">
-                        {member.member.first_name} {member.member.last_name}
-                        {member.member.id === memberId && (
-                          <Badge variant="secondary" className="ml-2 text-xs">
-                            You
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-muted-foreground text-xs">
-                        {member.member.email}
-                      </p>
-                    </div>
+          sortedMembers.map(member => (
+            <Card key={member.member.id} className="p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
+                    <span className="text-xs font-medium">
+                      {member.member.first_name[0]}
+                      {member.member.last_name[0]}
+                    </span>
                   </div>
-                  <div className="flex w-48 flex-row items-center justify-end gap-x-2">
-                    {details.role === "ADMIN" &&
-                      member.member.id !== memberId && (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger
-                              className="text-destructive hover:text-destructive h-8 w-8 p-0 hover:cursor-pointer"
-                              disabled={
-                                mutations.isAddPending ||
-                                mutations.isRemovePending ||
-                                details.total_debt !== 0
-                              }
-                              onClick={async () => {
-                                await mutations.removeFriend(member.member.id)
-                              }}
-                            >
-                              <UserMinus className="h-4 w-4" />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p className="text-xs">
-                                {details.total_debt !== 0
-                                  ? "You must settle up before removing a member"
-                                  : `Remove ${member.member.first_name} from pool`}
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">
+                      {member.member.first_name} {member.member.last_name}
+                      {member.member.id === memberId && (
+                        <Badge variant="secondary" className="ml-2 text-xs">
+                          You
+                        </Badge>
                       )}
-                    {details.role === "ADMIN" && (
-                      <div className="flex flex-col items-start gap-1">
-                        <Label htmlFor="email" className="text-xs">
-                          Split %
-                        </Label>
-                        <Input
-                          type="number"
-                          className="max-w-20"
-                          value={
-                            maybeModifiedDefaultSplitPercentages.find(
-                              m => m.member_id === member.member.id
-                            )?.split_percentage ||
-                            member.pool_membership.default_split_percentage
-                          }
-                          onChange={async e => {
-                            setMaybeModifiedDefaultSplitPercentages(prev => {
-                              const iter = prev.length
-                                ? prev
-                                : members.map(m => ({
-                                    member_id: m.member.id,
-                                    split_percentage:
-                                      m.pool_membership
-                                        .default_split_percentage,
-                                  }))
-
-                              return iter.map(f => {
-                                if (f.member_id === member.member.id) {
-                                  return {
-                                    member_id: f.member_id,
-                                    split_percentage: parseFloat(
-                                      e.target.value
-                                    ),
-                                  }
-                                } else {
-                                  return {
-                                    member_id: f.member_id,
-                                    split_percentage: f.split_percentage,
-                                  }
-                                }
-                              })
-                            })
-                          }}
-                        />
-                      </div>
-                    )}
+                    </div>
+                    <p className="text-muted-foreground truncate text-xs">
+                      {member.member.email}
+                    </p>
                   </div>
                 </div>
-              </Card>
-            ))
+                <div className="flex w-48 flex-row items-center justify-end gap-x-2">
+                  {isAdmin && member.member.id !== memberId && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger
+                          className="text-destructive hover:text-destructive h-8 w-8 p-0 hover:cursor-pointer disabled:opacity-50"
+                          disabled={
+                            mutations.isAddPending ||
+                            mutations.isRemovePending ||
+                            draft !== null
+                          }
+                          onClick={() =>
+                            run(async () => {
+                              await mutations.removeFriend(member.member.id)
+                            }, `Couldn't remove ${member.member.first_name}`)
+                          }
+                          aria-label={`Remove ${member.member.first_name} from pool`}
+                        >
+                          <UserMinus className="h-4 w-4" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-xs">
+                            {draft !== null
+                              ? "Save or reset your split changes first"
+                              : `Remove ${member.member.first_name} from pool. They need to be settled up first.`}
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                  {isAdmin ? (
+                    <div className="flex flex-col items-start gap-1">
+                      <Label
+                        htmlFor={`split-${member.member.id}`}
+                        className="text-xs"
+                      >
+                        Split %
+                      </Label>
+                      <Input
+                        id={`split-${member.member.id}`}
+                        type="number"
+                        inputMode="decimal"
+                        min={0}
+                        max={100}
+                        step={0.01}
+                        className="max-w-20"
+                        value={shownSplits[member.member.id] ?? ""}
+                        onChange={e => {
+                          const value = e.target.value
+                          setDraft(prev => ({
+                            ...(prev ?? savedSplits),
+                            [member.member.id]: value,
+                          }))
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">
+                      {member.pool_membership.default_split_percentage}%
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))
         )}
       </div>
 
-      {details.role === "ADMIN" && friendsEligibleToAdd.length > 0 && (
+      {isAdmin && draft !== null && (
+        <div className="bg-muted/50 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
+          <p
+            className={`text-sm font-medium ${totalIsValid && allValid ? "text-green-600" : "text-destructive"}`}
+          >
+            Total: {round(total)}%
+            {!allValid
+              ? " · each split must be 0–100"
+              : !totalIsValid
+                ? ` · ${total < 100 ? `${round(100 - total)}% left to assign` : `${round(total - 100)}% over`}`
+                : ""}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setDraft(null)
+                setError(null)
+              }}
+            >
+              Reset
+            </Button>
+            <Button
+              size="sm"
+              disabled={!canSave || mutations.isModifyDefaultSplitPending}
+              onClick={() =>
+                run(async () => {
+                  await mutations.modifyDefaultSplit(parsed)
+                  setDraft(null)
+                }, "Couldn't save the splits")
+              }
+            >
+              {mutations.isModifyDefaultSplitPending
+                ? "Saving..."
+                : "Save splits"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && friendsEligibleToAdd.length > 0 && (
         <>
           <div className="pt-4">
             <h4 className="text-muted-foreground mb-3 text-sm font-medium">
@@ -851,11 +933,16 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                       variant="ghost"
                       className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
                       disabled={
-                        mutations.isAddPending || mutations.isRemovePending
+                        mutations.isAddPending ||
+                        mutations.isRemovePending ||
+                        draft !== null
                       }
-                      onClick={async () => {
-                        await mutations.addFriend(friend.id)
-                      }}
+                      aria-label={`Add ${friend.first_name} to pool`}
+                      onClick={() =>
+                        run(async () => {
+                          await mutations.addFriend(friend.id)
+                        }, `Couldn't add ${friend.first_name}`)
+                      }
                     >
                       <UserRoundPlus className="h-4 w-4" />
                     </Button>
@@ -863,6 +950,10 @@ const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
                 </Card>
               ))}
             </div>
+            <p className="text-muted-foreground mt-2 text-xs">
+              New members start at 0%. Adjust the splits above if they should
+              share the default split.
+            </p>
           </div>
         </>
       )}

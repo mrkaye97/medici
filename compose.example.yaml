@@ -22,7 +22,15 @@ services:
     image: mrkaye97/medici:latest
     environment:
       DATABASE_URL: postgres://postgres:postgres@db:5432/medici
+      # Generate with `openssl rand -base64 48`. Anyone who knows it can log
+      # in as any user.
       AUTH_SECRET_KEY: change-me-in-production
+      # Optional: email password reset links. See the README.
+      # APP_URL: https://medici.example.com
+      # SMTP_HOST: smtp.gmail.com
+      # SMTP_PORT: "587"
+      # SMTP_USERNAME: you@gmail.com
+      # SMTP_PASSWORD: your-app-password
     ports:
       - "3000:80"
     depends_on:
