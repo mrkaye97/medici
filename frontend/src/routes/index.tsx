@@ -133,7 +133,7 @@ function Home() {
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="flex-1 overflow-hidden px-4 pb-4">
+          <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
             {pools.length === 0 ? (
               <div className="flex h-full flex-col items-center justify-center py-12 text-center">
                 <div className="bg-primary/10 mb-4 rounded-full p-4">
@@ -151,7 +151,7 @@ function Home() {
                 </Button>
               </div>
             ) : (
-              <div className="flex-1 overflow-auto">
+              <div className="min-h-0 flex-1 overflow-y-auto">
                 <div className="space-y-3">
                   <AnimatePresence mode="popLayout">
                     {visiblePools.map(pool => (
@@ -212,7 +212,7 @@ function Home() {
         </Card>
       </div>
 
-      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden gap-y-4">
+      <div className="bg-card border-border flex h-full flex-col overflow-auto border-l px-6 py-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-y-auto gap-y-4">
         <Tabs
           value={activeTab}
           onValueChange={value => {
