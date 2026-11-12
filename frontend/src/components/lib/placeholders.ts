@@ -20,7 +20,7 @@ export const placeholders = {
     "After the Head of the Charles",
     "Picnic at Fresh Pond",
     "Red Line was down again, so we Ubered",
-    "Double feature at the Sinclair",
+    "Double bill at the Sinclair",
   ],
   poolName: [
     "Inman Square apartment",
