@@ -1,9 +1,10 @@
-import { apiClient } from "@/api/client"
+import { apiClient, errorMessage } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import {
@@ -83,8 +84,12 @@ export function CreatePoolModal({
                 setIsOpen(false)
                 form.reset()
               } catch (error) {
-                console.error("Failed to create pool:", error)
-                alert("Failed to create pool. Please try again.")
+                form.setError("root.server", {
+                  message: errorMessage(
+                    error,
+                    "Failed to create pool. Please try again."
+                  ),
+                })
               }
             })}
             className="space-y-6"
@@ -124,6 +129,14 @@ export function CreatePoolModal({
                 </FormItem>
               )}
             />
+
+            {form.formState.errors.root?.server && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {form.formState.errors.root.server.message}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button type="submit" disabled={isPending}>
               {isPending ? "Creating..." : "Create Pool"}

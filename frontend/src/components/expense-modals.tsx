@@ -1,6 +1,6 @@
-import { apiClient } from "@/api/client"
+import { apiClient, errorMessage } from "@/api/client"
 import { useAuth } from "@/hooks/use-auth"
-import { usePool } from "@/hooks/use-pool"
+import { invalidatePoolData, usePool } from "@/hooks/use-pool"
 import { useRules } from "@/hooks/use-rules"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
@@ -826,16 +826,16 @@ export function AddExpenseModal({
           headers: createAuthHeader(),
         })
 
-        await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
-        })
+        await invalidatePoolData(queryClient)
 
         return { success: true }
       } catch (error) {
-        console.error("Failed to add expense:", error)
         return {
           success: false,
-          error: "Failed to add expense. Please try again.",
+          error: errorMessage(
+            error,
+            "Failed to add expense. Please try again."
+          ),
         }
       }
     },
@@ -960,21 +960,16 @@ export function UpdateExpenseModal({
           headers: createAuthHeader(),
         })
 
-        await Promise.all([
-          queryClient.invalidateQueries({
-            queryKey: ["get", "/api/pools/{pool_id}/expenses"],
-          }),
-          queryClient.invalidateQueries({
-            queryKey: ["get", "/api/pools/{pool_id}/expenses/{expense_id}"],
-          }),
-        ])
+        await invalidatePoolData(queryClient)
 
         return { success: true }
       } catch (error) {
-        console.error("Failed to update expense:", error)
         return {
           success: false,
-          error: "Failed to update expense. Please try again.",
+          error: errorMessage(
+            error,
+            "Failed to update expense. Please try again."
+          ),
         }
       }
     },

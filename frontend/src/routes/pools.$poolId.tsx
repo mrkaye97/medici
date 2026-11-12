@@ -262,6 +262,9 @@ const ExpensesPane = ({
     )
   }
 
+  // Recorded payments aren't expenses, so they don't count here.
+  const expenseCount = expenses.filter(e => !e.is_payment).length
+
   return (
     <ExpensesPaneLayout>
       {isAddExpenseModalOpen && (
@@ -292,7 +295,7 @@ const ExpensesPane = ({
               </span>
               <DollarSign className="text-primary h-5 w-5 ml-2" />
               <span className="text-sm md:text-base font-medium">
-                {expenses.length} expenses
+                {expenseCount} {expenseCount === 1 ? "expense" : "expenses"}
               </span>
               {details.role === "ADMIN" && (
                 <Badge
@@ -1004,16 +1007,16 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
             <Clock className="text-primary mx-auto h-8 w-8" />
           </div>
           <p className="text-muted-foreground text-lg font-medium">
-            All settled up!
+            You&apos;re all settled up
           </p>
           <p className="text-muted-foreground mt-1 text-sm">
-            Everyone&apos;s even - great teamwork!
+            You don&apos;t owe anyone here, and nobody owes you.
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {balances.map((balance, index) => (
-            <Card key={index} className="p-4">
+          {balances.map(balance => (
+            <Card key={balance.memberId} className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-base font-medium">{balance.name}</p>

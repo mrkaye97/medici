@@ -1,4 +1,5 @@
 import { apiClient, errorMessage } from "@/api/client"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -20,6 +21,19 @@ export const FriendsView = ({
   const queryClient = useQueryClient()
   const { memberId, createAuthHeader, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("friends")
+  const [requestError, setRequestError] = useState<string | null>(null)
+
+  const runRequestAction = async (
+    action: () => Promise<unknown>,
+    fallback: string
+  ) => {
+    setRequestError(null)
+    try {
+      await action()
+    } catch (error) {
+      setRequestError(errorMessage(error, fallback))
+    }
+  }
   const {
     friends,
     isFriendsLoading,
@@ -158,6 +172,11 @@ export const FriendsView = ({
 
             <TabsContent value="requests" className="mt-0">
               <CardContent className="space-y-4">
+                {requestError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{requestError}</AlertDescription>
+                  </Alert>
+                )}
                 {friendRequests.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center">
                     <div className="bg-muted mb-4 rounded-full p-4">
@@ -206,11 +225,15 @@ export const FriendsView = ({
                                   size="icon"
                                   className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 rounded-full"
                                   disabled={mutations.isDeleting}
-                                  onClick={async () => {
-                                    await mutations.deleteFriendRequest(
-                                      request.member.id
+                                  onClick={() =>
+                                    runRequestAction(
+                                      () =>
+                                        mutations.deleteFriendRequest(
+                                          request.member.id
+                                        ),
+                                      "Couldn't update that request. Please try again."
                                     )
-                                  }}
+                                  }
                                   aria-label={`Decline friend request from ${request.member.first_name} ${request.member.last_name}`}
                                 >
                                   <X className="h-4 w-4" />
@@ -218,11 +241,15 @@ export const FriendsView = ({
                                 <Button
                                   size="icon"
                                   className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8"
-                                  onClick={async () => {
-                                    await mutations.acceptFriendRequest(
-                                      request.member.id
+                                  onClick={() =>
+                                    runRequestAction(
+                                      () =>
+                                        mutations.acceptFriendRequest(
+                                          request.member.id
+                                        ),
+                                      "Couldn't accept that request. Please try again."
                                     )
-                                  }}
+                                  }
                                   disabled={mutations.isAccepting}
                                   aria-label={`Accept friend request from ${request.member.first_name} ${request.member.last_name}`}
                                 >
@@ -268,11 +295,15 @@ export const FriendsView = ({
                                   variant="outline"
                                   size="icon"
                                   className="h-8 w-8"
-                                  onClick={async () => {
-                                    await mutations.deleteFriendRequest(
-                                      request.member.id
+                                  onClick={() =>
+                                    runRequestAction(
+                                      () =>
+                                        mutations.deleteFriendRequest(
+                                          request.member.id
+                                        ),
+                                      "Couldn't update that request. Please try again."
                                     )
-                                  }}
+                                  }
                                   aria-label={`Cancel friend request to ${request.member.first_name} ${request.member.last_name}`}
                                 >
                                   <X className="h-4 w-4" />

@@ -2,7 +2,7 @@ import { apiClient } from "@/api/client"
 import { AddFriendModal } from "@/components/add-friend-modal"
 import { CreatePoolModal } from "@/components/create-pool-modal"
 import { FriendsView } from "@/components/friends-view"
-import { PoolSummary } from "@/components/pool-summay"
+import { PoolSummary } from "@/components/pool-summary"
 import { RulesView } from "@/components/rules-view"
 import { Button } from "@/components/ui/button"
 import {

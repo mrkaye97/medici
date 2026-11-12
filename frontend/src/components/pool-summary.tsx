@@ -63,6 +63,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
                   className={`ml-2 py-2 ${details.total_debt <= 0 ? "bg-primary/10 text-primary hover:bg-primary/20" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}`}
                 >
                   <p className="text-base font-light">
+                    {details.total_debt < 0 ? "You're owed " : "You owe "}
                     {formatCurrency(details.total_debt)}
                   </p>
                 </Badge>

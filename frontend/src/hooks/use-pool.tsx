@@ -1,6 +1,6 @@
 import { apiClient } from "@/api/client"
 import { ExpenseCategory } from "@/components/expense-modals"
-import { useQueryClient } from "@tanstack/react-query"
+import { QueryClient, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useMemo } from "react"
 import { components } from "schema"
 import { useAuth } from "./use-auth"
@@ -14,6 +14,23 @@ export type ExpensesListProps = {
   since?: Date | undefined
   until?: Date | undefined
 }
+
+/**
+ * Refresh everything that depends on a pool's expenses, payments or members:
+ * the expense lists, balances, the pool's details (the amount badge on the
+ * pool card), the pool list and the member list. Call it after any change.
+ */
+export const invalidatePoolData = (queryClient: QueryClient) =>
+  Promise.all(
+    [
+      "/api/pools/{pool_id}/expenses",
+      "/api/pools/{pool_id}/expenses/{expense_id}",
+      "/api/pools/{pool_id}/balances",
+      "/api/pools/{pool_id}/members",
+      "/api/pools/{pool_id}",
+      "/api/pools",
+    ].map(path => queryClient.invalidateQueries({ queryKey: ["get", path] }))
+  )
 
 export const usePool = ({
   poolId,
@@ -130,16 +147,10 @@ export const usePool = ({
       .filter(b => b !== null)
   }, [rawBalances, members, friends])
 
-  const invalidate = useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/api/pools/{pool_id}/members"],
-      }),
-      queryClient.invalidateQueries({
-        queryKey: ["get", "/api/pools/{pool_id}/balances"],
-      }),
-    ])
-  }, [queryClient])
+  const invalidate = useCallback(
+    () => invalidatePoolData(queryClient),
+    [queryClient]
+  )
 
   const { mutateAsync: addFriendToPool, isPending: isAddPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/members")
@@ -160,18 +171,7 @@ export const usePool = ({
         headers: createAuthHeader(),
       })
 
-      await Promise.all([
-        queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}/balances"],
-        }),
-        queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}"],
-        }),
-        queryClient.invalidateQueries({ queryKey: ["get", "/api/pools"] }),
-      ])
+      await invalidatePoolData(queryClient)
     },
     [settleUpMutation, createAuthHeader, poolId, queryClient]
   )
