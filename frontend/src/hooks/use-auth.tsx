@@ -159,6 +159,8 @@ export function useAuthInner() {
     logout,
     signup,
     completeLogin,
+    /** Swap in a new session token (e.g. after changing your password). */
+    setSession: (token: string) => setAuthMetadata({ token }),
     createAuthHeader,
     memberId,
   }

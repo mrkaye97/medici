@@ -1,68 +1,34 @@
-import { errorMessage } from "@/api/client"
-import { Expense, formatCurrency } from "@/components/expense"
-import {
-  AddExpenseModal,
-  categoryToDisplayName,
-  expenseCategories,
-  ExpenseCategory,
-  round,
-} from "@/components/expense-modals"
-import { SettleUpModal } from "@/components/settle-up-modal"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { ExpenseCategory } from "@/components/expense-categories"
+import { useDocumentTitle } from "@/components/lib/use-document-title"
+import { cn } from "@/components/lib/utils"
+import { BalancesPane } from "@/components/pool/balances-pane"
+import { ExpensesPane } from "@/components/pool/expenses-pane"
+import { MembersPane } from "@/components/pool/members-pane"
+import { SpendChart } from "@/components/pool/spend-chart"
 import { Separator } from "@/components/ui/separator"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
-import { ExpensesListProps, usePool } from "@/hooks/use-pool"
-import { createFileRoute, Link } from "@tanstack/react-router"
-import {
-  ArrowLeft,
-  ArrowUpDown,
-  BanknoteIcon,
-  Clock,
-  DollarSign,
-  Home,
-  PlusCircleIcon,
-  Search,
-  UserMinus,
-  UserRoundPlus,
-  UsersRound,
-} from "lucide-react"
-import MiniSearch from "minisearch"
-import { useEffect, useMemo, useState } from "react"
-import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
+import { usePool } from "@/hooks/use-pool"
+import { createFileRoute } from "@tanstack/react-router"
+import { DollarSign } from "lucide-react"
+import { useState } from "react"
 
 export const Route = createFileRoute("/pools/$poolId")({
   component: Pool,
 })
 
+type MobileView = "expenses" | "details"
+
 function Pool() {
   const { poolId } = Route.useParams()
   const { memberId } = useAuth()
+  const { details, balances } = usePool({ poolId })
   const [selectedCategory, setSelectedCategory] = useState<ExpenseCategory>()
+  // Phones show one pane at a time; from `md` up both are side by side.
+  const [mobileView, setMobileView] = useState<MobileView>("expenses")
+
+  useDocumentTitle(details?.name)
 
   if (!memberId) {
     return null
@@ -70,12 +36,33 @@ function Pool() {
 
   return (
     <div className="bg-background flex flex-col overflow-auto md:h-dvh md:flex-row md:overflow-hidden">
+      <div className="bg-card sticky top-0 z-10 border-b p-3 md:hidden">
+        <Tabs
+          value={mobileView}
+          onValueChange={value => setMobileView(value as MobileView)}
+        >
+          <TabsList className="grid h-10 w-full grid-cols-2">
+            <TabsTrigger value="expenses">Expenses</TabsTrigger>
+            <TabsTrigger value="details">
+              Balances
+              {balances.length > 0 && (
+                <span className="bg-primary text-primary-foreground ml-1.5 rounded-full px-1.5 text-xs">
+                  {balances.length}
+                </span>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
       <ExpensesPane
+        className={cn(mobileView !== "expenses" && "hidden md:flex")}
         poolId={poolId}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
       />
-      <PoolDetailsPaneWrapper
+      <PoolDetailsPane
+        className={cn(mobileView !== "details" && "hidden md:flex")}
         memberId={memberId}
         poolId={poolId}
         selectedCategory={selectedCategory}
@@ -85,28 +72,26 @@ function Pool() {
   )
 }
 
-type PoolPaneProps = {
-  memberId: string
-  poolId: string
-  selectedCategory: ExpenseCategory | undefined
-  setSelectedCategory: (category: ExpenseCategory | undefined) => void
-}
-
-const PoolDetailsPaneWrapper = ({
+const PoolDetailsPane = ({
+  className,
   memberId,
   poolId,
   selectedCategory,
   setSelectedCategory,
-}: PoolPaneProps) => {
+}: {
+  className?: string
+  memberId: string
+  poolId: string
+  selectedCategory: ExpenseCategory | undefined
+  setSelectedCategory: (category: ExpenseCategory | undefined) => void
+}) => {
   const {
     details,
     isBalancesLoading,
     isDetailsLoading,
     isMembersLoading,
     isExpensesLoading,
-  } = usePool({
-    poolId,
-  })
+  } = usePool({ poolId })
 
   const isLoading =
     isMembersLoading ||
@@ -115,28 +100,13 @@ const PoolDetailsPaneWrapper = ({
     isExpensesLoading ||
     !details
 
-  if (isLoading) {
-    return null
-  }
-
   return (
-    <PoolDetailsPane
-      memberId={memberId}
-      poolId={poolId}
-      selectedCategory={selectedCategory}
-      setSelectedCategory={setSelectedCategory}
-    />
-  )
-}
-
-const PoolDetailsPane = ({
-  memberId,
-  poolId,
-  selectedCategory,
-  setSelectedCategory,
-}: PoolPaneProps) => {
-  return (
-    <div className="bg-card md:border-border flex h-dvh flex-col overflow-auto md:border-l p-6 w-full lg:w-[400px] xl:w-[550px] 2xl:w-[620px] md:overflow-hidden scrollbar-none">
+    <div
+      className={cn(
+        "bg-card md:border-border flex w-full flex-col overflow-auto p-4 md:h-dvh md:overflow-hidden md:border-l md:p-6 lg:w-[400px] xl:w-[550px] 2xl:w-[620px]",
+        className
+      )}
+    >
       <div className="mb-6">
         <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
           <DollarSign className="text-primary h-6 w-6" />
@@ -147,921 +117,24 @@ const PoolDetailsPane = ({
         </p>
       </div>
 
-      <div className="space-y-6 overflow-auto h-full scrollbar-none">
-        <PoolBalancesPane poolId={poolId} />
-        <Separator />
-        <PoolAnalytics
-          poolId={poolId}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
-        <Separator />
-        <PoolMemberManagementPane
-          poolId={poolId}
-          memberId={memberId}
-          selectedCategory={selectedCategory}
-          setSelectedCategory={setSelectedCategory}
-        />
-      </div>
-    </div>
-  )
-}
-
-function ExpensesPaneLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col overflow-auto px-0 md:px-6 md:py-6 md:flex-1 md:overflow-hidden">
-      <Card className="md:border-border flex flex-col overflow-auto border-none rounded-none md:rounded-lg md:border md:shadow-sm md:flex-1 md:overflow-hidden">
-        {children}
-      </Card>
-    </div>
-  )
-}
-
-const ExpensesPane = ({
-  poolId,
-  selectedCategory,
-  setSelectedCategory,
-}: {
-  poolId: string
-  selectedCategory: ExpenseCategory | undefined
-  setSelectedCategory: (category: ExpenseCategory | undefined) => void
-}) => {
-  const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
-  const [selectedMemberId, setSelectedMemberId] = useState<string>()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showSettled, setShowSettled] = useState(false)
-
-  const expenseOptions: ExpensesListProps = useMemo(
-    () => ({
-      category: selectedCategory,
-      isSettled: showSettled,
-      paidByMemberId: selectedMemberId,
-    }),
-    [selectedCategory, showSettled, selectedMemberId]
-  )
-
-  const {
-    members,
-    expenses,
-    details,
-    isBalancesLoading,
-    isDetailsLoading,
-    isMembersLoading,
-    isExpensesLoading,
-    isExpensesRefetching,
-    totalExpenses,
-  } = usePool({
-    poolId,
-    expenseOptions,
-  })
-
-  const miniSearch = useMemo(() => {
-    const m = new MiniSearch({
-      fields: ["id", "name", "description", "notes"],
-      storeFields: ["id", "name", "description", "notes"],
-    })
-
-    m.addAllAsync(
-      expenses.map(expense => ({
-        id: expense.id,
-        name: expense.name,
-        description: expense.description || "",
-        notes: expense.notes || "",
-      }))
-    )
-
-    return m
-  }, [expenses])
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return expenses
-    }
-
-    const results = miniSearch.search(searchQuery, {
-      fuzzy: 0.2,
-      prefix: true,
-      boost: { name: 2, description: 1, notes: 1 },
-    })
-
-    return results
-      .map(result => expenses.find(e => e.id === result.id))
-      .filter(e => e !== undefined)
-  }, [searchQuery, expenses, miniSearch])
-
-  const isLoading =
-    isMembersLoading ||
-    (isExpensesLoading && !isExpensesRefetching) ||
-    isDetailsLoading
-
-  if (isLoading || isMembersLoading || !details || isBalancesLoading) {
-    return (
-      <ExpensesPaneLayout>
-        <div />
-      </ExpensesPaneLayout>
-    )
-  }
-
-  // Recorded payments aren't expenses, so they don't count here.
-  const expenseCount = expenses.filter(e => !e.is_payment).length
-
-  return (
-    <ExpensesPaneLayout>
-      {isAddExpenseModalOpen && (
-        <AddExpenseModal
-          isOpen={isAddExpenseModalOpen}
-          setIsOpen={setIsAddExpenseModalOpen}
-          pool={details}
-        />
-      )}
-      <CardHeader className="bg-card flex-shrink-0 md:rounded-t-lg pb-4">
-        <div className="mb-6 flex flex-col items-center justify-between gap-y-4 md:flex-row w-full">
-          <div className="flex flex-col gap-3 w-full">
-            <Link
-              to="/"
-              className="text-muted-foreground hover:text-primary group flex w-fit items-center gap-2 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <Home className="h-4 w-4" />
-              <span className="text-sm font-medium">Back to Home</span>
-            </Link>
-            <h1 className="text-foreground text-4xl font-semibold tracking-tight">
-              {details.name}
-            </h1>
-            <div className="text-muted-foreground flex  items-center gap-2">
-              <UsersRound className="text-primary h-5 w-5" />
-              <span className="text-sm md:text-base font-medium">
-                {members.length} members
-              </span>
-              <DollarSign className="text-primary h-5 w-5 ml-2" />
-              <span className="text-sm md:text-base font-medium">
-                {expenseCount} {expenseCount === 1 ? "expense" : "expenses"}
-              </span>
-              {details.role === "ADMIN" && (
-                <Badge
-                  variant="outline"
-                  className="bg-primary/10 border-primary text-primary ml-2"
-                >
-                  Admin
-                </Badge>
-              )}
-            </div>
-          </div>
-          <Button
-            onClick={() => setIsAddExpenseModalOpen(true)}
-            className="flex items-center gap-2"
-            size="lg"
-          >
-            <PlusCircleIcon className="h-5 w-5" />
-            Add Expense
-          </Button>
-        </div>
-
-        <CardTitle className="text-foreground mb-6 flex flex-row items-center justify-between gap-3 text-2xl font-semibold">
-          <div className="flex flex-row items-center gap-2">
-            <BanknoteIcon className="text-primary h-6 w-6 flex-shrink-0" />
-            <span className="flex items-center">Expenses</span>
-            <Badge
-              variant="secondary"
-              className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
-            >
-              {formatCurrency(totalExpenses)} total
-            </Badge>
-          </div>
-          <div className="flex flex-row items-center gap-1 text-sm">
-            <Checkbox
-              id="toggle"
-              className="border-primary border"
-              onCheckedChange={isChecked =>
-                setShowSettled(isChecked.valueOf() === true)
-              }
-            />
-            <Label htmlFor="toggle"> Show settled</Label>
-          </div>
-        </CardTitle>
-
+      {isLoading ? (
         <div className="space-y-4">
-          <div className="flex flex-col items-stretch gap-3 sm:flex-row">
-            <div className="relative flex-1">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Search className="text-muted-foreground h-4 w-4" />
-              </div>
-              <Input
-                placeholder="Search expenses..."
-                value={searchQuery}
-                onChange={e => {
-                  setSearchQuery(e.target.value)
-                }}
-                className="bg-background/50 border border-primary/40 focus:border-primary/50 focus:ring-primary/20 h-full pl-10 transition-all duration-200 focus:ring-1"
-              />
-            </div>
-
-            <Select
-              onValueChange={value => {
-                if (value === "all") {
-                  setSelectedCategory(undefined)
-                  return
-                }
-                setSelectedCategory(value as ExpenseCategory)
-              }}
-              defaultValue="all"
-              value={selectedCategory ?? "all"}
-            >
-              <SelectTrigger className="md:min-w-[250px] md:max-w-[300px] w-full md:w-auto">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border/50">
-                <SelectItem
-                  key="all"
-                  value="all"
-                  className="focus:bg-primary/10"
-                >
-                  <div className="flex items-center gap-2">
-                    {selectedCategory === undefined && (
-                      <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                    )}
-                    <span className="font-medium">All Categories</span>
-                  </div>
-                </SelectItem>
-                {expenseCategories
-                  .sort((a, b) => a.localeCompare(b))
-                  .map(category => (
-                    <SelectItem
-                      key={category}
-                      value={category}
-                      className="focus:bg-primary/10 capitalize"
-                    >
-                      {selectedCategory === category && (
-                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                      )}
-
-                      <span>{categoryToDisplayName({ category })}</span>
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              onValueChange={value => {
-                if (value === "all") {
-                  setSelectedMemberId(undefined)
-                  return
-                }
-                setSelectedMemberId(value)
-              }}
-              defaultValue="all"
-            >
-              <SelectTrigger className="md:min-w-[250px] md:max-w-[300px] w-full md:w-auto">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent className="bg-card border-border/50">
-                <SelectItem
-                  key="all"
-                  value="all"
-                  className="focus:bg-primary/10"
-                >
-                  <div className="flex items-center gap-2">
-                    {selectedMemberId === undefined && (
-                      <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                    )}
-                    <span className="font-medium">All Payers</span>
-                  </div>
-                </SelectItem>
-                {members
-                  .sort((a, b) =>
-                    a.member.first_name.localeCompare(b.member.first_name)
-                  )
-                  .map(member => (
-                    <SelectItem
-                      key={member.member.id}
-                      value={member.member.id}
-                      className="focus:bg-primary/10 capitalize"
-                    >
-                      {selectedMemberId === member.member.id && (
-                        <div className="from-primary to-primary/60 h-2 w-2 rounded-full bg-gradient-to-r"></div>
-                      )}
-
-                      <span>{member.member.first_name}</span>
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="flex flex-1 flex-col overflow-hidden px-4 pb-4">
-        {expenses.length === 0 ? (
-          <div className="px-4 py-20 text-center">
-            <div className="bg-primary/10 mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full">
-              <BanknoteIcon className="text-primary h-12 w-12" />
-            </div>
-            <h3 className="text-muted-foreground mb-4 text-2xl font-semibold">
-              No expenses yet!
-            </h3>
-            <p className="text-muted-foreground mx-auto mb-6 max-w-sm">
-              Start tracking your shared expenses by adding your first one.
-            </p>
-            <Button onClick={() => setIsAddExpenseModalOpen(true)} size="lg">
-              <PlusCircleIcon className="mr-2 h-5 w-5" />
-              Add First Expense
-            </Button>
-          </div>
-        ) : (
-          <div className="flex-1 overflow-auto">
-            <div className="space-y-2">
-              {searchResults.map(expense => (
-                <div key={expense.id} className="px-2 transition-colors">
-                  <Expense
-                    expense={expense}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </ExpensesPaneLayout>
-  )
-}
-
-type ChartPayload = {
-  name: string
-  amount: number
-  fill: string
-  key: ExpenseCategory | "other"
-}
-
-const PoolAnalytics = ({
-  poolId,
-  selectedCategory,
-  setSelectedCategory,
-}: {
-  poolId: string
-  selectedCategory: ExpenseCategory | undefined
-  setSelectedCategory: (category: ExpenseCategory | undefined) => void
-}) => {
-  const { expenses } = usePool({
-    poolId,
-  })
-  const [numToShow, setNumToShow] = useState(3)
-
-  useEffect(() => {
-    const updateNumToShow = () => {
-      const width = window.innerWidth
-      if (width < 1024) {
-        setNumToShow(4)
-      } else if (width < 1280) {
-        setNumToShow(5)
-      } else if (width < 1560) {
-        setNumToShow(6)
-      } else {
-        setNumToShow(7)
-      }
-    }
-
-    updateNumToShow()
-    window.addEventListener("resize", updateNumToShow)
-
-    return () => window.removeEventListener("resize", updateNumToShow)
-  }, [])
-
-  const expenseSummary: ChartPayload[] = useMemo(() => {
-    // Payments between members aren't spending, so leave them out.
-    const agg = expenses.reduce(
-      (acc, expense) => {
-        if (expense.is_payment) {
-          return acc
-        }
-
-        const category = expense.category
-
-        if (!acc[category]) {
-          acc[category] = 0
-        }
-
-        acc[category] += expense.amount
-
-        return acc
-      },
-      {} as Record<ExpenseCategory, number>
-    )
-
-    const entries = Object.entries(agg)
-      .map(([category, amount]) => ({
-        name: categoryToDisplayName({ category: category as ExpenseCategory }),
-        amount,
-        key: category as ExpenseCategory,
-      }))
-      .sort((a, b) => b.amount - a.amount)
-
-    const withOtherCategory = [
-      ...entries.slice(0, numToShow - 1),
-      {
-        name: "Other",
-        amount: entries
-          .slice(numToShow - 1)
-          .reduce((sum, entry) => sum + entry.amount, 0),
-        key: "other" as ExpenseCategory | "other",
-      },
-    ].filter(entry => entry.amount > 0)
-
-    const maxAmount = Math.max(...withOtherCategory.map(e => e.amount))
-    const minAmount = Math.min(...withOtherCategory.map(e => e.amount))
-
-    return withOtherCategory.map(entry => {
-      const intensity =
-        withOtherCategory.length > 1
-          ? (entry.amount - minAmount) / (maxAmount - minAmount)
-          : 0.5
-
-      const getGreenShade = (intensity: number) => {
-        const lightness = 0.72 - intensity * 0.32
-        const chroma = 0.055 + intensity * 0.035
-
-        return `oklch(${lightness} ${chroma} 155)`
-      }
-
-      return {
-        ...entry,
-        fill: getGreenShade(intensity),
-      }
-    })
-  }, [expenses, numToShow])
-
-  const chartConfig = {
-    amount: {
-      label: "Amount",
-      color: "hsl(var(--color-primary))",
-    },
-  } satisfies ChartConfig
-
-  if (expenseSummary.length === 0) {
-    return (
-      <div>
-        <h3 className="text-foreground flex items-center gap-2 font-semibold">
-          Spend Summary
-        </h3>
-        <div className="text-muted-foreground mt-4">
-          No expenses to display. Add some expenses to see your spending
-          summary.
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-foreground flex items-center gap-2 font-semibold">
-        Spend Summary
-      </h3>
-      <div>
-        <ChartContainer config={chartConfig} className="min-h-[200px] w-full">
-          <BarChart
-            accessibilityLayer
-            data={expenseSummary}
-            onClick={e => {
-              const payload: ChartPayload | undefined =
-                e.activePayload?.at(0)?.payload
-
-              if (
-                !payload ||
-                payload.key == "other" ||
-                payload.key === selectedCategory
-              ) {
-                setSelectedCategory(undefined)
-                return
-              }
-
-              setSelectedCategory(payload.key)
-            }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="name"
-              tickLine={false}
-              tickMargin={6}
-              axisLine={false}
-              tick={{ fontSize: 10 }}
-              interval={0}
-            />
-            <ChartTooltip
-              content={<ChartTooltipContent />}
-              labelClassName="flex flex-row ml-8 items-center"
-              formatter={(value, name, payload) => {
-                return (
-                  <div className="flex flex-row items-center justify-between w-full px-1 gap-x-2">
-                    <div className="flex flex-row gap-x-1 items-center">
-                      <span
-                        className="inline-block size-2 align-middle border border-black"
-                        style={{ backgroundColor: payload.payload.fill }}
-                      ></span>
-                      <span className="capitalize font-semibold">{name}</span>
-                    </div>
-                    <span>{formatCurrency(value as number)}</span>
-                  </div>
-                )
-              }}
-            />
-            <Bar
-              dataKey="amount"
-              radius={[4, 4, 0, 0]}
-              className="hover:cursor-pointer"
-            />
-          </BarChart>
-        </ChartContainer>
-      </div>
-    </div>
-  )
-}
-
-/** Even split in hundredths of a percent, with any leftover going to
- * `remainderTo` so it adds up to exactly 100 (same rule as the server). */
-const evenSplit = (memberIds: string[], remainderTo: string) => {
-  const per = Math.floor(10000 / memberIds.length)
-  const leftover = 10000 - per * memberIds.length
-  const remainderIndex = Math.max(memberIds.indexOf(remainderTo), 0)
-
-  return Object.fromEntries(
-    memberIds.map((id, i) => [
-      id,
-      String((per + (i === remainderIndex ? leftover : 0)) / 100),
-    ])
-  )
-}
-
-const PoolMemberManagementPane = ({ poolId, memberId }: PoolPaneProps) => {
-  const { members, details, mutations, friendsEligibleToAdd } = usePool({
-    poolId,
-  })
-
-  // Unsaved split edits, keyed by member ID. Kept as strings so a field can
-  // be empty mid-edit. `null` means nothing has been changed.
-  const [draft, setDraft] = useState<Record<string, string> | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  if (!details) {
-    return null
-  }
-
-  const isAdmin = details.role === "ADMIN"
-  const sortedMembers = [...members].sort((a, b) =>
-    a.member.first_name.localeCompare(b.member.first_name)
-  )
-
-  const savedSplits = Object.fromEntries(
-    members.map(m => [
-      m.member.id,
-      String(m.pool_membership.default_split_percentage),
-    ])
-  )
-  const shownSplits = draft ?? savedSplits
-
-  const parsed = members.map(m => ({
-    member_id: m.member.id,
-    split_percentage: Number(shownSplits[m.member.id]),
-  }))
-  const allValid = parsed.every(
-    p =>
-      shownSplits[p.member_id]?.trim() !== "" &&
-      Number.isFinite(p.split_percentage) &&
-      p.split_percentage >= 0 &&
-      p.split_percentage <= 100
-  )
-  const total = parsed.reduce(
-    (sum, p) =>
-      sum + (Number.isFinite(p.split_percentage) ? p.split_percentage : 0),
-    0
-  )
-  const totalIsValid = Math.abs(total - 100) <= 0.011
-  const canSave = draft !== null && allValid && totalIsValid
-
-  const run = async (action: () => Promise<void>, fallback: string) => {
-    setError(null)
-    try {
-      await action()
-    } catch (e) {
-      setError(errorMessage(e, fallback))
-    }
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-medium">
-          <UsersRound className="h-4 w-4" />
-          Members
-        </h3>
-        {isAdmin && members.length > 1 && (
-          <Button
-            size="sm"
-            variant="ghost"
-            className="text-xs"
-            onClick={() => {
-              setError(null)
-              setDraft(
-                evenSplit(
-                  sortedMembers.map(m => m.member.id),
-                  memberId
-                )
-              )
-            }}
-          >
-            Split evenly
-          </Button>
-        )}
-      </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="space-y-2">
-        {members.length === 0 ? (
-          <p className="text-muted-foreground py-4 text-center text-sm">
-            No members yet
-          </p>
-        ) : (
-          sortedMembers.map(member => (
-            <Card key={member.member.id} className="p-3">
-              <div className="flex items-center justify-between">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="bg-primary/10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
-                    <span className="text-xs font-medium">
-                      {member.member.first_name[0]}
-                      {member.member.last_name[0]}
-                    </span>
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">
-                      {member.member.first_name} {member.member.last_name}
-                      {member.member.id === memberId && (
-                        <Badge variant="secondary" className="ml-2 text-xs">
-                          You
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-muted-foreground truncate text-xs">
-                      {member.member.email}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex w-48 flex-row items-center justify-end gap-x-2">
-                  {isAdmin && member.member.id !== memberId && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger
-                          className="text-destructive hover:text-destructive h-8 w-8 p-0 hover:cursor-pointer disabled:opacity-50"
-                          disabled={
-                            mutations.isAddPending ||
-                            mutations.isRemovePending ||
-                            draft !== null
-                          }
-                          onClick={() =>
-                            run(async () => {
-                              await mutations.removeFriend(member.member.id)
-                            }, `Couldn't remove ${member.member.first_name}`)
-                          }
-                          aria-label={`Remove ${member.member.first_name} from pool`}
-                        >
-                          <UserMinus className="h-4 w-4" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="text-xs">
-                            {draft !== null
-                              ? "Save or reset your split changes first"
-                              : `Remove ${member.member.first_name} from pool. They need to be settled up first.`}
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  )}
-                  {isAdmin ? (
-                    <div className="flex flex-col items-start gap-1">
-                      <Label
-                        htmlFor={`split-${member.member.id}`}
-                        className="text-xs"
-                      >
-                        Split %
-                      </Label>
-                      <Input
-                        id={`split-${member.member.id}`}
-                        type="number"
-                        inputMode="decimal"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        className="max-w-20"
-                        value={shownSplits[member.member.id] ?? ""}
-                        onChange={e => {
-                          const value = e.target.value
-                          setDraft(prev => ({
-                            ...(prev ?? savedSplits),
-                            [member.member.id]: value,
-                          }))
-                        }}
-                      />
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground text-sm">
-                      {member.pool_membership.default_split_percentage}%
-                    </span>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {isAdmin && draft !== null && (
-        <div className="bg-muted/50 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3">
-          <p
-            className={`text-sm font-medium ${totalIsValid && allValid ? "text-green-600" : "text-destructive"}`}
-          >
-            Total: {round(total)}%
-            {!allValid
-              ? " · each split must be 0–100"
-              : !totalIsValid
-                ? ` · ${total < 100 ? `${round(100 - total)}% left to assign` : `${round(total - 100)}% over`}`
-                : ""}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => {
-                setDraft(null)
-                setError(null)
-              }}
-            >
-              Reset
-            </Button>
-            <Button
-              size="sm"
-              disabled={!canSave || mutations.isModifyDefaultSplitPending}
-              onClick={() =>
-                run(async () => {
-                  await mutations.modifyDefaultSplit(parsed)
-                  setDraft(null)
-                }, "Couldn't save the splits")
-              }
-            >
-              {mutations.isModifyDefaultSplitPending
-                ? "Saving..."
-                : "Save splits"}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {isAdmin && friendsEligibleToAdd.length > 0 && (
-        <>
-          <div className="pt-4">
-            <h4 className="text-muted-foreground mb-3 text-sm font-medium">
-              Add Friends to Pool
-            </h4>
-            <div className="space-y-2">
-              {friendsEligibleToAdd.map(friend => (
-                <Card key={friend.id} className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">
-                        {friend.first_name} {friend.last_name}
-                      </p>
-                      <p className="text-muted-foreground text-xs">
-                        {friend.email}
-                      </p>
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
-                      disabled={
-                        mutations.isAddPending ||
-                        mutations.isRemovePending ||
-                        draft !== null
-                      }
-                      aria-label={`Add ${friend.first_name} to pool`}
-                      onClick={() =>
-                        run(async () => {
-                          await mutations.addFriend(friend.id)
-                        }, `Couldn't add ${friend.first_name}`)
-                      }
-                    >
-                      <UserRoundPlus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-            </div>
-            <p className="text-muted-foreground mt-2 text-xs">
-              New members start at 0%. Adjust the splits above if they should
-              share the default split.
-            </p>
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
-
-const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
-  const {
-    details,
-    balances,
-    isBalancesLoading,
-    isDetailsLoading,
-    isMembersLoading,
-    isExpensesLoading,
-  } = usePool({
-    poolId,
-  })
-
-  const isLoading =
-    isMembersLoading ||
-    isExpensesLoading ||
-    isDetailsLoading ||
-    isBalancesLoading
-
-  if (isLoading || !details) {
-    return null
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-foreground flex items-center gap-2 font-semibold">
-          <ArrowUpDown className="text-primary h-5 w-5" />
-          Balances
-        </h3>
-        <SettleUpModal poolId={poolId} />
-      </div>
-
-      {balances.length === 0 ? (
-        <div className="py-8 text-center">
-          <div className="bg-primary/10 mx-auto mb-4 h-16 w-16 rounded-full p-4">
-            <Clock className="text-primary mx-auto h-8 w-8" />
-          </div>
-          <p className="text-muted-foreground text-lg font-medium">
-            You&apos;re all settled up
-          </p>
-          <p className="text-muted-foreground mt-1 text-sm">
-            You don&apos;t owe anyone here, and nobody owes you.
-          </p>
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="h-20 w-full rounded-lg" />
+          <Skeleton className="mt-6 h-48 w-full rounded-lg" />
         </div>
       ) : (
-        <div className="space-y-3">
-          {balances.map(balance => (
-            <Card key={balance.memberId} className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-base font-medium">{balance.name}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {balance.type === "inbound" ? "Owes you" : "You owe"}
-                  </p>
-                </div>
-                <div className="flex flex-row items-center gap-x-3 text-right">
-                  <p
-                    className={`text-lg font-semibold ${
-                      balance.type === "inbound"
-                        ? "text-primary"
-                        : "text-destructive"
-                    }`}
-                  >
-                    {formatCurrency(balance.amount)}
-                  </p>
-                  <SettleUpModal
-                    poolId={poolId}
-                    withMemberId={balance.memberId}
-                    size="xs"
-                  />
-                  {balance.venmoHandle && (
-                    <a
-                      href={`https://venmo.com/?${new URLSearchParams({
-                        txn: balance.type === "inbound" ? "request" : "pay",
-                        recipients: balance.venmoHandle,
-                        amount: String(round(balance.amount)),
-                        note: "Settling up our pool on Medici",
-                      })}`}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                      className="transition-opacity duration-200 hover:opacity-80"
-                    >
-                      <img
-                        src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
-                        className="size-8 rounded-lg"
-                        alt={`${balance.type === "inbound" ? "Request payment from" : "Pay"} ${balance.name} using Venmo`}
-                      />
-                    </a>
-                  )}
-                </div>
-              </div>
-            </Card>
-          ))}
+        <div className="scrollbar-none h-full space-y-6 overflow-auto">
+          <BalancesPane poolId={poolId} />
+          <Separator />
+          <SpendChart
+            poolId={poolId}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+          />
+          <Separator />
+          <MembersPane poolId={poolId} memberId={memberId} />
         </div>
       )}
     </div>

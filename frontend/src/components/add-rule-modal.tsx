@@ -3,8 +3,9 @@ import { useRules } from "@/hooks/use-rules"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import type { components } from "schema"
+import { toast } from "sonner"
 import { z } from "zod"
-import { categoryToDisplayName, expenseCategories } from "./expense-modals"
+import { categoryToDisplayName, expenseCategories } from "./expense-categories"
 import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
@@ -76,6 +77,7 @@ export function AddRuleModal({
                   data.rule.trim(),
                   data.category as ExpenseCategory
                 )
+                toast.success("Rule created")
                 setIsOpen(false)
                 form.reset()
               } catch (error) {
@@ -121,13 +123,11 @@ export function AddRuleModal({
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {expenseCategories
-                          .sort((a, b) => a.localeCompare(b))
-                          .map((category: ExpenseCategory) => (
-                            <SelectItem key={category} value={category}>
-                              {categoryToDisplayName({ category })}
-                            </SelectItem>
-                          ))}
+                        {expenseCategories.map((category: ExpenseCategory) => (
+                          <SelectItem key={category} value={category}>
+                            {categoryToDisplayName({ category })}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </FormControl>

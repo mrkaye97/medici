@@ -1,3 +1,4 @@
+import { errorMessage } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -7,22 +8,50 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { useRules } from "@/hooks/use-rules"
 import { FileText, Plus, Trash2 } from "lucide-react"
 import { motion } from "motion/react"
 import { useState } from "react"
 import type { components } from "schema"
+import { toast } from "sonner"
 import { AddRuleModal } from "./add-rule-modal"
-import { categoryToDisplayName, categoryToIcon } from "./expense-modals"
+import { categoryToDisplayName, ExpenseIcon } from "./expense-categories"
 
 type ExpenseCategoryRule = components["schemas"]["ExpenseCategoryRule"]
 
 export const RulesView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const { isLoading, isDeletingRule, rules, deleteRule } = useRules()
+  const { isLoading, isDeletingRule, rules, deleteRule, createRule } =
+    useRules()
 
   if (isLoading) {
-    return null
+    return (
+      <div className="mt-4 space-y-3">
+        <Skeleton className="h-5 w-2/3" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    )
+  }
+
+  const removeRule = async (rule: ExpenseCategoryRule) => {
+    try {
+      await deleteRule(rule.rule, rule.category)
+    } catch (error) {
+      toast.error(errorMessage(error, "Couldn't delete that rule"))
+      return
+    }
+
+    toast.success(`Deleted rule “${rule.rule}”`, {
+      action: {
+        label: "Undo",
+        onClick: () => {
+          createRule(rule.rule, rule.category).catch(error =>
+            toast.error(errorMessage(error, "Couldn't restore that rule"))
+          )
+        },
+      },
+    })
   }
 
   return (
@@ -72,15 +101,18 @@ export const RulesView = () => {
             <div className="space-y-2">
               {rules.map((rule: ExpenseCategoryRule, index: number) => (
                 <motion.div
-                  key={`${rule.category}-${rule.rule}-${index}`}
+                  key={`${rule.category}:${rule.rule}`}
                   className="hover:bg-muted/50 flex items-center justify-between rounded-lg border px-4 py-3 transition-colors"
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                  transition={{
+                    duration: 0.2,
+                    delay: Math.min(index, 10) * 0.03,
+                  }}
                 >
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="bg-primary/10 flex h-8 w-8 items-center justify-center rounded-full flex-shrink-0">
-                      {categoryToIcon({ category: rule.category, size: 4 })}
+                      <ExpenseIcon category={rule.category} />
                     </div>
                     <div className="flex flex-col min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -100,7 +132,8 @@ export const RulesView = () => {
                     size="icon"
                     className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 flex-shrink-0"
                     disabled={isDeletingRule}
-                    onClick={() => deleteRule(rule.rule, rule.category)}
+                    onClick={() => removeRule(rule)}
+                    aria-label={`Delete rule “${rule.rule}”`}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

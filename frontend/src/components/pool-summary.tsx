@@ -1,8 +1,10 @@
+import { errorMessage } from "@/api/client"
+import { formatCurrency, formatDate } from "@/components/lib/format"
 import { usePool } from "@/hooks/use-pool"
 import { Link } from "@tanstack/react-router"
 import { Calendar, Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
-import { formatCurrency, formatDate } from "./expense"
+import { toast } from "sonner"
 import { AddExpenseModal } from "./expense-modals"
 import { SettleUpModal } from "./settle-up-modal"
 import { Badge } from "./ui/badge"
@@ -15,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card"
+import { Skeleton } from "./ui/skeleton"
 
 export function PoolSummary({ poolId }: { poolId: string }) {
   const [isAddExpenseModalOpen, setIsAddExpenseModalOpen] = useState(false)
@@ -28,7 +31,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
   })
 
   if (isDetailsLoading || !details) {
-    return null
+    return <Skeleton className="h-40 w-full rounded-lg" />
   }
 
   return (
@@ -52,7 +55,7 @@ export function PoolSummary({ poolId }: { poolId: string }) {
                   </CardDescription>
                 )}
               </div>
-              {details.total_debt === 0 ? (
+              {Math.abs(details.total_debt) < 0.005 ? (
                 <Badge
                   className={`bg-muted text-muted-foreground hover:bg-muted/80 ml-2 py-2`}
                 >
@@ -87,8 +90,26 @@ export function PoolSummary({ poolId }: { poolId: string }) {
             size="sm"
             disabled={isToggleHiddenPending}
             className="text-muted-foreground hover:bg-muted hover:text-foreground"
-            onClick={() => {
-              togglePoolHidden(!details.is_hidden)
+            onClick={async () => {
+              const hide = !details.is_hidden
+              try {
+                await togglePoolHidden(hide)
+                toast.success(
+                  hide
+                    ? `Hid ${details.name}`
+                    : `${details.name} is visible again`,
+                  hide
+                    ? {
+                        action: {
+                          label: "Undo",
+                          onClick: () => togglePoolHidden(false),
+                        },
+                      }
+                    : undefined
+                )
+              } catch (error) {
+                toast.error(errorMessage(error, "Couldn't update this pool"))
+              }
             }}
           >
             {details.is_hidden ? (

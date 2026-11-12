@@ -1,7 +1,9 @@
 import { apiClient } from "@/api/client"
+import { AccountMenu } from "@/components/account-menu"
 import { AddFriendModal } from "@/components/add-friend-modal"
 import { CreatePoolModal } from "@/components/create-pool-modal"
 import { FriendsView } from "@/components/friends-view"
+import { useDocumentTitle } from "@/components/lib/use-document-title"
 import { PoolSummary } from "@/components/pool-summary"
 import { RulesView } from "@/components/rules-view"
 import { Button } from "@/components/ui/button"
@@ -18,6 +20,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
 import {
@@ -48,6 +51,7 @@ function Home() {
   const [isAddFriendOpen, setIsAddFriendModalOpen] = useState(false)
 
   const activeTab = search.tab
+  useDocumentTitle()
 
   const { data, isLoading: isPoolsLoading } = apiClient.useQuery(
     "get",
@@ -86,12 +90,12 @@ function Home() {
   // Only blank the page on the first load. Background refetches (e.g. when
   // the window regains focus) used to unmount everything, closing open
   // dialogs and losing whatever was typed in them.
-  if (isLoading) {
-    return null
-  }
-
   if (!isAuthenticated) {
     return <Navigate to="/login" />
+  }
+
+  if (isLoading) {
+    return <HomeSkeleton />
   }
 
   return (
@@ -111,15 +115,18 @@ function Home() {
               <CardTitle className="text-foreground text-2xl font-semibold">
                 Pools
               </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsCreatePoolOpen(true)}
-                className="bg-background border-border text-foreground flex items-center gap-2 rounded-lg font-medium"
-              >
-                <PlusCircle className="h-4 w-4" />
-                <span>New Pool</span>
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCreatePoolOpen(true)}
+                  className="bg-background border-border text-foreground flex items-center gap-2 rounded-lg font-medium"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span>New Pool</span>
+                </Button>
+                <AccountMenu />
+              </div>
             </div>
             <CardDescription className="text-muted-foreground">
               Manage your shared expenses with friends
@@ -249,6 +256,27 @@ function Home() {
             <RulesView />
           </TabsContent>
         </Tabs>
+      </div>
+    </div>
+  )
+}
+
+function HomeSkeleton() {
+  return (
+    <div className="bg-background flex flex-col gap-6 p-4 md:h-dvh md:flex-row md:p-6">
+      <div className="flex-1 space-y-4 rounded-lg border p-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-8 w-24" />
+          <Skeleton className="size-9 rounded-full" />
+        </div>
+        <Skeleton className="h-4 w-64" />
+        {[0, 1, 2].map(i => (
+          <Skeleton key={i} className="h-40 w-full rounded-lg" />
+        ))}
+      </div>
+      <div className="space-y-4 lg:w-[400px] xl:w-[550px] 2xl:w-[620px]">
+        <Skeleton className="h-10 w-72" />
+        <Skeleton className="h-80 w-full rounded-lg" />
       </div>
     </div>
   )

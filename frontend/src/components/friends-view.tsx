@@ -1,35 +1,33 @@
-import { apiClient, errorMessage } from "@/api/client"
+import { errorMessage } from "@/api/client"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAuth } from "@/hooks/use-auth"
 import { useFriends } from "@/hooks/use-friends"
-import { useQueryClient } from "@tanstack/react-query"
-import { CheckCircle, Clock, LogOut, Save, UserPlus, X } from "lucide-react"
+import { CheckCircle, Clock, UserPlus, X } from "lucide-react"
 import { motion } from "motion/react"
-import { useEffect, useState } from "react"
-import { Input } from "./ui/input"
-import { Label } from "./ui/label"
+import { useState } from "react"
+import { toast } from "sonner"
 
 export const FriendsView = ({
   setIsAddFriendModalOpen,
 }: {
   setIsAddFriendModalOpen: (isOpen: boolean) => void
 }) => {
-  const queryClient = useQueryClient()
-  const { memberId, createAuthHeader, logout } = useAuth()
   const [activeTab, setActiveTab] = useState("friends")
   const [requestError, setRequestError] = useState<string | null>(null)
 
   const runRequestAction = async (
     action: () => Promise<unknown>,
-    fallback: string
+    fallback: string,
+    success: string
   ) => {
     setRequestError(null)
     try {
       await action()
+      toast.success(success)
     } catch (error) {
       setRequestError(errorMessage(error, fallback))
     }
@@ -42,35 +40,6 @@ export const FriendsView = ({
     isFriendRequestsLoading,
   } = useFriends()
 
-  const { data: member } = apiClient.useQuery(
-    "get",
-    "/api/members/me",
-    {
-      headers: createAuthHeader(),
-    },
-    {
-      enabled: !!memberId,
-    }
-  )
-
-  const { mutateAsync: updateMember, isPending } = apiClient.useMutation(
-    "patch",
-    "/api/members/me"
-  )
-
-  const email = member?.email
-  const name = `${member?.first_name} ${member?.last_name}`
-  const [venmoHandle, setVenmoHandle] = useState(member?.venmo_handle || null)
-  const [venmoStatus, setVenmoStatus] = useState<
-    { kind: "saved" } | { kind: "error"; message: string } | null
-  >(null)
-
-  useEffect(() => {
-    if (member) {
-      setVenmoHandle(member.venmo_handle || "")
-    }
-  }, [member])
-
   const isLoading = isFriendsLoading || isFriendRequestsLoading
 
   const inboundRequests = friendRequests.filter(r => r.direction === "inbound")
@@ -81,7 +50,12 @@ export const FriendsView = ({
   const waitingOutboundCount = outboundRequests.length
 
   if (isLoading) {
-    return null
+    return (
+      <div className="mt-4 space-y-3">
+        <Skeleton className="h-5 w-1/2" />
+        <Skeleton className="h-64 w-full rounded-lg" />
+      </div>
+    )
   }
 
   return (
@@ -100,7 +74,7 @@ export const FriendsView = ({
           onValueChange={setActiveTab}
         >
           <div className="p-4 pb-0">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="friends">
                 Friends ({friends.length})
               </TabsTrigger>
@@ -115,7 +89,6 @@ export const FriendsView = ({
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="me">Profile</TabsTrigger>
             </TabsList>
           </div>
 
@@ -231,7 +204,8 @@ export const FriendsView = ({
                                         mutations.deleteFriendRequest(
                                           request.member.id
                                         ),
-                                      "Couldn't update that request. Please try again."
+                                      "Couldn't update that request. Please try again.",
+                                      `Declined ${request.member.first_name}’s request`
                                     )
                                   }
                                   aria-label={`Decline friend request from ${request.member.first_name} ${request.member.last_name}`}
@@ -247,7 +221,8 @@ export const FriendsView = ({
                                         mutations.acceptFriendRequest(
                                           request.member.id
                                         ),
-                                      "Couldn't accept that request. Please try again."
+                                      "Couldn't accept that request. Please try again.",
+                                      `You and ${request.member.first_name} are now friends`
                                     )
                                   }
                                   disabled={mutations.isAccepting}
@@ -301,7 +276,8 @@ export const FriendsView = ({
                                         mutations.deleteFriendRequest(
                                           request.member.id
                                         ),
-                                      "Couldn't update that request. Please try again."
+                                      "Couldn't update that request. Please try again.",
+                                      `Cancelled your request to ${request.member.first_name}`
                                     )
                                   }
                                   aria-label={`Cancel friend request to ${request.member.first_name} ${request.member.last_name}`}
@@ -318,121 +294,25 @@ export const FriendsView = ({
                 )}
               </CardContent>
             </TabsContent>
-
-            <TabsContent value="me" className="mt-0">
-              <CardContent className="space-y-6">
-                <div className="bg-muted/30 rounded-lg p-6">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-primary rounded-full p-3">
-                      <span className="text-primary-foreground text-lg font-bold">
-                        {name
-                          .split(" ")
-                          .map(n => n[0])
-                          .join("")}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-lg font-semibold">{name}</p>
-                      <p className="text-muted-foreground text-sm">{email}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Venmo Handle</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="@my-venmo-handle"
-                        value={venmoHandle || ""}
-                        onChange={event => {
-                          setVenmoHandle(event.target.value)
-                          setVenmoStatus(null)
-                        }}
-                        className="flex-1"
-                      />
-                      <Button
-                        variant="outline"
-                        onClick={async () => {
-                          if (memberId) {
-                            try {
-                              // An empty string clears the handle.
-                              await updateMember({
-                                body: {
-                                  venmo_handle: venmoHandle ?? "",
-                                },
-                                headers: createAuthHeader(),
-                              })
-                              setVenmoStatus({ kind: "saved" })
-
-                              await queryClient.invalidateQueries({
-                                queryKey: ["get", "/api"],
-                              })
-                            } catch (error) {
-                              setVenmoStatus({
-                                kind: "error",
-                                message: errorMessage(
-                                  error,
-                                  "Couldn't save your Venmo handle"
-                                ),
-                              })
-                            }
-                          }
-                        }}
-                        disabled={isPending}
-                        aria-label="Save Venmo handle"
-                      >
-                        <Save className="size-4" />
-                      </Button>
-                    </div>
-                    {venmoStatus?.kind === "error" && (
-                      <p className="text-destructive text-xs">
-                        {venmoStatus.message}
-                      </p>
-                    )}
-                    {venmoStatus?.kind === "saved" && (
-                      <p className="text-xs text-green-600">Saved</p>
-                    )}
-                  </div>
-
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      logout()
-                    }}
-                    className="border-destructive/20 text-destructive hover:bg-destructive hover:border-destructive w-full justify-center hover:text-black"
-                  >
-                    <LogOut className="mr-2 size-4" />
-                    Log Out
-                  </Button>
-                </div>
-              </CardContent>
-            </TabsContent>
           </div>
         </Tabs>
 
         <CardFooter className="border-border border-t pt-4">
           <div className="text-muted-foreground text-sm">
             {friends.length} {friends.length === 1 ? "friend" : "friends"}
-            {pendingCount > 0 ? (
+            {pendingCount > 0 && (
               <>
-                {" • "}
+                {" · "}
                 <span className="text-primary font-medium">
-                  {pendingCount} pending
+                  {pendingCount} to review
                 </span>
               </>
-            ) : (
-              " • 0 pending"
             )}
-            {waitingOutboundCount > 0 ? (
+            {waitingOutboundCount > 0 && (
               <>
-                {" • "}
-                <span className="text-muted-foreground font-medium">
-                  {waitingOutboundCount} waiting for reply
-                </span>
+                {" · "}
+                {waitingOutboundCount} waiting for reply
               </>
-            ) : (
-              " • 0 waiting"
             )}
           </div>
         </CardFooter>

@@ -1,6 +1,7 @@
 // routes/__root.tsx
 import { DefaultCatchBoundary } from "@/components/error-boundary"
 import { NotFound } from "@/components/not-found"
+import { Toaster } from "@/components/ui/sonner"
 import { AuthProvider } from "@/hooks/use-auth"
 import { type QueryClient } from "@tanstack/react-query"
 import {
@@ -43,6 +44,7 @@ function RootDocument(props: Readonly<{ children: React.ReactNode }>) {
     <>
       <AuthProvider>
         {props.children}
+        <Toaster />
         <Scripts />
       </AuthProvider>
     </>

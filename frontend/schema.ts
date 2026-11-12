@@ -116,6 +116,24 @@ export interface paths {
     patch: operations["update_member_handler"]
     trace?: never
   }
+  "/api/members/me/password": {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Change your password while logged in. Every other session is logged out;
+     *     the response carries a fresh session for this one. */
+    post: operations["change_password_handler"]
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   "/api/password-reset/config": {
     parameters: {
       query?: never
@@ -374,6 +392,10 @@ export interface components {
       direction: components["schemas"]["PaymentDirection"]
       /** Format: uuid */
       member_id: string
+    }
+    ChangePasswordInput: {
+      current_password: string
+      new_password: string
     }
     Expense: {
       /** Format: double */
@@ -965,6 +987,44 @@ export interface operations {
       }
       /** @description Internal server error */
       500: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+    }
+  }
+  change_password_handler: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ChangePasswordInput"]
+      }
+    }
+    responses: {
+      /** @description Password changed; new session token */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          "application/json": components["schemas"]["AuthResult"]
+        }
+      }
+      /** @description Current password wrong, or new password too weak */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Too many wrong attempts; try again later */
+      429: {
         headers: {
           [name: string]: unknown
         }

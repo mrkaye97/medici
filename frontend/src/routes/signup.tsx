@@ -1,3 +1,4 @@
+import { useDocumentTitle } from "@/components/lib/use-document-title"
 import { LoginForm } from "@/components/login-form"
 
 import { useAuth } from "@/hooks/use-auth"
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/signup")({
 })
 
 function SignupPage() {
+  useDocumentTitle("Sign up")
   const { isAuthenticated, signup } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

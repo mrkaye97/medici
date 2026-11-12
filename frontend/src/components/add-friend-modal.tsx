@@ -193,7 +193,7 @@ export function AddFriendModal({
         {result ? (
           <div className="space-y-4">
             <Alert>
-              <CircleCheck className="h-4 w-4 text-green-600" />
+              <CircleCheck className="h-4 w-4 text-success" />
               <AlertDescription>
                 {successMessage(result.outcome, result.member)}
               </AlertDescription>

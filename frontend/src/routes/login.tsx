@@ -1,4 +1,5 @@
 import { apiClient } from "@/api/client"
+import { useDocumentTitle } from "@/components/lib/use-document-title"
 import { LoginForm } from "@/components/login-form"
 import { useAuth } from "@/hooks/use-auth"
 import { createFileRoute, Navigate } from "@tanstack/react-router"
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/login")({
 })
 
 function LoginPage() {
+  useDocumentTitle("Log in")
   const { isAuthenticated, login } = useAuth()
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)

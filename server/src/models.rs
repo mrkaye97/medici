@@ -430,6 +430,47 @@ impl MemberPassword {
             .values(new_password)
             .get_result(conn)
     }
+    pub fn find_hash(
+        conn: &mut PgConnection,
+        member_id: uuid::Uuid,
+    ) -> QueryResult<Option<String>> {
+        member_password::table
+            .filter(member_password::member_id.eq(member_id))
+            .select(member_password::password_hash)
+            .first(conn)
+            .optional()
+    }
+
+    /// Set a new password. Sessions issued before now stop working, and any
+    /// outstanding reset links are cancelled.
+    pub fn set(
+        conn: &mut PgConnection,
+        member_id: uuid::Uuid,
+        new_password_hash: &str,
+    ) -> QueryResult<()> {
+        conn.transaction(|conn| {
+            let updated = diesel::update(
+                member_password::table.filter(member_password::member_id.eq(member_id)),
+            )
+            .set((
+                member_password::password_hash.eq(new_password_hash),
+                member_password::password_changed_at.eq(Utc::now()),
+            ))
+            .execute(conn)?;
+
+            if updated != 1 {
+                return Err(diesel::result::Error::NotFound);
+            }
+
+            diesel::delete(
+                password_reset_token::table.filter(password_reset_token::member_id.eq(member_id)),
+            )
+            .execute(conn)?;
+
+            Ok(())
+        })
+    }
+
     /// When the member last changed their password, or `None` if the member
     /// doesn't exist. Sessions issued before this are rejected.
     pub fn password_changed_at(
@@ -615,6 +656,11 @@ impl Pool {
                 total_debt += line_amount;
             }
         }
+
+        // Summing floats leaves dust like -7e-15 on a settled pool; report
+        // whole cents so "settled" really is 0.
+        let total_debt = (total_debt * 100.0).round() / 100.0;
+        let total_debt = if total_debt == 0.0 { 0.0 } else { total_debt };
 
         Ok((p, role, is_hidden, total_debt))
     }

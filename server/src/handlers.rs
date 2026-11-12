@@ -16,7 +16,6 @@ use axum_extra::headers::authorization::Bearer;
 use bcrypt::DEFAULT_COST;
 use chrono::{DateTime, Duration, Utc};
 use diesel::pg::PgConnection;
-use diesel::prelude::Insertable;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::{Connection, QueryResult};
 use jsonwebtoken::{Algorithm, DecodingKey, EncodingKey, Header, Validation, decode, encode};
@@ -271,13 +270,24 @@ where
                     )
                 })?;
 
-        let user_id = validate_session(auth.token()).await.map_err(|_| {
-            (
+        let user_id = validate_session(auth.token()).await.map_err(|e| match e {
+            SessionError::Invalid => (
                 StatusCode::UNAUTHORIZED,
                 Json(serde_json::json!({
                     "error": "Invalid token"
                 })),
-            )
+            ),
+            // Not the caller's fault, so don't log them out over it (a 401
+            // sends the frontend back to the login page).
+            SessionError::Internal(msg) => {
+                tracing::error!("Session check failed: {}", msg);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({
+                        "error": "Couldn't check your session"
+                    })),
+                )
+            }
         })?;
 
         Ok(AuthenticatedUser(user_id))
@@ -310,22 +320,32 @@ fn generate_jwt(member_id: uuid::Uuid) -> Result<String, jsonwebtoken::errors::E
 /// Check a session token: valid signature, not expired, the member still
 /// exists, and it was issued after their last password change (so a reset
 /// logs out every existing session).
-async fn validate_session(token: &str) -> Result<uuid::Uuid, ()> {
-    let (member_id, issued_at) = verify_jwt(token).map_err(|_| ())?;
+enum SessionError {
+    /// Bad, expired or revoked token: the caller needs to log in again.
+    Invalid,
+    /// Something broke on our side (e.g. the database is unreachable or not
+    /// migrated). The token may be fine.
+    Internal(String),
+}
 
-    let mut conn = get_db_connection().await.map_err(|_| ())?;
+async fn validate_session(token: &str) -> Result<uuid::Uuid, SessionError> {
+    let (member_id, issued_at) = verify_jwt(token).map_err(|_| SessionError::Invalid)?;
+
+    let mut conn = get_db_connection()
+        .await
+        .map_err(|e| SessionError::Internal(format!("database connection: {e:?}")))?;
     let changed_at = tokio::task::spawn_blocking(move || {
         MemberPassword::password_changed_at(&mut conn, member_id)
     })
     .await
-    .map_err(|_| ())?
-    .map_err(|_| ())?
-    .ok_or(())?;
+    .map_err(|_| SessionError::Internal("task panicked".to_string()))?
+    .map_err(|e| SessionError::Internal(e.to_string()))?
+    .ok_or(SessionError::Invalid)?;
 
     if server::session_is_current(issued_at as i64, changed_at) {
         Ok(member_id)
     } else {
-        Err(())
+        Err(SessionError::Invalid)
     }
 }
 
@@ -2776,6 +2796,108 @@ pub async fn confirm_password_reset_handler(
     }))
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct ChangePasswordInput {
+    current_password: String,
+    new_password: String,
+}
+
+/// Change your password while logged in. Every other session is logged out;
+/// the response carries a fresh session for this one.
+#[utoipa::path(
+    post,
+    path = "/api/members/me/password",
+    request_body = ChangePasswordInput,
+    responses(
+        (status = 200, description = "Password changed; new session token", body = AuthResult),
+        (status = 400, description = "Current password wrong, or new password too weak"),
+        (status = 429, description = "Too many wrong attempts; try again later")
+    )
+)]
+pub async fn change_password_handler(
+    AuthenticatedUser(member_id): AuthenticatedUser,
+    Json(input): Json<ChangePasswordInput>,
+) -> Result<Json<AuthResult>, ApiError> {
+    server::validate_new_password(&input.new_password)
+        .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?;
+
+    let mut conn = get_db_connection().await.map_err(|_| {
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to get database connection",
+        )
+    })?;
+
+    // Guess-limited the same way as login, keyed by the account's email, so a
+    // stolen session can't be used to brute-force the current password.
+    let (mut conn, email) = tokio::task::spawn_blocking(move || {
+        let email = Member::find(&mut conn, member_id).map(|m| m.email);
+        (conn, email)
+    })
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Task panicked"))?;
+    let email = email.map_err(|_| {
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to load your account",
+        )
+    })?;
+
+    if let Err(retry_after) = login_throttle().check(&email, Utc::now().timestamp()) {
+        let minutes = (retry_after + 59) / 60;
+        return Err(api_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            &format!(
+                "Too many wrong attempts. Try again in {} minute{}.",
+                minutes,
+                if minutes == 1 { "" } else { "s" }
+            ),
+        ));
+    }
+
+    let outcome = tokio::task::spawn_blocking(move || -> anyhow::Result<bool> {
+        let stored = MemberPassword::find_hash(&mut conn, member_id)?.map(|hash| (member_id, hash));
+        if server::verify_login(&input.current_password, stored).is_none() {
+            return Ok(false);
+        }
+        let new_hash = hash_password(&input.new_password)?;
+        MemberPassword::set(&mut conn, member_id, &new_hash)?;
+        Ok(true)
+    })
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Task panicked"))?
+    .map_err(|e| {
+        tracing::error!("Change password failed for member {}: {}", member_id, e);
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to change password",
+        )
+    })?;
+
+    if !outcome {
+        login_throttle().record_failure(&email, Utc::now().timestamp());
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Your current password is incorrect",
+        ));
+    }
+    login_throttle().record_success(&email);
+
+    let token = generate_jwt(member_id).map_err(|_| {
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to generate token",
+        )
+    })?;
+
+    Ok(Json(AuthResult::Authenticated {
+        id: member_id,
+        token,
+        is_authenticated: true,
+        expires_at: Utc::now() + Duration::days(SESSION_DURATION_DAYS),
+    }))
+}
+
 /// For `server reset-link <email>`: issue a reset link without sending email,
 /// so the person running the server can pass it on by hand.
 pub fn issue_reset_link_for_cli(email: &str) -> anyhow::Result<String> {
@@ -2819,6 +2941,7 @@ pub fn handlers_routes() -> OpenApiRouter {
         .routes(routes!(modify_default_splits_handler))
         .routes(routes!(delete_expense_handler))
         .routes(routes!(update_member_handler))
+        .routes(routes!(change_password_handler))
         .routes(routes!(update_expense_handler))
         .routes(routes!(list_expense_category_rules_handler))
         .routes(routes!(create_expense_category_rule_handler))

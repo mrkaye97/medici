@@ -1,4 +1,5 @@
 import { apiClient, errorMessage } from "@/api/client"
+import { useDocumentTitle } from "@/components/lib/use-document-title"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -25,6 +26,7 @@ export const Route = createFileRoute("/reset-password")({
 })
 
 function ResetPasswordPage() {
+  useDocumentTitle("Reset password")
   const { token: tokenFromUrl } = Route.useSearch()
   const { completeLogin } = useAuth()
   // Keep the token in memory only.

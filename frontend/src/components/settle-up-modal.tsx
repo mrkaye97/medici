@@ -1,8 +1,9 @@
 import { errorMessage } from "@/api/client"
+import { formatCurrency } from "@/components/lib/format"
 import { useAuth } from "@/hooks/use-auth"
 import { usePool } from "@/hooks/use-pool"
 import { useState } from "react"
-import { formatCurrency } from "./expense"
+import { toast } from "sonner"
 import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
 import {
@@ -99,6 +100,11 @@ export function SettleUpModal({
                 setError(null)
                 try {
                   await settleUp(withMemberId)
+                  toast.success(
+                    toSettle.length === 1
+                      ? `Settled up with ${toSettle[0].firstName}`
+                      : `Recorded ${toSettle.length} payments`
+                  )
                   setIsOpen(false)
                 } catch (e) {
                   setError(

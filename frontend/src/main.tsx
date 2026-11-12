@@ -1,11 +1,19 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { createRouter, RouterProvider } from "@tanstack/react-router"
+import { lazy, Suspense } from "react"
 import ReactDOM from "react-dom/client"
 import "../globals.css"
 import { FetchError } from "./api/client"
 import { DefaultCatchBoundary } from "./components/error-boundary"
 import { NotFound } from "./components/not-found"
 import { routeTree } from "./routeTree.gen"
+
+// Loaded only in development, so it never ships in the production bundle.
+const ReactQueryDevtools = lazy(() =>
+  import("@tanstack/react-query-devtools").then(m => ({
+    default: m.ReactQueryDevtools,
+  }))
+)
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +59,11 @@ if (!rootElement.innerHTML) {
   root.render(
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
+      {import.meta.env.DEV && (
+        <Suspense>
+          <ReactQueryDevtools buttonPosition="bottom-left" />
+        </Suspense>
+      )}
     </QueryClientProvider>
   )
 }

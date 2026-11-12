@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
+import { toast } from "sonner"
 import { z } from "zod"
 import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
@@ -81,6 +82,7 @@ export function CreatePoolModal({
                   queryKey: ["get", "/api/pools"],
                 })
 
+                toast.success(`Created ${data.poolName}`)
                 setIsOpen(false)
                 form.reset()
               } catch (error) {

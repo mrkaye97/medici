@@ -1,34 +1,18 @@
 import { apiClient, errorMessage } from "@/api/client"
-import {
-  ExpenseCategory,
-  ExpenseIcon,
-  UpdateExpenseModal,
-} from "@/components/expense-modals"
+import { ExpenseCategory, ExpenseIcon } from "@/components/expense-categories"
+import { UpdateExpenseModal } from "@/components/expense-modals"
+import { formatCurrency, formatDate } from "@/components/lib/format"
 import { useAuth } from "@/hooks/use-auth"
 import { invalidatePoolData, usePool } from "@/hooks/use-pool"
 import { useQueryClient } from "@tanstack/react-query"
 import { ArrowRightLeft, Edit, X } from "lucide-react"
 import { useState } from "react"
 import { components } from "schema"
+import { toast } from "sonner"
 import { cn } from "./lib/utils"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 import { Skeleton } from "./ui/skeleton"
-
-export const formatDate = (date: Date) => {
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
-}
-
-export const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-  }).format(Math.abs(amount))
-}
 
 type Expense = components["schemas"]["RecentExpenseDetails"]
 
@@ -84,7 +68,7 @@ export function Expense({
                   if (expense.category === selectedCategory) {
                     setSelectedCategory(undefined)
                   } else {
-                    setSelectedCategory(expense.category as ExpenseCategory)
+                    setSelectedCategory(expense.category)
                   }
                 }}
               >
@@ -105,11 +89,7 @@ export function Expense({
                   )}
                 </span>
                 <span className="text-muted-foreground text-sm">
-                  {new Date(expense.inserted_at).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
+                  {formatDate(new Date(expense.inserted_at))}
                 </span>
               </div>
             </div>
@@ -146,6 +126,11 @@ export function Expense({
                           },
                           headers: createAuthHeader(),
                         })
+                        toast.success(
+                          expense.is_payment
+                            ? "Payment undone"
+                            : `Deleted “${expense.name}”`
+                        )
                       } catch (error) {
                         setDeleteError(
                           errorMessage(

@@ -1,4 +1,5 @@
 import { apiClient, errorMessage } from "@/api/client"
+import { useDocumentTitle } from "@/components/lib/use-document-title"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/forgot-password")({
 })
 
 function ForgotPasswordPage() {
+  useDocumentTitle("Forgot password")
   const [sentTo, setSentTo] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { mutateAsync: requestReset, isPending } = apiClient.useMutation(

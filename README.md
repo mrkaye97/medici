@@ -168,3 +168,32 @@ The development setup will be available at:
 
 - Frontend: `http://localhost:3001`
 - Backend API: `http://localhost:8000`
+
+If you pull new migrations, apply them with `cd server && cargo run -- migrate`
+(the Docker image does this on start).
+
+#### Demo data
+
+With the backend running, `cd frontend && pnpm seed` fills your local
+database with a demo account, eight friends, six pools (with payments, a
+settled pool, a hidden pool and an empty one) and category rules. It prints
+the demo login when it's done. Each run creates a new, separate set of
+accounts. Set `SEED_EMAIL=you@example.com` to also send friend requests to
+your own account, and `SEED_API_URL` to point it at a different server.
+
+#### Simulating a slow or flaky server
+
+In development, the frontend can add delay and random failures to every API
+call, to check loading and error states. Set it in the browser console (it
+takes effect on the next request):
+
+```js
+localStorage.setItem("medici:latency", "1500") // ms, ±50% jitter
+localStorage.setItem("medici:fail-rate", "0.2") // fail 20% of requests
+localStorage.removeItem("medici:latency") // back to normal
+```
+
+Or set `VITE_SIMULATED_LATENCY_MS` / `VITE_SIMULATED_FAIL_RATE` in
+`frontend/.env.local`. The React Query devtools (bottom-left button in dev)
+can also force any single query into its loading or error state. None of
+this is included in production builds.
