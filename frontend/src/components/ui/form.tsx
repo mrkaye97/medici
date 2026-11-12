@@ -78,7 +78,18 @@ const FormItem = React.forwardRef<
 
   return (
     <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-4", className)} {...props} />
+      <div
+        ref={ref}
+        // A flex column with `gap` rather than `space-y`: Radix Select adds a
+        // hidden native <select> as the last child, and Tailwind v4's space-y
+        // puts its margin under every child but the last, which left a gap
+        // under every select. `gap` ignores the hidden element.
+        className={cn(
+          "flex flex-col gap-2 [&>select[aria-hidden]]:hidden",
+          className
+        )}
+        {...props}
+      />
     </FormItemContext.Provider>
   )
 })

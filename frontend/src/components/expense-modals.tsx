@@ -196,7 +196,7 @@ export function UpdateExpenseModal({
         splitMethod: expense.split_method,
       }}
       defaultSplitAmounts={defaultSplitAmounts}
-      title="Edit Expense"
+      title="Edit expense"
       submitLabel="Save changes"
     />
   )

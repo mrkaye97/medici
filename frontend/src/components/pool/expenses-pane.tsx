@@ -94,7 +94,9 @@ export const ExpensesPane = ({
       storeFields: ["id", "name", "description", "notes"],
     })
 
-    m.addAllAsync(
+    // Synchronous: indexing asynchronously left a window after every refetch
+    // where searches found nothing. At most 100 expenses, so it is instant.
+    m.addAll(
       expenses.map(expense => ({
         id: expense.id,
         name: expense.name,

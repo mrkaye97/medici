@@ -101,7 +101,7 @@ export function CreatePoolModal({
               name="poolName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pool Name</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Trip to Yosemite"
@@ -119,7 +119,7 @@ export function CreatePoolModal({
               name="poolDescription"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Pool Description</FormLabel>
+                  <FormLabel>Description (optional)</FormLabel>
                   <FormControl>
                     <Input
                       type="text"
@@ -140,9 +140,21 @@ export function CreatePoolModal({
               </Alert>
             )}
 
-            <Button type="submit" disabled={isPending}>
-              {isPending ? "Creating..." : "Create Pool"}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsOpen(false)
+                  form.reset()
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Creating..." : "Create pool"}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>

@@ -66,7 +66,7 @@ export function AddRuleModal({
     >
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Category Rule</DialogTitle>
+          <DialogTitle>Create a category rule</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -96,7 +96,7 @@ export function AddRuleModal({
               name="rule"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Rule (Supports regex)</FormLabel>
+                  <FormLabel>Expense names matching (regex)</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="e.g., Uber, Lyft, taxi, bus"
@@ -144,9 +144,21 @@ export function AddRuleModal({
               </Alert>
             )}
 
-            <Button type="submit" className="w-full" disabled={isCreatingRule}>
-              {isCreatingRule ? "Creating..." : "Create Rule"}
-            </Button>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsOpen(false)
+                  form.reset()
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isCreatingRule}>
+                {isCreatingRule ? "Creating..." : "Create rule"}
+              </Button>
+            </div>
           </form>
         </Form>
       </DialogContent>
