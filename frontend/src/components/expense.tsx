@@ -5,12 +5,31 @@ import { formatCurrency, formatDate } from "@/components/lib/format"
 import { useAuth } from "@/hooks/use-auth"
 import { invalidatePoolData, usePool } from "@/hooks/use-pool"
 import { useQueryClient } from "@tanstack/react-query"
-import { ArrowRightLeft, Pencil, X } from "lucide-react"
+import {
+  ArrowRightLeft,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Undo2,
+} from "lucide-react"
 import { useState } from "react"
 import { components } from "schema"
 import { toast } from "sonner"
 import { cn } from "./lib/utils"
 import { Button } from "./ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
 import { Skeleton } from "./ui/skeleton"
 
 type Expense = components["schemas"]["RecentExpenseDetails"]
@@ -86,14 +105,14 @@ export function Expense({
             : "Couldn't delete this expense"
         )
       )
-      setIsConfirmingDelete(false)
     }
+    setIsConfirmingDelete(false)
   }
 
   return (
     <div
       className={cn(
-        "group flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors",
+        "flex items-center gap-3 rounded-lg border py-2.5 pr-2 pl-3 transition-colors",
         // Payments record money changing hands; keep them quieter than
         // actual spending.
         isPayment ? "bg-muted/30 border-dashed" : "bg-card hover:bg-muted/30"
@@ -171,58 +190,69 @@ export function Expense({
         </p>
       </div>
 
-      {canChange &&
-        (isConfirmingDelete ? (
-          <div className="flex shrink-0 items-center gap-1">
+      {/* Same width on every row, so the amounts line up. */}
+      <div className="flex w-7 shrink-0 justify-end">
+        {canChange && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-muted-foreground hover:text-foreground size-7"
+                aria-label={`Actions for ${expense.name}`}
+              >
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {!isPayment && (
+                <DropdownMenuItem onSelect={() => setIsUpdateModalOpen(true)}>
+                  <Pencil className="size-4" />
+                  Edit
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuItem
+                onSelect={() => setIsConfirmingDelete(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                {isPayment ? (
+                  <Undo2 className="text-destructive size-4" />
+                ) : (
+                  <Trash2 className="text-destructive size-4" />
+                )}
+                {isPayment ? "Undo payment" : "Delete"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      <Dialog open={isConfirmingDelete} onOpenChange={setIsConfirmingDelete}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {isPayment ? "Undo this payment?" : `Delete “${expense.name}”?`}
+            </DialogTitle>
+            <DialogDescription>
+              {isPayment
+                ? "The balances it settled will be owed again."
+                : "Everyone's balances will be updated. This can't be undone."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
             <Button
-              size="sm"
-              variant="destructive"
-              className="h-7 px-2 text-xs"
-              disabled={isPending}
-              onClick={remove}
-            >
-              {isPending ? "..." : isPayment ? "Undo" : "Delete"}
-            </Button>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2 text-xs"
+              variant="outline"
               disabled={isPending}
               onClick={() => setIsConfirmingDelete(false)}
             >
               Cancel
             </Button>
-          </div>
-        ) : (
-          // Always visible on touch screens; on desktop, shown on hover or
-          // keyboard focus.
-          <div className="flex shrink-0 items-center md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
-            {!isPayment && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="text-muted-foreground hover:text-foreground size-7"
-                onClick={() => setIsUpdateModalOpen(true)}
-                aria-label={`Edit expense: ${expense.name}`}
-              >
-                <Pencil className="size-3.5" />
-              </Button>
-            )}
-            <Button
-              size="icon"
-              variant="ghost"
-              className="text-muted-foreground hover:text-destructive size-7"
-              onClick={() => setIsConfirmingDelete(true)}
-              aria-label={
-                isPayment
-                  ? `Undo payment: ${expense.name}`
-                  : `Delete expense: ${expense.name}`
-              }
-            >
-              <X className="size-4" />
+            <Button variant="destructive" disabled={isPending} onClick={remove}>
+              {isPending ? "Working..." : isPayment ? "Undo payment" : "Delete"}
             </Button>
           </div>
-        ))}
+        </DialogContent>
+      </Dialog>
 
       {isUpdateModalOpen && (
         <UpdateExpenseModal

@@ -344,7 +344,7 @@ export const ExpensesPane = ({
             </Button>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto px-2">
+          <div className="flex-1 overflow-auto pr-3 pl-2">
             {groupByMonth(searchResults, !searchQuery.trim()).map(group => (
               <section key={group.label} className="pb-4">
                 {group.label && (
