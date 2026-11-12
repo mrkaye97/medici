@@ -1,18 +1,19 @@
-import { apiClient } from "@/api/client"
+import { apiClient, errorMessage } from "@/api/client"
 import {
   ExpenseCategory,
   ExpenseIcon,
   UpdateExpenseModal,
 } from "@/components/expense-modals"
 import { useAuth } from "@/hooks/use-auth"
-import { usePool } from "@/hooks/use-pool"
+import { invalidatePoolData, usePool } from "@/hooks/use-pool"
 import { useQueryClient } from "@tanstack/react-query"
-import { Edit, X } from "lucide-react"
+import { ArrowRightLeft, Edit, X } from "lucide-react"
 import { useState } from "react"
 import { components } from "schema"
 import { cn } from "./lib/utils"
 import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
+import { Skeleton } from "./ui/skeleton"
 
 export const formatDate = (date: Date) => {
   return date.toLocaleDateString("en-US", {
@@ -47,7 +48,6 @@ export function Expense({
   const {
     members,
     isMembersLoading,
-    invalidate,
     details: pool,
     isDetailsLoading,
   } = usePool({
@@ -57,27 +57,14 @@ export function Expense({
     "delete",
     "/api/pools/{pool_id}/expenses/{expense_id}",
     {
-      onSuccess: async () => {
-        await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
-        })
-        await queryClient.invalidateQueries({
-          queryKey: ["get", "/api/pools/{pool_id}/balances"],
-        })
-
-        await invalidate()
-      },
+      onSuccess: () => invalidatePoolData(queryClient),
     }
   )
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   if (!members || isMembersLoading || !memberId || !pool || isDetailsLoading) {
-    return (
-      <div className="mt-4 flex w-full flex-1 gap-x-4 px-4">
-        <div className="flex w-full flex-1 flex-col">
-          <h2 className="mb-6 text-2xl font-semibold">Loading...</h2>
-        </div>
-      </div>
-    )
+    return <Skeleton className="h-[104px] w-full rounded-lg" />
   }
 
   // The server allows the payer or a pool admin to change an expense.
@@ -101,7 +88,11 @@ export function Expense({
                   }
                 }}
               >
-                <ExpenseIcon category={expense.category as ExpenseCategory} />
+                {expense.is_payment ? (
+                  <ArrowRightLeft className="size-4" />
+                ) : (
+                  <ExpenseIcon category={expense.category as ExpenseCategory} />
+                )}
               </Button>
 
               <div className="flex flex-col">
@@ -136,33 +127,78 @@ export function Expense({
                   <Edit className="size-4" />
                 </Button>
               )}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                onClick={async () => {
-                  await deleteExpense({
-                    params: {
-                      path: {
-                        pool_id: expense.pool_id,
-                        expense_id: expense.id,
-                      },
-                    },
-                    headers: createAuthHeader(),
-                  })
-                }}
-                disabled={isPending}
-                aria-label={
-                  expense.is_payment
-                    ? `Undo payment: ${expense.name}`
-                    : `Delete expense: ${expense.name}`
-                }
-              >
-                <X className="size-4" />
-              </Button>
+              {isConfirmingDelete ? (
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="h-7 px-2 text-xs"
+                    disabled={isPending}
+                    onClick={async () => {
+                      setDeleteError(null)
+                      try {
+                        await deleteExpense({
+                          params: {
+                            path: {
+                              pool_id: expense.pool_id,
+                              expense_id: expense.id,
+                            },
+                          },
+                          headers: createAuthHeader(),
+                        })
+                      } catch (error) {
+                        setDeleteError(
+                          errorMessage(
+                            error,
+                            expense.is_payment
+                              ? "Couldn't undo this payment"
+                              : "Couldn't delete this expense"
+                          )
+                        )
+                        setIsConfirmingDelete(false)
+                      }
+                    }}
+                  >
+                    {isPending
+                      ? "Deleting..."
+                      : expense.is_payment
+                        ? "Undo payment"
+                        : "Delete"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs"
+                    disabled={isPending}
+                    onClick={() => setIsConfirmingDelete(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                  onClick={() => {
+                    setDeleteError(null)
+                    setIsConfirmingDelete(true)
+                  }}
+                  aria-label={
+                    expense.is_payment
+                      ? `Undo payment: ${expense.name}`
+                      : `Delete expense: ${expense.name}`
+                  }
+                >
+                  <X className="size-4" />
+                </Button>
+              )}
             </div>
           )}
         </div>
+        {deleteError && (
+          <p className="text-destructive text-sm">{deleteError}</p>
+        )}
         {expense.description && (
           <div className="py-4">{expense.description}</div>
         )}
@@ -193,7 +229,13 @@ export function Expense({
               <span
                 className={cn(
                   "ml-1 font-medium",
-                  expense.line_amount < 0 ? "text-primary" : "text-destructive"
+                  // A payment is a record of money changing hands, not a
+                  // debt, so it isn't colored as one.
+                  expense.is_payment
+                    ? "text-foreground"
+                    : expense.line_amount < 0
+                      ? "text-primary"
+                      : "text-destructive"
                 )}
               >
                 {formatCurrency(expense.line_amount)}

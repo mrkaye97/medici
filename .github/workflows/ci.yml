@@ -3,8 +3,17 @@ name: CI
 on:
   push:
     branches: [ "main" ]
+    paths-ignore: [ "**.md", "screenshots/**", "LICENSE" ]
   pull_request:
     branches: [ "main" ]
+    paths-ignore: [ "**.md", "screenshots/**", "LICENSE" ]
+
+# One run per branch at a time. A newer push cancels an older in-progress run,
+# so the image on Docker Hub always comes from the newest commit and two runs
+# can never race to publish `latest`.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
@@ -55,17 +64,24 @@ jobs:
     - name: Run tests
       run: cargo test --verbose
 
-  deploy:
-    runs-on: ubuntu-latest
+  # Build each architecture on a native runner, in parallel. Building arm64
+  # under QEMU emulation on an x86 runner took ~50 minutes.
+  build-image:
     needs: [frontend, server]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-24.04
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -76,12 +92,67 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Build and push Docker image
+    - name: Name the platform
+      id: platform
+      run: echo "pair=${PLATFORM//\//-}" >> "$GITHUB_OUTPUT"
+      env:
+        PLATFORM: ${{ matrix.platform }}
+
+    # Pushed by digest only (no tag). `latest` is only moved once every
+    # architecture has built, in the publish job below.
+    - name: Build and push by digest
+      id: build
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: true
-        tags: mrkaye97/medici:latest
-        platforms: linux/amd64,linux/arm64
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        platforms: ${{ matrix.platform }}
+        outputs: type=image,name=mrkaye97/medici,push-by-digest=true,name-canonical=true,push=true
+        cache-from: type=gha,scope=${{ steps.platform.outputs.pair }}
+        cache-to: type=gha,mode=max,scope=${{ steps.platform.outputs.pair }}
+
+    - name: Save digest
+      run: |
+        mkdir -p /tmp/digests
+        touch "/tmp/digests/${DIGEST#sha256:}"
+      env:
+        DIGEST: ${{ steps.build.outputs.digest }}
+
+    - name: Upload digest
+      uses: actions/upload-artifact@v4
+      with:
+        name: digests-${{ steps.platform.outputs.pair }}
+        path: /tmp/digests/*
+        if-no-files-found: error
+        retention-days: 1
+
+  # Point `latest` at a multi-arch image made of both digests. If either build
+  # failed, this doesn't run and `latest` stays on the previous working image.
+  publish:
+    needs: build-image
+    runs-on: ubuntu-24.04
+
+    steps:
+    - name: Download digests
+      uses: actions/download-artifact@v4
+      with:
+        path: /tmp/digests
+        pattern: digests-*
+        merge-multiple: true
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Log in to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Create and push the multi-arch tag
+      working-directory: /tmp/digests
+      run: |
+        docker buildx imagetools create -t mrkaye97/medici:latest \
+          $(printf 'mrkaye97/medici@sha256:%s ' *)
+
+    - name: Inspect
+      run: docker buildx imagetools inspect mrkaye97/medici:latest

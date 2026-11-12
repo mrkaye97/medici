@@ -1,9 +1,11 @@
+import { errorMessage } from "@/api/client"
 import { useRules } from "@/hooks/use-rules"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import type { components } from "schema"
 import { z } from "zod"
 import { categoryToDisplayName, expenseCategories } from "./expense-modals"
+import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog"
 import {
@@ -77,8 +79,12 @@ export function AddRuleModal({
                 setIsOpen(false)
                 form.reset()
               } catch (error) {
-                console.error("Failed to create rule:", error)
-                alert("Failed to create rule. Please try again.")
+                form.setError("root.server", {
+                  message: errorMessage(
+                    error,
+                    "Failed to create rule. Please try again."
+                  ),
+                })
               }
             })}
             className="space-y-6"
@@ -129,6 +135,14 @@ export function AddRuleModal({
                 </FormItem>
               )}
             />
+
+            {form.formState.errors.root?.server && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  {form.formState.errors.root.server.message}
+                </AlertDescription>
+              </Alert>
+            )}
 
             <Button type="submit" className="w-full" disabled={isCreatingRule}>
               {isCreatingRule ? "Creating..." : "Create Rule"}

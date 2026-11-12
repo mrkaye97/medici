@@ -5,6 +5,19 @@ use tower_http::cors::CorsLayer;
 
 mod email;
 mod handlers;
+
+use diesel::Connection;
+use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+/// Apply pending migrations; returns the versions that were applied.
+fn run_migrations() -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
+    let url = std::env::var("DATABASE_URL").map_err(|_| "DATABASE_URL must be set")?;
+    let mut conn = diesel::PgConnection::establish(&url)?;
+    let applied = conn.run_pending_migrations(MIGRATIONS)?;
+    Ok(applied.into_iter().map(|v| v.to_string()).collect())
+}
 use handlers::{MaybeTracerProvider, handlers_routes, init_tracer_provider};
 
 #[tokio::main]
@@ -15,6 +28,29 @@ async fn main() {
     // the person running the server to pass on, e.g. when SMTP isn't set up:
     //   docker compose exec medici ./server reset-link someone@example.com
     let args: Vec<String> = std::env::args().collect();
+
+    // `server migrate` applies any pending database migrations, which are
+    // compiled into the binary. The container runs it before starting the
+    // app, so a failed migration stops startup instead of serving traffic.
+    if args.get(1).map(String::as_str) == Some("migrate") {
+        match tokio::task::spawn_blocking(run_migrations)
+            .await
+            .expect("migrate task panicked")
+        {
+            Ok(applied) if applied.is_empty() => println!("No pending migrations"),
+            Ok(applied) => {
+                for version in applied {
+                    println!("Applied migration {}", version);
+                }
+            }
+            Err(e) => {
+                eprintln!("error: migrations failed: {}", e);
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
+
     if args.get(1).map(String::as_str) == Some("reset-link") {
         let Some(email) = args.get(2) else {
             eprintln!("usage: server reset-link <email>");

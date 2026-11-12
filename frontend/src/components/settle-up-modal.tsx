@@ -60,7 +60,7 @@ export function SettleUpModal({
           setIsOpen(true)
         }}
       >
-        Settle up
+        Settle Up
       </Button>
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="max-w-md">

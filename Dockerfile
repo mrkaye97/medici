@@ -1,5 +1,9 @@
 # Stage 1: Build Rust backend
-FROM rust:1.91-slim-bookworm AS backend-builder
+#
+# cargo-chef builds the dependencies in their own layer from a "recipe" of
+# Cargo.toml/Cargo.lock, so that layer is reused from cache until the
+# dependencies change. A normal code change only recompiles the server crate.
+FROM rust:1.91-slim-bookworm AS chef
 
 WORKDIR /app
 
@@ -9,10 +13,17 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-RUN cargo install diesel_cli --locked --no-default-features --features postgres
+RUN cargo install cargo-chef --locked --version 0.1.78
+
+FROM chef AS planner
+COPY server/ .
+RUN cargo chef prepare --recipe-path recipe.json
+
+FROM chef AS backend-builder
+COPY --from=planner /app/recipe.json recipe.json
+RUN cargo chef cook --release --recipe-path recipe.json
 
 COPY server/ .
-
 RUN cargo build --release
 
 # Stage 2: Build frontend
@@ -50,9 +61,6 @@ RUN curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v2.8.4/ca
 
 # Copy backend
 COPY --from=backend-builder /app/target/release/server ./server
-COPY --from=backend-builder /usr/local/cargo/bin/diesel ./diesel
-COPY --from=backend-builder /app/migrations ./migrations
-COPY --from=backend-builder /app/diesel.toml ./diesel.toml
 
 # Copy frontend static files
 COPY --from=frontend-builder /app/dist ./static
@@ -103,4 +111,6 @@ EOF
 
 EXPOSE 80
 
-CMD ["sh", "-c", "./diesel migration run && supervisord -c /etc/supervisor/conf.d/app.conf"]
+# Migrations are compiled into the server. If they fail, the container exits
+# instead of starting the app against a half-migrated database.
+CMD ["sh", "-c", "./server migrate && supervisord -c /etc/supervisor/conf.d/app.conf"]
