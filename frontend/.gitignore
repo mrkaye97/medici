@@ -1,2 +1,4 @@
 node_modules
 tsconfig.tsbuildinfo
+# Build output: the Docker image builds the frontend itself.
+dist

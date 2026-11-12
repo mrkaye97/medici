@@ -4,6 +4,8 @@ import hooksPlugin from "eslint-plugin-react-hooks"
 import tseslint from "typescript-eslint"
 
 export default tseslint.config(
+  // Build output and generated code.
+  { ignores: ["dist/**", "src/routeTree.gen.ts"] },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {

@@ -5,7 +5,7 @@ setup:
 
   cd server && \
   cargo build && \
-  diesel migration run --database-url="$(grep DATABASE_URL .env | cut -d '=' -f2)"
+  cargo run -- migrate
 
   cd frontend && \
   pnpm install
@@ -15,7 +15,7 @@ gen-api:
   curl http://localhost:8000/api/openapi.json | jq > openapi.json
   npx openapi-typescript openapi.json -o schema.ts
   rm -rf openapi.json
-  pnpm lint
+  pnpm format
 
 [working-directory: 'frontend']
 set-env-frontend:
@@ -33,4 +33,4 @@ set-env-backend:
 
 [working-directory: 'server']
 db-migrate:
-  diesel migration run --database-url="$(grep DATABASE_URL .env | cut -d '=' -f2)"
+  cargo run -- migrate

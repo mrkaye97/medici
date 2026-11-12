@@ -1,3 +1,8 @@
+// diesel's `QueryableByName` derive (on `DebtPair`) generates `field: field`
+// initializers, and an attribute on the struct doesn't reach the generated
+// impl.
+#![allow(clippy::redundant_field_names)]
+
 use chrono::{DateTime, Utc};
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
@@ -286,6 +291,9 @@ pub struct ExpenseLineItemChangeset {
     pub amount: Option<f64>,
 }
 
+/// Only exists so diesel's `belongs_to` can relate a friendship's
+/// `friend_member_id` to a member; never constructed.
+#[allow(dead_code)]
 pub struct DummyMember(Member);
 
 #[derive(Debug, Queryable, Identifiable, Associations, Serialize, Deserialize, ToSchema)]
@@ -651,7 +659,7 @@ impl Pool {
         let mut total_debt = f64::from(0);
         for (paid_by_id, line_amount, expense_amount) in debts {
             if paid_by_id == member_id {
-                total_debt += &line_amount - &expense_amount;
+                total_debt += line_amount - expense_amount;
             } else {
                 total_debt += line_amount;
             }
@@ -760,8 +768,8 @@ impl PoolMembership {
         member_id: uuid::Uuid,
     ) -> QueryResult<Self> {
         let new_membership = NewPoolMembership {
-            pool_id: pool_id,
-            member_id: member_id,
+            pool_id,
+            member_id,
             role: PoolRole::PARTICIPANT,
             default_split_percentage: 0.0,
         };
@@ -950,6 +958,7 @@ impl Expense {
         })
     }
 
+    #[allow(clippy::too_many_arguments)] // one per optional filter
     pub fn get_recent_for_member_in_pool(
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
@@ -995,7 +1004,7 @@ impl Expense {
         let mut formatted_results = Vec::new();
         for (expense, paid_by_id, line_amount) in results {
             let amount_owed = if paid_by_id == member_id {
-                &line_amount - &expense.amount
+                line_amount - expense.amount
             } else {
                 line_amount
             };
@@ -1021,7 +1030,7 @@ impl Expense {
                     let line_item = NewExpenseLineItem {
                         expense_id: expense.id,
                         is_settled: false,
-                        amount: amounts[i].clone(),
+                        amount: amounts[i],
                         debtor_member_id: debtor_id,
                     };
 
@@ -1033,7 +1042,7 @@ impl Expense {
             Ok((expense, line_items))
         })?;
 
-        return Ok(result);
+        Ok(result)
     }
 
     /// Who paid an expense in this pool and whether it's a payment, or
@@ -1112,7 +1121,7 @@ impl Expense {
             .set(new_expense)
             .get_result(conn)?;
 
-        return Ok(expense);
+        Ok(expense)
     }
 
     pub fn list_unpaid_for_balance_computation(

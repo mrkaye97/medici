@@ -528,8 +528,8 @@ pub async fn create_pool_handler(
     let pool_id = pool.id;
 
     let new_membership = models::NewPoolMembership {
-        pool_id: pool_id,
-        member_id: member_id,
+        pool_id,
+        member_id,
         role: models::PoolRole::ADMIN,
         default_split_percentage: 100.0,
     };
@@ -2187,7 +2187,7 @@ pub async fn get_pool_recent_expenses_handler(
     let since = query
         .since
         .unwrap_or_else(|| Utc::now() - chrono::Duration::days(365));
-    let until = query.until.unwrap_or_else(|| Utc::now());
+    let until = query.until.unwrap_or_else(Utc::now);
 
     span.set_attribute(KeyValue::new("pool_id", path.pool_id.to_string()));
     span.set_attribute(KeyValue::new("member_id", member_id.to_string()));

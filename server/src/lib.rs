@@ -47,7 +47,7 @@ pub fn expense_participants_are_pool_members(
     paid_by_member_id: Option<uuid::Uuid>,
     debtor_member_ids: &[uuid::Uuid],
 ) -> bool {
-    paid_by_member_id.map_or(true, |id| pool_member_ids.contains(&id))
+    paid_by_member_id.is_none_or(|id| pool_member_ids.contains(&id))
         && debtor_member_ids
             .iter()
             .all(|id| pool_member_ids.contains(id))
@@ -237,7 +237,7 @@ pub fn settlement_payments(
 ) -> Vec<SettlementPayment> {
     balances
         .iter()
-        .filter(|b| with.map_or(true, |other| b.member_id == other))
+        .filter(|b| with.is_none_or(|other| b.member_id == other))
         .filter(|b| b.member_id != me)
         .map(|b| {
             let amount = (b.amount * 100.0).round() / 100.0;
@@ -501,21 +501,19 @@ fn build_necessary_payments(
     unique_member_ids: &HashSet<uuid::Uuid>,
     pairwise_expenses: &HashMap<(uuid::Uuid, uuid::Uuid), f64>,
 ) -> HashMap<(uuid::Uuid, uuid::Uuid), f64> {
-    unique_member_ids
-        .into_iter()
-        .fold(HashMap::new(), |mut acc, a| {
-            for b in unique_member_ids {
-                let a_to_b = pairwise_expenses.get(&(*a, *b)).unwrap_or(&0.0);
-                let b_to_a = pairwise_expenses.get(&(*b, *a)).unwrap_or(&0.0);
+    unique_member_ids.iter().fold(HashMap::new(), |mut acc, a| {
+        for b in unique_member_ids {
+            let a_to_b = pairwise_expenses.get(&(*a, *b)).unwrap_or(&0.0);
+            let b_to_a = pairwise_expenses.get(&(*b, *a)).unwrap_or(&0.0);
 
-                if a_to_b > b_to_a {
-                    acc.insert((*a, *b), *a_to_b - *b_to_a);
-                } else if b_to_a > a_to_b {
-                    acc.insert((*b, *a), *b_to_a - *a_to_b);
-                }
+            if a_to_b > b_to_a {
+                acc.insert((*a, *b), *a_to_b - *b_to_a);
+            } else if b_to_a > a_to_b {
+                acc.insert((*b, *a), *b_to_a - *a_to_b);
             }
-            acc
-        })
+        }
+        acc
+    })
 }
 
 fn determine_net_payers_and_lenders(
@@ -574,7 +572,7 @@ fn debt_pairs_to_graph(
 ) {
     let (pairwise_expenses, unique_member_ids) =
         expenses
-            .into_iter()
+            .iter()
             .fold((HashMap::new(), HashSet::new()), |acc, expense| {
                 let (mut m, mut s) = acc;
 
@@ -609,7 +607,7 @@ fn debt_pairs_to_graph(
         graph.add_edge(from_node, to_node, *payment);
     }
 
-    return (graph, net_payers, net_receivers);
+    (graph, net_payers, net_receivers)
 }
 
 fn graph_to_payments(
@@ -618,31 +616,30 @@ fn graph_to_payments(
 ) -> Vec<models::Balance> {
     graph
         .edge_indices()
-        .into_iter()
         .map(|edge| {
             let (source_node_index, target_node_index) = graph.edge_endpoints(edge).unwrap();
             let source_member_id = graph[source_node_index];
             let target_member_id = graph[target_node_index];
             let amount = *graph.edge_weight(edge).unwrap();
 
-            return (amount, source_member_id, target_member_id);
+            (amount, source_member_id, target_member_id)
         })
         .filter(|(amount, source_member_id, target_member_id)| {
             *amount > 0.0 && (*source_member_id == member_id || *target_member_id == member_id)
         })
         .map(|(amount, source_member_id, target_member_id)| {
             if source_member_id == member_id {
-                return models::Balance {
+                models::Balance {
                     member_id: target_member_id,
                     amount,
                     direction: models::PaymentDirection::Outbound,
-                };
+                }
             } else {
-                return models::Balance {
+                models::Balance {
                     member_id: source_member_id,
                     amount,
                     direction: models::PaymentDirection::Inbound,
-                };
+                }
             }
         })
         .collect()
@@ -688,7 +685,7 @@ pub fn compute_balances_for_member(
                 }
 
                 if let Some(weight) = graph.edge_weight_mut(edge_index) {
-                    *weight = *weight - flow;
+                    *weight -= flow;
                 }
             }
         }

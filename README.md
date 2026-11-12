@@ -107,7 +107,7 @@ For development or if you prefer running without Docker:
 - [pnpm](https://pnpm.io/) package manager
 - [PostgreSQL](https://postgresql.org/) (v12 or higher)
 - [just](https://github.com/casey/just) command runner
-- [diesel_cli](https://diesel.rs/guides/getting-started) for database migrations
+- [diesel_cli](https://diesel.rs/guides/getting-started), only if you want to write new migrations (the server applies them itself with `cargo run -- migrate`)
 
 **Detailed Setup Steps:**
 
@@ -117,9 +117,6 @@ For development or if you prefer running without Docker:
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
-
-# Install diesel CLI
-cargo install diesel_cli --no-default-features --features postgres
 
 # Install just
 cargo install just
