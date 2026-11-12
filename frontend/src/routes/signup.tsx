@@ -26,26 +26,24 @@ function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <LoginForm
-        onSubmit={async (_e, { email, password, firstName, lastName }) => {
-          setError(null)
-          setIsSubmitting(true)
+    <LoginForm
+      onSubmit={async (_e, { email, password, firstName, lastName }) => {
+        setError(null)
+        setIsSubmitting(true)
 
-          const failure = await signup(
-            email,
-            password,
-            firstName ?? "",
-            lastName ?? ""
-          )
+        const failure = await signup(
+          email,
+          password,
+          firstName ?? "",
+          lastName ?? ""
+        )
 
-          setIsSubmitting(false)
-          setError(failure)
-        }}
-        formType="signup"
-        error={error}
-        isSubmitting={isSubmitting}
-      />
-    </div>
+        setIsSubmitting(false)
+        setError(failure)
+      }}
+      formType="signup"
+      error={error}
+      isSubmitting={isSubmitting}
+    />
   )
 }

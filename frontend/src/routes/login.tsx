@@ -30,22 +30,20 @@ function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <LoginForm
-        onSubmit={async (_e, { email, password }) => {
-          setError(null)
-          setIsSubmitting(true)
+    <LoginForm
+      onSubmit={async (_e, { email, password }) => {
+        setError(null)
+        setIsSubmitting(true)
 
-          const failure = await login(email, password)
+        const failure = await login(email, password)
 
-          setIsSubmitting(false)
-          setError(failure)
-        }}
-        formType="login"
-        error={error}
-        isSubmitting={isSubmitting}
-        showForgotPassword={resetConfig?.enabled ?? false}
-      />
-    </div>
+        setIsSubmitting(false)
+        setError(failure)
+      }}
+      formType="login"
+      error={error}
+      isSubmitting={isSubmitting}
+      showForgotPassword={resetConfig?.enabled ?? false}
+    />
   )
 }

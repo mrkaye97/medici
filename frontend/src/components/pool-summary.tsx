@@ -39,7 +39,7 @@ export function BalanceBadge({
       <p
         className={cn(
           "text-lg font-semibold tabular-nums",
-          owed ? "text-primary" : "text-destructive"
+          owed ? "text-primary" : "text-owe"
         )}
       >
         {formatCurrency(totalDebt)}

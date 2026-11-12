@@ -1,12 +1,12 @@
 import { Link } from "@tanstack/react-router"
 import { FormEvent, useCallback } from "react"
-import { cn } from "./lib/utils"
-import { Alert, AlertDescription, AlertTitle } from "./ui/alert"
+import { AuthLayout } from "./auth-layout"
+import { Alert, AlertDescription } from "./ui/alert"
 import { Button } from "./ui/button"
 import {
-  Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "./ui/card"
@@ -14,7 +14,6 @@ import { Input } from "./ui/input"
 import { Label } from "./ui/label"
 
 type LoginFormProps = {
-  className?: string
   onSubmit: (
     e: FormEvent<HTMLFormElement>,
     formData: {
@@ -25,7 +24,7 @@ type LoginFormProps = {
     }
   ) => void
   formType: "login" | "signup"
-  /** Shown under the form when set. */
+  /** Shown above the submit button when set. */
   error?: string | null
   /** Show "Forgot password?" (only when the server can send reset emails). */
   showForgotPassword?: boolean
@@ -33,140 +32,131 @@ type LoginFormProps = {
 }
 
 export function LoginForm({
-  className,
   onSubmit,
   formType,
   error,
   showForgotPassword,
   isSubmitting,
 }: LoginFormProps) {
+  const isLogin = formType === "login"
+
   const handleSubmit = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault()
 
       const formData = new FormData(e.currentTarget)
-      const email = formData.get("email") as string
-      const password = formData.get("password") as string
-      const firstName = formData.get("firstName") as string | null
-      const lastName = formData.get("lastName") as string | null
-
-      if (onSubmit) {
-        onSubmit(e, { email, password, firstName, lastName })
-      }
+      onSubmit(e, {
+        email: formData.get("email") as string,
+        password: formData.get("password") as string,
+        firstName: formData.get("firstName") as string | null,
+        lastName: formData.get("lastName") as string | null,
+      })
     },
     [onSubmit]
   )
 
   return (
-    <div className={cn("flex flex-col gap-6", className)}>
-      <Card className="w-full max-w-md sm:min-w-[500px]">
-        <CardHeader>
-          <CardTitle className="text-2xl">
-            {formType === "login" ? "Log In" : "Sign Up"}
-          </CardTitle>
-          <CardDescription>
-            {formType === "login"
-              ? "Enter your email below to login to your account"
-              : "Create an account to get started"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-6">
+    <AuthLayout>
+      <CardHeader>
+        <CardTitle className="text-xl">
+          {isLogin ? "Welcome back" : "Create your account"}
+        </CardTitle>
+        <CardDescription>
+          {isLogin
+            ? "Log in to see your pools and balances."
+            : "Track shared expenses and settle up with friends."}
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          {!isLogin && (
+            <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="firstName">First name</Label>
                 <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="anna@thekarenin.as"
+                  id="firstName"
+                  name="firstName"
+                  autoComplete="given-name"
                   required
                 />
               </div>
               <div className="grid gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password">Password</Label>
-                  {formType === "login" && showForgotPassword && (
-                    <Link
-                      to="/forgot-password"
-                      className="text-muted-foreground hover:text-foreground ml-auto text-sm underline-offset-4 hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  )}
-                </div>
+                <Label htmlFor="lastName">Last name</Label>
                 <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete={
-                    formType === "login" ? "current-password" : "new-password"
-                  }
-                  minLength={formType === "signup" ? 8 : undefined}
+                  id="lastName"
+                  name="lastName"
+                  autoComplete="family-name"
                   required
                 />
-                {formType === "signup" && (
-                  <p className="text-muted-foreground text-xs">
-                    At least 8 characters
-                  </p>
-                )}
               </div>
-              {formType === "signup" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="firstName">First Name</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    type="text"
-                    placeholder="Anna"
-                    required
-                  />
-                </div>
-              )}
-              {formType === "signup" && (
-                <div className="grid gap-2">
-                  <Label htmlFor="lastName">Last Name</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    type="text"
-                    placeholder="Karenina"
-                    required
-                  />
-                </div>
-              )}
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {formType === "login" ? "Login" : "Sign Up"}
-              </Button>
-            </div>
-          </form>
-          {formType === "login" ? (
-            <Link to="/signup">
-              <div className="mt-4 text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <p className="underline underline-offset-4">Sign up</p>
-              </div>
-            </Link>
-          ) : (
-            <Link to="/login">
-              <div className="mt-4 text-center text-sm">
-                Already have an account?{" "}
-                <p className="underline underline-offset-4">Log in</p>
-              </div>
-            </Link>
-          )}{" "}
-          {error && (
-            <div className="mt-4">
-              <Alert variant="destructive">
-                <AlertTitle>
-                  {formType === "login" ? "Login failed" : "Sign up failed"}
-                </AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <div className="flex items-center">
+              <Label htmlFor="password">Password</Label>
+              {isLogin && showForgotPassword && (
+                <Link
+                  to="/forgot-password"
+                  className="text-muted-foreground hover:text-foreground ml-auto text-sm underline-offset-4 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              )}
+            </div>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              minLength={isLogin ? undefined : 8}
+              required
+            />
+            {!isLogin && (
+              <p className="text-muted-foreground text-xs">
+                At least 8 characters
+              </p>
+            )}
+          </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          <Button type="submit" className="mt-2 w-full" disabled={isSubmitting}>
+            {isSubmitting
+              ? isLogin
+                ? "Logging in..."
+                : "Creating account..."
+              : isLogin
+                ? "Log in"
+                : "Create account"}
+          </Button>
+        </form>
+      </CardContent>
+      <CardFooter className="justify-center border-t pt-4 text-sm">
+        <span className="text-muted-foreground">
+          {isLogin ? "New to Medici?" : "Already have an account?"}
+        </span>
+        <Link
+          to={isLogin ? "/signup" : "/login"}
+          className="text-primary ml-1 font-medium underline-offset-4 hover:underline"
+        >
+          {isLogin ? "Create an account" : "Log in"}
+        </Link>
+      </CardFooter>
+    </AuthLayout>
   )
 }

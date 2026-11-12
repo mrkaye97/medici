@@ -182,7 +182,7 @@ export function Expense({
                 ? "text-foreground"
                 : expense.line_amount < 0
                   ? "text-primary"
-                  : "text-destructive"
+                  : "text-owe"
             )}
           >
             {formatCurrency(expense.line_amount)}

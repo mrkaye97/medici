@@ -62,9 +62,7 @@ export const BalancesPane = ({ poolId }: { poolId: string }) => {
                 <div className="ml-auto flex flex-row items-center gap-x-3 text-right">
                   <p
                     className={`text-lg font-semibold ${
-                      balance.type === "inbound"
-                        ? "text-primary"
-                        : "text-destructive"
+                      balance.type === "inbound" ? "text-primary" : "text-owe"
                     }`}
                   >
                     {formatCurrency(balance.amount)}

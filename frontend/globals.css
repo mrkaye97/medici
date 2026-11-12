@@ -22,6 +22,7 @@
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-success: var(--success);
+  --color-owe: var(--owe);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -61,13 +62,19 @@
   --muted: oklch(0.94 0.008 80);
   --muted-foreground: oklch(0.45 0.032 260);
 
-  --accent: oklch(0.88 0.042 35);
-  --accent-foreground: oklch(0.16 0.04 255);
+  /* Hover/focus backgrounds in menus, ghost buttons and selects. */
+  --accent: oklch(0.94 0.018 150);
+  --accent-foreground: oklch(0.2 0.04 155);
 
-  --destructive: oklch(0.6 0.095 20);
+  /* Darkened from L=0.6 so small red text passes WCAG AA (4.5:1). */
+  --destructive: oklch(0.53 0.1 22);
   --destructive-foreground: oklch(0.98 0.002 75);
 
   --success: oklch(0.5 0.1 155);
+
+  /* "You owe" amounts. Owing a friend isn't an error, so it gets a warm
+     amber instead of the destructive red. Same AA contrast as red. */
+  --owe: oklch(0.53 0.1 55);
 
   --border: oklch(0.9 0.012 80);
   --input: oklch(0.96 0.008 80);
@@ -84,7 +91,7 @@
   --sidebar-foreground: oklch(0.17 0.035 255);
   --sidebar-primary: oklch(0.52 0.08 155);
   --sidebar-primary-foreground: oklch(0.98 0.002 75);
-  --sidebar-accent: oklch(0.92 0.015 80);
+  --sidebar-accent: oklch(0.94 0.018 150);
   --sidebar-accent-foreground: oklch(0.2 0.04 255);
   --sidebar-border: oklch(0.9 0.012 80);
   --sidebar-ring: oklch(0.55 0.065 155);

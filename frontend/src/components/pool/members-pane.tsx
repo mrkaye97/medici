@@ -5,7 +5,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Tooltip,
   TooltipContent,
@@ -102,22 +101,17 @@ export const MembersPane = ({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-foreground font-semibold">Members</h3>
-        {isAdmin && members.length > 1 && (
+        {isAdmin && members.length > 1 && draft === null && (
           <Button
             size="sm"
             variant="ghost"
             className="text-xs"
             onClick={() => {
               setError(null)
-              setDraft(
-                evenSplit(
-                  sortedMembers.map(m => m.member.id),
-                  memberId
-                )
-              )
+              setDraft(savedSplits)
             }}
           >
-            Split evenly
+            Edit splits
           </Button>
         )}
       </div>
@@ -187,29 +181,24 @@ export const MembersPane = ({
                         <TooltipContent>
                           <p className="text-xs">
                             {draft !== null
-                              ? "Save or reset your split changes first"
+                              ? "Save or cancel your split changes first"
                               : `Remove ${member.member.first_name} from pool. They need to be settled up first.`}
                           </p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}
-                  {isAdmin ? (
-                    <div className="flex flex-col items-start gap-1">
-                      <Label
-                        htmlFor={`split-${member.member.id}`}
-                        className="text-xs"
-                      >
-                        Split %
-                      </Label>
+                  {draft !== null ? (
+                    <div className="relative">
                       <Input
                         id={`split-${member.member.id}`}
+                        aria-label={`${member.member.first_name}'s default split, in percent`}
                         type="number"
                         inputMode="decimal"
                         min={0}
                         max={100}
                         step={0.01}
-                        className="max-w-20"
+                        className="h-8 w-20 [appearance:textfield] pr-6 text-right tabular-nums [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                         value={shownSplits[member.member.id] ?? ""}
                         onChange={e => {
                           const value = e.target.value
@@ -219,9 +208,12 @@ export const MembersPane = ({
                           }))
                         }}
                       />
+                      <span className="text-muted-foreground pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-xs">
+                        %
+                      </span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground text-sm">
+                    <span className="text-foreground w-14 text-right text-sm tabular-nums">
                       {member.pool_membership.default_split_percentage}%
                     </span>
                   )}
@@ -247,13 +239,28 @@ export const MembersPane = ({
           <div className="flex gap-2">
             <Button
               size="sm"
+              variant="ghost"
+              onClick={() => {
+                setError(null)
+                setDraft(
+                  evenSplit(
+                    sortedMembers.map(m => m.member.id),
+                    memberId
+                  )
+                )
+              }}
+            >
+              Split evenly
+            </Button>
+            <Button
+              size="sm"
               variant="outline"
               onClick={() => {
                 setDraft(null)
                 setError(null)
               }}
             >
-              Reset
+              Cancel
             </Button>
             <Button
               size="sm"
@@ -269,9 +276,7 @@ export const MembersPane = ({
                 )
               }
             >
-              {mutations.isModifyDefaultSplitPending
-                ? "Saving..."
-                : "Save splits"}
+              {mutations.isModifyDefaultSplitPending ? "Saving..." : "Save"}
             </Button>
           </div>
         </div>
@@ -322,7 +327,7 @@ export const MembersPane = ({
               ))}
             </div>
             <p className="text-muted-foreground mt-2 text-xs">
-              New members start at 0%. Adjust the splits above if they should
+              New members start at 0%. Use Edit splits above if they should
               share the default split.
             </p>
           </div>

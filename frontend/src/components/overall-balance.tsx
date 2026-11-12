@@ -63,7 +63,7 @@ export function OverallBalance({ poolIds }: { poolIds: string[] }) {
       {youOwe >= 0.005 && (
         <span>
           You owe{" "}
-          <span className="text-destructive font-semibold tabular-nums">
+          <span className="text-owe font-semibold tabular-nums">
             {formatCurrency(youOwe)}
           </span>
         </span>
