@@ -1,31 +1,26 @@
 import { useState } from "react"
 
-/**
- * Example text for form fields, with a Cambridge, MA flavor. One is picked
- * at random each time a form mounts, so there's something new to find.
- */
 export const placeholders = {
   expenseName: [
     "Dinner at Urban Hearth",
     "Burgers at Mr. Bartley's",
     "Burnt caramel at Toscanini's",
-    "Brunch at Café Pamplona",
+    "Burritos at Felipe's",
     "Pastries from Flour",
-    "Cheese from Formaggio Kitchen",
+    "Cheese from Formaggio",
     "Pizza at Pinocchio's",
     "Bluebikes to Kendall",
-    "Tickets at the Brattle",
+    "Tickets at the Sinclair",
     "Show at the Middle East",
     "Books from Harvard Book Store",
-    "Sandwiches from Darwin's",
+    "Guinness at the Plough",
   ],
   expenseNote: [
     "Splitting the large fries, as agreed",
     "After the Head of the Charles",
     "Picnic at Fresh Pond",
     "Red Line was down again, so we Ubered",
-    "Double feature at the Brattle",
-    "The good bagels, not the Star Market ones",
+    "Double feature at the Sinclair",
   ],
   poolName: [
     "Inman Square apartment",
