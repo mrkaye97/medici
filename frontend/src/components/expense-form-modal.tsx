@@ -1,4 +1,5 @@
 import { formatCurrency, initials, round } from "@/components/lib/format"
+import { usePlaceholder } from "@/components/lib/placeholders"
 import { cn } from "@/components/lib/utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/hooks/use-auth"
@@ -173,6 +174,8 @@ export function ExpenseFormModal({
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showNote, setShowNote] = useState(!!defaultValues?.description)
   const { autoCategorizeName } = useRules()
+  const namePlaceholder = usePlaceholder("expenseName")
+  const notePlaceholder = usePlaceholder("expenseNote")
 
   /** Everyone equal (Amount/Percentage), or the pool default (Default).
    * Equal shares are in whole cents (or hundredths of a percent) with any
@@ -313,7 +316,7 @@ export function ExpenseFormModal({
                   <FormLabel>What was it for?</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. Dinner at Oleana"
+                      placeholder={namePlaceholder}
                       autoFocus={!defaultValues}
                       {...field}
                     />
@@ -566,7 +569,7 @@ export function ExpenseFormModal({
                     <FormLabel>Note</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g. Our hotel room in Yosemite"
+                        placeholder={notePlaceholder}
                         rows={2}
                         {...field}
                       />

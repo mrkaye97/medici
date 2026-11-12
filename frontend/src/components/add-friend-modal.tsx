@@ -1,4 +1,5 @@
 import { apiClient, errorMessage } from "@/api/client"
+import { usePlaceholder } from "@/components/lib/placeholders"
 import { useAuth } from "@/hooks/use-auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
@@ -120,6 +121,7 @@ export function AddFriendModal({
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
 }) {
+  const emailPlaceholder = usePlaceholder("friendEmail", "")
   const queryClient = useQueryClient()
   const { memberId, createAuthHeader } = useAuth()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -259,7 +261,7 @@ export function AddFriendModal({
                     <FormLabel>Friend&apos;s email address</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="anna@example.com"
+                        placeholder={emailPlaceholder}
                         autoComplete="off"
                         {...field}
                         type="email"
