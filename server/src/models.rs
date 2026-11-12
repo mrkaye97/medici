@@ -616,7 +616,7 @@ impl Pool {
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
         member_id: uuid::Uuid,
-    ) -> QueryResult<(Self, PoolRole, bool, f64)> {
+    ) -> QueryResult<(Self, PoolRole, bool, f64, i64)> {
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
             .filter(pool::id.eq(pool_id))
@@ -662,7 +662,14 @@ impl Pool {
         let total_debt = (total_debt * 100.0).round() / 100.0;
         let total_debt = if total_debt == 0.0 { 0.0 } else { total_debt };
 
-        Ok((p, role, is_hidden, total_debt))
+        // Recorded payments aren't expenses.
+        let expense_count: i64 = expense::table
+            .filter(expense::pool_id.eq(pool_id))
+            .filter(expense::is_payment.eq(false))
+            .count()
+            .get_result(conn)?;
+
+        Ok((p, role, is_hidden, total_debt, expense_count))
     }
 }
 

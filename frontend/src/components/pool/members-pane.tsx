@@ -13,7 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { usePool } from "@/hooks/use-pool"
-import { UserMinus, UserRoundPlus, UsersRound } from "lucide-react"
+import { UserMinus, UserRoundPlus } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -101,10 +101,7 @@ export const MembersPane = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="flex items-center gap-2 font-medium">
-          <UsersRound className="h-4 w-4" />
-          Members
-        </h3>
+        <h3 className="text-foreground font-semibold">Members</h3>
         {isAdmin && members.length > 1 && (
           <Button
             size="sm"

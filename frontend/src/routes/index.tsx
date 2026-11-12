@@ -4,13 +4,13 @@ import { AddFriendModal } from "@/components/add-friend-modal"
 import { CreatePoolModal } from "@/components/create-pool-modal"
 import { FriendsView } from "@/components/friends-view"
 import { useDocumentTitle } from "@/components/lib/use-document-title"
+import { OverallBalance } from "@/components/overall-balance"
 import { PoolSummary } from "@/components/pool-summary"
 import { RulesView } from "@/components/rules-view"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -128,9 +128,7 @@ function Home() {
                 <AccountMenu />
               </div>
             </div>
-            <CardDescription className="text-muted-foreground">
-              Manage your shared expenses with friends
-            </CardDescription>
+            <OverallBalance poolIds={pools.map(p => p.id)} />
           </CardHeader>
 
           <CardContent className="flex min-h-0 flex-1 flex-col overflow-hidden px-4 pb-4">
@@ -145,7 +143,7 @@ function Home() {
                 <Button
                   variant="outline"
                   onClick={() => setIsCreatePoolOpen(true)}
-                  className="bg-background hover:bg-accent border-border text-foreground rounded-lg font-medium"
+                  className="bg-background border-border text-foreground rounded-lg font-medium"
                 >
                   Create your first pool
                 </Button>
@@ -161,7 +159,6 @@ function Home() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         transition={{ duration: 0.2 }}
-                        className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
                       >
                         <PoolSummary poolId={pool.id} />
                       </motion.div>
@@ -188,12 +185,7 @@ function Home() {
                       </CollapsibleTrigger>
                       <CollapsibleContent className="space-y-3 pt-3">
                         {hiddenPools.map(pool => (
-                          <div
-                            key={pool.id}
-                            className="hover:bg-accent/50 overflow-hidden rounded-lg transition-colors duration-200"
-                          >
-                            <PoolSummary poolId={pool.id} />
-                          </div>
+                          <PoolSummary key={pool.id} poolId={pool.id} />
                         ))}
                       </CollapsibleContent>
                     </Collapsible>

@@ -595,6 +595,11 @@ export interface components {
       updated_at: string
     }
     PoolDetails: components["schemas"]["Pool"] & {
+      /**
+       * Format: int64
+       * @description Expenses ever added to the pool, settled or not (payments excluded).
+       */
+      expense_count: number
       /** @description Whether you have hidden this pool (hiding is per person). */
       is_hidden: boolean
       role: components["schemas"]["PoolRole"]

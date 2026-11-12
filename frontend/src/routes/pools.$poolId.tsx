@@ -11,7 +11,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useAuth } from "@/hooks/use-auth"
 import { usePool } from "@/hooks/use-pool"
 import { createFileRoute } from "@tanstack/react-router"
-import { DollarSign } from "lucide-react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/pools/$poolId")({
@@ -107,16 +106,6 @@ const PoolDetailsPane = ({
         className
       )}
     >
-      <div className="mb-6">
-        <h2 className="text-foreground flex items-center gap-2 text-xl font-semibold">
-          <DollarSign className="text-primary h-6 w-6" />
-          Pool Details
-        </h2>
-        <p className="text-muted-foreground mt-1">
-          Balances and member management
-        </p>
-      </div>
-
       {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-6 w-32" />

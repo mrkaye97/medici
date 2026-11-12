@@ -54,8 +54,9 @@
   --primary: oklch(0.52 0.08 155);
   --primary-foreground: oklch(0.98 0.002 75);
 
-  --secondary: oklch(0.9 0.035 295);
-  --secondary-foreground: oklch(0.2 0.04 255);
+  /* Soft sage, so badges stay inside the green/peach palette. */
+  --secondary: oklch(0.93 0.028 150);
+  --secondary-foreground: oklch(0.3 0.05 155);
 
   --muted: oklch(0.94 0.008 80);
   --muted-foreground: oklch(0.45 0.032 260);

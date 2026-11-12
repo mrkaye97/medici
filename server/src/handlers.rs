@@ -1776,17 +1776,26 @@ pub struct PoolDetails {
     /// Whether you have hidden this pool (hiding is per person).
     is_hidden: bool,
     total_debt: f64,
+    /// Expenses ever added to the pool, settled or not (payments excluded).
+    expense_count: i64,
 }
 
-impl From<(models::Pool, models::PoolRole, bool, f64)> for PoolDetails {
+impl From<(models::Pool, models::PoolRole, bool, f64, i64)> for PoolDetails {
     fn from(
-        (pool, role, is_hidden, total_debt): (models::Pool, models::PoolRole, bool, f64),
+        (pool, role, is_hidden, total_debt, expense_count): (
+            models::Pool,
+            models::PoolRole,
+            bool,
+            f64,
+            i64,
+        ),
     ) -> Self {
         Self {
             pool,
             role,
             is_hidden,
             total_debt,
+            expense_count,
         }
     }
 }
@@ -2291,7 +2300,14 @@ pub async fn get_pool_balances_for_member(
 
     span.end();
 
-    return Ok(Json(compute_balances_for_member(member_id, expenses)));
+    // Float sums can leave balances like 7e-15 after settling up; anything
+    // under a cent isn't a real balance.
+    let balances = compute_balances_for_member(member_id, expenses)
+        .into_iter()
+        .filter(|b| b.amount.abs() > server::BALANCE_EPSILON)
+        .collect::<Vec<_>>();
+
+    Ok(Json(balances))
 }
 
 #[derive(Deserialize, Serialize, ToSchema)]

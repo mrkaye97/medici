@@ -60,11 +60,7 @@ export const FriendsView = ({
 
   return (
     <>
-      <div className="mb-6">
-        <p className="text-muted-foreground text-sm mt-4">
-          Manage your friends and requests
-        </p>
-      </div>
+      <div className="h-4" />
 
       <Card className="flex flex-1 flex-col overflow-hidden">
         <Tabs

@@ -1,8 +1,9 @@
 import { formatCurrency, round } from "@/components/lib/format"
 import { SettleUpModal } from "@/components/settle-up-modal"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { usePool } from "@/hooks/use-pool"
-import { ArrowUpDown, CheckCircle2 } from "lucide-react"
+import { ArrowUpRight, CheckCircle2 } from "lucide-react"
 
 export const BalancesPane = ({ poolId }: { poolId: string }) => {
   const {
@@ -29,11 +30,8 @@ export const BalancesPane = ({ poolId }: { poolId: string }) => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-foreground flex items-center gap-2 font-semibold">
-          <ArrowUpDown className="text-primary h-5 w-5" />
-          Balances
-        </h3>
-        <SettleUpModal poolId={poolId} />
+        <h3 className="text-foreground font-semibold">Balances</h3>
+        {balances.length > 1 && <SettleUpModal poolId={poolId} />}
       </div>
 
       {balances.length === 0 ? (
@@ -77,23 +75,27 @@ export const BalancesPane = ({ poolId }: { poolId: string }) => {
                     size="xs"
                   />
                   {balance.venmoHandle && (
-                    <a
-                      href={`https://venmo.com/?${new URLSearchParams({
-                        txn: balance.type === "inbound" ? "request" : "pay",
-                        recipients: balance.venmoHandle,
-                        amount: String(round(balance.amount)),
-                        note: "Settling up our pool on Medici",
-                      })}`}
-                      rel="noopener noreferrer"
-                      target="_blank"
-                      className="transition-opacity duration-200 hover:opacity-80"
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 px-2 text-xs"
                     >
-                      <img
-                        src="https://images.ctfassets.net/gkyt4bl1j2fs/ym6BkLqyGjMBmiCwtM7AW/829bf561ea771c00839b484cb8edeebb/App_Icon.png?w=276&h=276&q=50&fm=webp&bg=transparent"
-                        className="size-8 rounded-lg"
-                        alt={`${balance.type === "inbound" ? "Request payment from" : "Pay"} ${balance.name} using Venmo`}
-                      />
-                    </a>
+                      <a
+                        href={`https://venmo.com/?${new URLSearchParams({
+                          txn: balance.type === "inbound" ? "request" : "pay",
+                          recipients: balance.venmoHandle,
+                          amount: String(round(balance.amount)),
+                          note: "Settling up our pool on Medici",
+                        })}`}
+                        rel="noopener noreferrer"
+                        target="_blank"
+                        aria-label={`${balance.type === "inbound" ? "Request payment from" : "Pay"} ${balance.name} on Venmo`}
+                      >
+                        Venmo
+                        <ArrowUpRight className="size-3" />
+                      </a>
+                    </Button>
                   )}
                 </div>
               </div>

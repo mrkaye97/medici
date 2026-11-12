@@ -23,15 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { ExpensesListProps, usePool } from "@/hooks/use-pool"
 import { Link } from "@tanstack/react-router"
-import {
-  ArrowLeft,
-  BanknoteIcon,
-  DollarSign,
-  Home,
-  PlusCircleIcon,
-  Search,
-  UsersRound,
-} from "lucide-react"
+import { ArrowLeft, BanknoteIcon, PlusCircleIcon, Search } from "lucide-react"
 import MiniSearch from "minisearch"
 import { useMemo, useState } from "react"
 
@@ -144,7 +136,7 @@ export const ExpensesPane = ({
           <Skeleton className="h-5 w-48" />
           <Skeleton className="h-10 w-full" />
           {[0, 1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-[104px] w-full rounded-lg" />
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
           ))}
         </div>
       </ExpensesPaneLayout>
@@ -171,25 +163,23 @@ export const ExpensesPane = ({
               className="text-muted-foreground hover:text-primary group flex w-fit items-center gap-2 transition-colors"
             >
               <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-              <Home className="h-4 w-4" />
               <span className="text-sm font-medium">All pools</span>
             </Link>
             <h1 className="text-foreground text-3xl font-semibold tracking-tight break-words md:text-4xl">
               {details.name}
             </h1>
-            <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
-              <UsersRound className="text-primary h-5 w-5" />
-              <span className="text-sm md:text-base font-medium">
+            <div className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <span>
                 {members.length} {members.length === 1 ? "member" : "members"}
               </span>
-              <DollarSign className="text-primary h-5 w-5 ml-2" />
-              <span className="text-sm md:text-base font-medium">
+              <span aria-hidden>·</span>
+              <span>
                 {expenseCount} {expenseCount === 1 ? "expense" : "expenses"}
               </span>
               {details.role === "ADMIN" && (
                 <Badge
                   variant="outline"
-                  className="bg-primary/10 border-primary text-primary ml-2"
+                  className="bg-primary/10 border-primary/40 text-primary ml-1"
                 >
                   Admin
                 </Badge>
@@ -208,14 +198,10 @@ export const ExpensesPane = ({
 
         <CardTitle className="text-foreground mb-6 flex flex-row flex-wrap items-center justify-between gap-3 text-xl font-semibold md:text-2xl">
           <div className="flex flex-row flex-wrap items-center gap-2">
-            <BanknoteIcon className="text-primary h-6 w-6 flex-shrink-0" />
             <span className="flex items-center">Expenses</span>
-            <Badge
-              variant="secondary"
-              className="bg-secondary text-secondary-foreground px-3 py-1 font-medium"
-            >
+            <span className="text-muted-foreground text-sm font-normal tabular-nums">
               {formatCurrency(totalExpenses)} total
-            </Badge>
+            </span>
           </div>
           <div className="flex flex-row items-center gap-1 text-sm">
             <Checkbox
@@ -358,21 +344,57 @@ export const ExpensesPane = ({
             </Button>
           </div>
         ) : (
-          <div className="flex-1 overflow-auto">
-            <div className="space-y-2">
-              {searchResults.map(expense => (
-                <div key={expense.id} className="px-2 transition-colors">
-                  <Expense
-                    expense={expense}
-                    selectedCategory={selectedCategory}
-                    setSelectedCategory={setSelectedCategory}
-                  />
+          <div className="flex-1 overflow-auto px-2">
+            {groupByMonth(searchResults, !searchQuery.trim()).map(group => (
+              <section key={group.label} className="pb-4">
+                {group.label && (
+                  <h3 className="bg-card text-muted-foreground sticky top-0 z-[1] py-2 text-xs font-medium tracking-wide uppercase">
+                    {group.label}
+                  </h3>
+                )}
+                <div className="space-y-1.5">
+                  {group.expenses.map(expense => (
+                    <Expense
+                      key={expense.id}
+                      expense={expense}
+                      selectedCategory={selectedCategory}
+                      setSelectedCategory={setSelectedCategory}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </section>
+            ))}
           </div>
         )}
       </CardContent>
     </ExpensesPaneLayout>
   )
+}
+
+/**
+ * Group expenses under "November 2026"-style headings. Search results are
+ * ordered by relevance, so they stay in one unlabeled group.
+ */
+function groupByMonth<T extends { inserted_at: string }>(
+  expenses: T[],
+  byMonth: boolean
+): { label: string; expenses: T[] }[] {
+  if (!byMonth) {
+    return [{ label: "", expenses }]
+  }
+
+  const groups: { label: string; expenses: T[] }[] = []
+  for (const expense of expenses) {
+    const label = new Date(expense.inserted_at).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    })
+    const last = groups.at(-1)
+    if (last?.label === label) {
+      last.expenses.push(expense)
+    } else {
+      groups.push({ label, expenses: [expense] })
+    }
+  }
+  return groups
 }
