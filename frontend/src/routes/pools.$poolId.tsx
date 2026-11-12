@@ -525,8 +525,13 @@ const PoolAnalytics = ({
   }, [])
 
   const expenseSummary: ChartPayload[] = useMemo(() => {
+    // Payments between members aren't spending, so leave them out.
     const agg = expenses.reduce(
       (acc, expense) => {
+        if (expense.is_payment) {
+          return acc
+        }
+
         const category = expense.category
 
         if (!acc[category]) {
@@ -1026,9 +1031,19 @@ const PoolBalancesPane = ({ poolId }: { poolId: string }) => {
                   >
                     {formatCurrency(balance.amount)}
                   </p>
+                  <SettleUpModal
+                    poolId={poolId}
+                    withMemberId={balance.memberId}
+                    size="xs"
+                  />
                   {balance.venmoHandle && (
                     <a
-                      href={`https://venmo.com/?txn=${balance.type === "inbound" ? "request" : "pay"}&recipients=${balance.venmoHandle}&amount=${round(balance.amount)}&note=Settling up our pool on Medici`}
+                      href={`https://venmo.com/?${new URLSearchParams({
+                        txn: balance.type === "inbound" ? "request" : "pay",
+                        recipients: balance.venmoHandle,
+                        amount: String(round(balance.amount)),
+                        note: "Settling up our pool on Medici",
+                      })}`}
                       rel="noopener noreferrer"
                       target="_blank"
                       className="transition-opacity duration-200 hover:opacity-80"

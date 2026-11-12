@@ -119,7 +119,9 @@ export const usePool = ({
         const name = otherMember.first_name + " " + otherMember.last_name
 
         return {
+          memberId: b.member_id,
           name,
+          firstName: otherMember.first_name,
           amount: b.amount,
           type: b.direction,
           venmoHandle: otherMember.venmo_handle,
@@ -144,6 +146,35 @@ export const usePool = ({
 
   const { mutateAsync: removeFriendFromPool, isPending: isRemovePending } =
     apiClient.useMutation("delete", "/api/pools/{pool_id}/members/{member_id}")
+
+  const { mutateAsync: settleUpMutation, isPending: isSettlePending } =
+    apiClient.useMutation("post", "/api/pools/{pool_id}/settle-up")
+
+  /** Record payments that clear your balance with one person, or all of
+   * your balances in the pool. Nobody else's balances change. */
+  const settleUp = useCallback(
+    async (withMemberId?: string) => {
+      await settleUpMutation({
+        params: { path: { pool_id: poolId } },
+        body: { member_id: withMemberId ?? null },
+        headers: createAuthHeader(),
+      })
+
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/api/pools/{pool_id}/expenses"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/api/pools/{pool_id}/balances"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["get", "/api/pools/{pool_id}"],
+        }),
+        queryClient.invalidateQueries({ queryKey: ["get", "/api/pools"] }),
+      ])
+    },
+    [settleUpMutation, createAuthHeader, poolId, queryClient]
+  )
 
   const { mutateAsync: toggleHidden, isPending: isToggleHiddenPending } =
     apiClient.useMutation("post", "/api/pools/{pool_id}/toggle-hidden")
@@ -240,8 +271,12 @@ export const usePool = ({
     f => !members?.find(m => m.member.id === f.id)
   )
 
+  // Recorded payments move money between people; they aren't spending.
   const totalExpenses =
-    expenses?.reduce((sum, expense) => sum + (expense.amount || 0), 0) || 0
+    expenses?.reduce(
+      (sum, expense) => sum + (expense.is_payment ? 0 : expense.amount || 0),
+      0
+    ) || 0
 
   return {
     members: members || [],
@@ -265,6 +300,8 @@ export const usePool = ({
       isModifyDefaultSplitPending,
       togglePoolHidden,
       isToggleHiddenPending,
+      settleUp,
+      isSettlePending,
     },
   }
 }

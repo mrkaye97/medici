@@ -171,6 +171,42 @@ async fn authorize_pool(
     })
 }
 
+/// Only the person who paid an expense, or a pool admin, may edit or delete
+/// it. Returns whether the expense is a recorded payment.
+async fn authorize_expense_change(
+    pool_id: uuid::Uuid,
+    expense_id: uuid::Uuid,
+    member_id: uuid::Uuid,
+    role: models::PoolRole,
+) -> Result<bool, ApiError> {
+    let mut conn = get_db_connection().await.map_err(|_| {
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to get database connection",
+        )
+    })?;
+
+    let found = tokio::task::spawn_blocking(move || {
+        Expense::payer_and_kind(&mut conn, expense_id, pool_id)
+    })
+    .await
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Task panicked"))?
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to load expense"))?;
+
+    let Some((paid_by, is_payment)) = found else {
+        return Err(api_error(StatusCode::NOT_FOUND, "Expense not found"));
+    };
+
+    if paid_by != member_id && role != models::PoolRole::ADMIN {
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "Only the person who paid, or a pool admin, can change this expense",
+        ));
+    }
+
+    Ok(is_payment)
+}
+
 /// Reject an expense whose payer or debtors aren't in the pool.
 async fn validate_expense_participants(
     pool_id: uuid::Uuid,
@@ -319,12 +355,6 @@ pub enum AuthResult {
         token: String,
         is_authenticated: bool,
         expires_at: DateTime<Utc>,
-    },
-    Unauthenticated {
-        id: Option<uuid::Uuid>,
-        token: Option<String>,
-        is_authenticated: bool,
-        expires_at: Option<DateTime<Utc>>,
     },
 }
 
@@ -712,19 +742,29 @@ pub async fn get_member_handler(
     }
 }
 
+/// Failed logins per account, shared across requests (see `LoginThrottle`).
+static LOGIN_THROTTLE: Lazy<std::sync::Mutex<server::LoginThrottle>> =
+    Lazy::new(|| std::sync::Mutex::new(server::LoginThrottle::default()));
+
+fn login_throttle() -> std::sync::MutexGuard<'static, server::LoginThrottle> {
+    // A panic while holding the lock leaves the counts usable, so recover.
+    LOGIN_THROTTLE
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 #[utoipa::path(
     post,
     path = "/api/login",
     request_body = LoginInput,
     responses(
         (status = 200, description = "Log in a member successfully", body = AuthResult),
-        (status = 400, description = "Incorrect credentials", body = AuthResult),
+        (status = 400, description = "Incorrect email or password"),
+        (status = 429, description = "Too many failed attempts for this account; try again later"),
         (status = 500, description = "Internal server error")
     )
 )]
-pub async fn login_handler(
-    Json(input): Json<LoginInput>,
-) -> Result<Json<AuthResult>, (StatusCode, Json<AuthResult>)> {
+pub async fn login_handler(Json(input): Json<LoginInput>) -> Result<Json<AuthResult>, ApiError> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -732,132 +772,62 @@ pub async fn login_handler(
         .with_kind(SpanKind::Server)
         .start(tracer);
 
+    let now = Utc::now().timestamp();
+    if let Err(retry_after) = login_throttle().check(&input.email, now) {
+        let minutes = (retry_after + 59) / 60;
+        return Err(api_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            &format!(
+                "Too many failed attempts. Try again in {} minute{}, or reset your password.",
+                minutes,
+                if minutes == 1 { "" } else { "s" }
+            ),
+        ));
+    }
+
     let mut conn = get_db_connection().await.map_err(|_| {
-        (
+        api_error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(AuthResult::Unauthenticated {
-                id: None,
-                token: None,
-                is_authenticated: false,
-                expires_at: None,
-            }),
+            "Failed to get database connection",
         )
     })?;
-    let email = input.email;
+
+    let email = input.email.clone();
     let password = input.password;
 
-    let result = tokio::task::spawn_blocking(move || {
-        let unauthenticated = AuthResult::Unauthenticated {
-            id: None,
-            token: None,
-            is_authenticated: false,
-            expires_at: None,
-        };
-
-        let stored = match Member::find_password_hash_by_email(&mut conn, &email) {
-            Ok(stored) => stored,
-            Err(_) => return unauthenticated,
-        };
-
-        match verify_login(&password, stored).map(|id| (id, generate_jwt(id))) {
-            Some((id, Ok(token))) => AuthResult::Authenticated {
-                id,
-                token,
-                is_authenticated: true,
-                expires_at: Utc::now() + Duration::days(SESSION_DURATION_DAYS),
-            },
-            _ => unauthenticated,
-        }
+    let member_id = tokio::task::spawn_blocking(move || -> QueryResult<Option<uuid::Uuid>> {
+        let stored = Member::find_password_hash_by_email(&mut conn, &email)?;
+        Ok(verify_login(&password, stored))
     })
     .await
-    .map_err(|_| {
-        (
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Task panicked"))?
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to log in"))?;
+
+    span.end();
+
+    let Some(member_id) = member_id else {
+        login_throttle().record_failure(&input.email, Utc::now().timestamp());
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Invalid email or password",
+        ));
+    };
+
+    login_throttle().record_success(&input.email);
+
+    let token = generate_jwt(member_id).map_err(|_| {
+        api_error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(AuthResult::Unauthenticated {
-                id: None,
-                token: None,
-                is_authenticated: false,
-                expires_at: None,
-            }),
+            "Failed to generate token",
         )
     })?;
 
-    span.end();
-
-    match result {
-        AuthResult::Authenticated { .. } => Ok(Json(result)),
-        AuthResult::Unauthenticated { .. } => Err((StatusCode::BAD_REQUEST, Json(result))),
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct AuthQuery {
-    pub token: String,
-}
-
-#[utoipa::path(
-    get,
-    path = "/api/authenticate/{member_id}",
-    params(
-        ("member_id" = uuid::Uuid, Path, description = "ID of the member to authenticate"),
-        ("token" = String, Query, description = "Token to authenticate the member"),
-    ),
-    responses(
-        (status = 200, description = "Authenticate a member successfully", body = AuthResult),
-        (status = 500, description = "Internal server error")
-    )
-)]
-pub async fn authenticate_handler(
-    Path(member_id): Path<uuid::Uuid>,
-    Query(query): Query<AuthQuery>,
-) -> Json<AuthResult> {
-    let tracer = get_tracer();
-
-    let mut span = tracer
-        .span_builder("authenticate_handler")
-        .with_kind(SpanKind::Server)
-        .start(tracer);
-
-    span.set_attribute(KeyValue::new("member_id", member_id.to_string()));
-
-    let token = query.token;
-
-    let result = match validate_session(&token).await {
-        Ok(token_member_id) => {
-            if token_member_id == member_id {
-                match generate_jwt(member_id) {
-                    Ok(new_token) => Json(AuthResult::Authenticated {
-                        id: member_id,
-                        token: new_token,
-                        is_authenticated: true,
-                        expires_at: Utc::now() + Duration::days(SESSION_DURATION_DAYS),
-                    }),
-                    Err(_) => Json(AuthResult::Unauthenticated {
-                        id: None,
-                        token: None,
-                        is_authenticated: false,
-                        expires_at: None,
-                    }),
-                }
-            } else {
-                Json(AuthResult::Unauthenticated {
-                    id: None,
-                    token: None,
-                    is_authenticated: false,
-                    expires_at: None,
-                })
-            }
-        }
-        Err(_) => Json(AuthResult::Unauthenticated {
-            id: None,
-            token: None,
-            is_authenticated: false,
-            expires_at: None,
-        }),
-    };
-
-    span.end();
-    result
+    Ok(Json(AuthResult::Authenticated {
+        id: member_id,
+        token,
+        is_authenticated: true,
+        expires_at: Utc::now() + Duration::days(SESSION_DURATION_DAYS),
+    }))
 }
 
 #[utoipa::path(
@@ -1357,7 +1327,8 @@ pub async fn delete_expense_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<ExpensePath>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
-    authorize_pool(path.pool_id, member_id, PoolAccess::Member).await?;
+    let role = authorize_pool(path.pool_id, member_id, PoolAccess::Member).await?;
+    authorize_expense_change(path.pool_id, path.expense_id, member_id, role).await?;
 
     let tracer = get_tracer();
 
@@ -1542,6 +1513,15 @@ pub async fn add_expense_handler(
     }
 
     authorize_pool(pool_id, member_id, PoolAccess::Member).await?;
+
+    let shares: Vec<(uuid::Uuid, f64)> = input
+        .line_items
+        .iter()
+        .map(|li| (li.debtor_member_id, li.amount))
+        .collect();
+    server::validate_expense_amounts(input.amount, &shares)
+        .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?;
+
     validate_expense_participants(
         pool_id,
         Some(input.paid_by_member_id),
@@ -1580,6 +1560,7 @@ pub async fn add_expense_handler(
         is_settled: false,
         pool_id: input.pool_id,
         paid_by_member_id: input.paid_by_member_id,
+        is_payment: false,
         description: input.description,
         notes: None,
         category: input.category,
@@ -1656,7 +1637,34 @@ pub async fn update_expense_handler(
     Path(path): Path<UpdateExpensePath>,
     Json(input): Json<UpdateExpenseInput>,
 ) -> Result<Json<models::Expense>, (StatusCode, Json<serde_json::Value>)> {
-    authorize_pool(path.pool_id, member_id, PoolAccess::Member).await?;
+    let role = authorize_pool(path.pool_id, member_id, PoolAccess::Member).await?;
+
+    if authorize_expense_change(path.pool_id, path.expense_id, member_id, role).await? {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "Payments can't be edited. Delete it and settle up again instead.",
+        ));
+    }
+
+    // The total and the split are checked against each other, so they have
+    // to change together.
+    match (input.amount, &input.line_items) {
+        (Some(amount), Some(line_items)) => {
+            let shares: Vec<(uuid::Uuid, f64)> = line_items
+                .iter()
+                .map(|li| (li.debtor_member_id, li.amount))
+                .collect();
+            server::validate_expense_amounts(amount, &shares)
+                .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?;
+        }
+        (None, None) => {}
+        _ => {
+            return Err(api_error(
+                StatusCode::BAD_REQUEST,
+                "Send the amount and the split together",
+            ));
+        }
+    }
 
     if let Some(line_items) = &input.line_items {
         validate_expense_participants(
@@ -1745,7 +1753,22 @@ pub struct PoolDetails {
     #[serde(flatten)]
     pool: models::Pool,
     role: models::PoolRole,
+    /// Whether you have hidden this pool (hiding is per person).
+    is_hidden: bool,
     total_debt: f64,
+}
+
+impl From<(models::Pool, models::PoolRole, bool, f64)> for PoolDetails {
+    fn from(
+        (pool, role, is_hidden, total_debt): (models::Pool, models::PoolRole, bool, f64),
+    ) -> Self {
+        Self {
+            pool,
+            role,
+            is_hidden,
+            total_debt,
+        }
+    }
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1810,15 +1833,9 @@ pub async fn get_pool_details_handler(
         ),
     })?;
 
-    let details = PoolDetails {
-        pool: pool_details.0,
-        role: pool_details.1,
-        total_debt: pool_details.2,
-    };
-
     span.end();
 
-    Ok(Json(details))
+    Ok(Json(pool_details.into()))
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -1869,8 +1886,9 @@ pub async fn toggle_pool_hidden_handler(
         )
     })?;
 
+    // Only for the caller: other members keep their own setting.
     let update = tokio::task::spawn_blocking(move || {
-        models::Pool::toggle_hide(&mut conn, pool_id, input.is_hidden)
+        PoolMembership::set_hidden(&mut conn, pool_id, member_id, input.is_hidden)
     });
 
     match update.await {
@@ -1888,21 +1906,32 @@ pub async fn toggle_pool_hidden_handler(
     }
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct SettleUpInput {
+    /// Settle only the balance with this member. Omit to settle all of your
+    /// balances in the pool. Other members' balances are never touched.
+    member_id: Option<uuid::Uuid>,
+}
+
 #[utoipa::path(
-    patch,
+    post,
     path = "/api/pools/{pool_id}/settle-up",
     params(
-        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to settle up")
+        ("pool_id" = uuid::Uuid, Path, description = "ID of the pool to settle up in")
     ),
+    request_body = SettleUpInput,
     responses(
-        (status = 200, description = "Pool settled up", body = PoolDetails),
+        (status = 200, description = "Payments recorded; your updated pool details", body = PoolDetails),
+        (status = 400, description = "Nothing to settle"),
+        (status = 404, description = "Pool not found"),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn settle_up_pool_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Path(path): Path<PoolDetailsPath>,
-) -> Result<Json<PoolDetails>, (StatusCode, Json<serde_json::Value>)> {
+    Json(input): Json<SettleUpInput>,
+) -> Result<Json<PoolDetails>, ApiError> {
     authorize_pool(path.pool_id, member_id, PoolAccess::Member).await?;
 
     let tracer = get_tracer();
@@ -1918,54 +1947,47 @@ pub async fn settle_up_pool_handler(
     span.set_attribute(KeyValue::new("pool_id", pool_id.to_string()));
 
     let mut conn = get_db_connection().await.map_err(|_| {
-        (
+        api_error(
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to get database connection"})),
+            "Failed to get database connection",
         )
     })?;
 
-    tokio::task::spawn_blocking(move || models::Pool::settle_up(&mut conn, pool_id, member_id))
-        .await
-        .map_err(|_| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(serde_json::json!({"error": "Failed to settle up pool"})),
-            )
-        })?;
+    // The amounts come from the current balances, never from the client, and
+    // the balance check and the payments happen in one transaction.
+    let result = tokio::task::spawn_blocking(move || {
+        conn.transaction::<_, diesel::result::Error, _>(|conn| {
+            let debts = Expense::list_unpaid_for_balance_computation(conn, pool_id)?;
+            let balances = compute_balances_for_member(member_id, debts);
+            let payments = server::settlement_payments(member_id, &balances, input.member_id);
 
-    let mut conn = get_db_connection().await.map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to get database connection"})),
-        )
-    })?;
+            if payments.is_empty() {
+                return Ok(None);
+            }
 
-    let pool_details = tokio::task::spawn_blocking(move || {
-        models::Pool::get_with_debt_for_member(&mut conn, pool_id, member_id)
+            Expense::record_payments(conn, pool_id, &payments)?;
+            models::Pool::get_with_debt_for_member(conn, pool_id, member_id).map(Some)
+        })
     })
     .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Task panicked"})),
-        )
-    })?
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({"error": "Failed to get pool details"})),
-        )
-    })?;
-
-    let details = PoolDetails {
-        pool: pool_details.0,
-        role: pool_details.1,
-        total_debt: pool_details.2,
-    };
+    .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Task panicked"))?;
 
     span.end();
 
-    Ok(Json(details))
+    match result {
+        Ok(Some(details)) => Ok(Json(details.into())),
+        Ok(None) => Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "There's nothing to settle",
+        )),
+        Err(e) => {
+            tracing::error!("Failed to settle up: {}", e);
+            Err(api_error(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to settle up",
+            ))
+        }
+    }
 }
 
 #[derive(Deserialize, Serialize, ToSchema, Debug)]
@@ -2326,13 +2348,13 @@ pub async fn list_members_of_pool_handler(
     get,
     path = "/api/pools",
     responses(
-        (status = 200, description = "List pools for member", body = Vec<models::Pool>),
+        (status = 200, description = "List pools for member", body = Vec<PoolForMember>),
         (status = 500, description = "Internal server error")
     )
 )]
 pub async fn list_pools_for_member_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
-) -> Result<Json<Vec<models::Pool>>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<Vec<PoolForMember>>, (StatusCode, Json<serde_json::Value>)> {
     let tracer = get_tracer();
 
     let mut span = tracer
@@ -2367,7 +2389,20 @@ pub async fn list_pools_for_member_handler(
 
     span.end();
 
-    Ok(Json(pools))
+    Ok(Json(
+        pools
+            .into_iter()
+            .map(|(pool, is_hidden)| PoolForMember { pool, is_hidden })
+            .collect(),
+    ))
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct PoolForMember {
+    #[serde(flatten)]
+    pool: models::Pool,
+    /// Whether you have hidden this pool (hiding is per person).
+    is_hidden: bool,
 }
 
 #[utoipa::path(
@@ -2383,7 +2418,18 @@ pub async fn update_member_handler(
     AuthenticatedUser(member_id): AuthenticatedUser,
     Json(mut json): Json<MemberChangeset>,
 ) -> Result<Json<Member>, (StatusCode, Json<serde_json::Value>)> {
-    json.email = json.email.as_deref().map(server::normalize_email);
+    if let Some(handle) = json.venmo_handle.as_deref() {
+        json.venmo_handle = Some(
+            server::normalize_venmo_handle(handle)
+                .map_err(|msg| api_error(StatusCode::BAD_REQUEST, &msg))?,
+        );
+    }
+    if let Some(first) = json.first_name.as_deref() {
+        json.first_name = Some(first.trim().to_string());
+    }
+    if let Some(last) = json.last_name.as_deref() {
+        json.last_name = Some(last.trim().to_string());
+    }
 
     let tracer = get_tracer();
 
@@ -2410,16 +2456,7 @@ pub async fn update_member_handler(
                     Json(serde_json::json!({"error": "Task panicked"})),
                 )
             })?
-            .map_err(|e| match e {
-                diesel::result::Error::DatabaseError(
-                    diesel::result::DatabaseErrorKind::UniqueViolation,
-                    _,
-                ) => api_error(
-                    StatusCode::CONFLICT,
-                    "An account with that email already exists",
-                ),
-                _ => api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to update member"),
-            })?;
+            .map_err(|_| api_error(StatusCode::INTERNAL_SERVER_ERROR, "Failed to update member"))?;
 
     span.end();
 
@@ -2756,7 +2793,6 @@ pub fn handlers_routes() -> OpenApiRouter {
     let public_routes = OpenApiRouter::new()
         .routes(routes!(signup_handler))
         .routes(routes!(login_handler))
-        .routes(routes!(authenticate_handler))
         .routes(routes!(password_reset_config_handler))
         .routes(routes!(request_password_reset_handler))
         .routes(routes!(confirm_password_reset_handler));

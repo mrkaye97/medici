@@ -218,6 +218,159 @@ pub fn has_outstanding_balance(member_id: uuid::Uuid, debts: Vec<models::DebtPai
         .any(|b| b.amount > BALANCE_EPSILON)
 }
 
+/// A payment to record when settling up: `payer` paid `receiver` `amount`.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SettlementPayment {
+    pub payer: uuid::Uuid,
+    pub receiver: uuid::Uuid,
+    pub amount: f64,
+}
+
+/// The payments that clear `me`'s balances, given those balances (as from
+/// `compute_balances_for_member(me, ..)`). With `with`, only the balance with
+/// that one person is cleared. Amounts are rounded to cents; anything under
+/// half a cent is treated as already settled.
+pub fn settlement_payments(
+    me: uuid::Uuid,
+    balances: &[models::Balance],
+    with: Option<uuid::Uuid>,
+) -> Vec<SettlementPayment> {
+    balances
+        .iter()
+        .filter(|b| with.map_or(true, |other| b.member_id == other))
+        .filter(|b| b.member_id != me)
+        .map(|b| {
+            let amount = (b.amount * 100.0).round() / 100.0;
+            match b.direction {
+                // I owe them: I pay them.
+                models::PaymentDirection::Outbound => SettlementPayment {
+                    payer: me,
+                    receiver: b.member_id,
+                    amount,
+                },
+                // They owe me: they paid me.
+                models::PaymentDirection::Inbound => SettlementPayment {
+                    payer: b.member_id,
+                    receiver: me,
+                    amount,
+                },
+            }
+        })
+        .filter(|p| p.amount > BALANCE_EPSILON)
+        .collect()
+}
+
+/// Checks an expense's total against its split. The database trigger only
+/// runs on insert, so edits were never checked. Same 5-cent tolerance as the
+/// trigger, to allow for splits that don't divide evenly.
+pub fn validate_expense_amounts(
+    amount: f64,
+    line_items: &[(uuid::Uuid, f64)],
+) -> Result<(), String> {
+    if !amount.is_finite() || amount <= 0.0 {
+        return Err("The amount must be more than zero".to_string());
+    }
+    if line_items.is_empty() {
+        return Err("Split the expense between at least one person".to_string());
+    }
+
+    let mut seen = HashSet::new();
+    for &(member_id, share) in line_items {
+        if !share.is_finite() || share < 0.0 {
+            return Err("Each person's share must be zero or more".to_string());
+        }
+        if !seen.insert(member_id) {
+            return Err("Each person can only appear once in the split".to_string());
+        }
+    }
+
+    let total: f64 = line_items.iter().map(|(_, s)| s).sum();
+    if (total - amount).abs() > 0.05 {
+        return Err(format!(
+            "The split adds up to {:.2}, but the amount is {:.2}",
+            total, amount
+        ));
+    }
+
+    Ok(())
+}
+
+/// Venmo usernames are 5-30 letters, digits, dashes or underscores. Accepts
+/// a leading "@" and surrounding spaces, and returns the bare handle. An
+/// empty handle clears it.
+pub fn normalize_venmo_handle(handle: &str) -> Result<String, String> {
+    let handle = handle.trim().trim_start_matches('@');
+    if handle.is_empty() {
+        return Ok(String::new());
+    }
+
+    let valid_length = (5..=30).contains(&handle.chars().count());
+    let valid_chars = handle
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+
+    if valid_length && valid_chars {
+        Ok(handle.to_string())
+    } else {
+        Err("Venmo handles are 5-30 letters, numbers, dashes or underscores".to_string())
+    }
+}
+
+/// Failed logins allowed per account within `LOGIN_THROTTLE_WINDOW_SECONDS`.
+pub const LOGIN_MAX_FAILURES: u32 = 10;
+pub const LOGIN_THROTTLE_WINDOW_SECONDS: i64 = 15 * 60;
+
+/// Counts failed logins per (normalized) email, so a public server can't be
+/// used to guess passwords without limit. Kept in memory: a restart clears
+/// it, which is fine for slowing down guessing. Unknown emails are counted
+/// the same as real ones so the limit doesn't reveal which accounts exist.
+#[derive(Default)]
+pub struct LoginThrottle {
+    failures: HashMap<String, (u32, i64)>,
+}
+
+impl LoginThrottle {
+    /// `Err(seconds)` until the account may try again, if it's locked out.
+    pub fn check(&mut self, email: &str, now: i64) -> Result<(), i64> {
+        let key = normalize_email(email);
+        match self.failures.get(&key) {
+            Some(&(count, window_start)) => {
+                let window_end = window_start + LOGIN_THROTTLE_WINDOW_SECONDS;
+                if now >= window_end {
+                    self.failures.remove(&key);
+                    Ok(())
+                } else if count >= LOGIN_MAX_FAILURES {
+                    Err(window_end - now)
+                } else {
+                    Ok(())
+                }
+            }
+            None => Ok(()),
+        }
+    }
+
+    pub fn record_failure(&mut self, email: &str, now: i64) {
+        // Keep memory bounded: drop windows that have already ended.
+        if self.failures.len() > 10_000 {
+            self.failures
+                .retain(|_, &mut (_, start)| now < start + LOGIN_THROTTLE_WINDOW_SECONDS);
+        }
+
+        let entry = self
+            .failures
+            .entry(normalize_email(email))
+            .or_insert((0, now));
+        if now >= entry.1 + LOGIN_THROTTLE_WINDOW_SECONDS {
+            *entry = (0, now);
+        }
+        entry.0 += 1;
+    }
+
+    pub fn record_success(&mut self, email: &str) {
+        self.failures.remove(&normalize_email(email));
+    }
+}
+
 /// Emails are matched case-insensitively and without surrounding spaces, so
 /// "Anna@Example.com " finds the account for "anna@example.com".
 pub fn normalize_email(email: &str) -> String {
