@@ -36,6 +36,7 @@ diesel::table! {
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
         split_method -> SplitMethod,
+        is_payment -> Bool,
     }
 }
 
@@ -82,6 +83,7 @@ diesel::table! {
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
         split_method -> SplitMethod,
+        is_payment -> Bool,
     }
 }
 
@@ -103,6 +105,7 @@ diesel::table! {
         notes -> Nullable<Text>,
         category -> ExpenseCategory,
         split_method -> SplitMethod,
+        is_payment -> Bool,
     }
 }
 
@@ -160,7 +163,6 @@ diesel::table! {
         description -> Nullable<Text>,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
-        is_hidden -> Bool,
     }
 }
 
@@ -176,6 +178,7 @@ diesel::table! {
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
         default_split_percentage -> Float8,
+        is_hidden -> Bool,
     }
 }
 

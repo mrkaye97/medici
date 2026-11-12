@@ -11,6 +11,7 @@ import { Edit, X } from "lucide-react"
 import { useState } from "react"
 import { components } from "schema"
 import { cn } from "./lib/utils"
+import { Badge } from "./ui/badge"
 import { Button } from "./ui/button"
 
 export const formatDate = (date: Date) => {
@@ -79,6 +80,10 @@ export function Expense({
     )
   }
 
+  // The server allows the payer or a pool admin to change an expense.
+  const canChange =
+    expense.paid_by_member_id === memberId || pool.role === "ADMIN"
+
   return (
     <div className="hover:bg-muted/30 rounded-lg border p-4 transition-colors">
       <div className="flex flex-col gap-2">
@@ -100,8 +105,13 @@ export function Expense({
               </Button>
 
               <div className="flex flex-col">
-                <span className="text-foreground font-medium">
+                <span className="text-foreground flex items-center gap-2 font-medium">
                   {expense.name}
+                  {expense.is_payment && (
+                    <Badge variant="secondary" className="text-xs">
+                      Payment
+                    </Badge>
+                  )}
                 </span>
                 <span className="text-muted-foreground text-sm">
                   {new Date(expense.inserted_at).toLocaleDateString("en-US", {
@@ -113,17 +123,19 @@ export function Expense({
               </div>
             </div>
           </div>
-          {expense.paid_by_member_id === memberId && (
+          {canChange && (
             <div className="flex items-center gap-x-1">
-              <Button
-                size="sm"
-                variant="ghost"
-                className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
-                onClick={() => setIsUpdateModalOpen(true)}
-                aria-label={`Edit expense: ${expense.name}`}
-              >
-                <Edit className="size-4" />
-              </Button>
+              {!expense.is_payment && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground h-8 w-8 p-0"
+                  onClick={() => setIsUpdateModalOpen(true)}
+                  aria-label={`Edit expense: ${expense.name}`}
+                >
+                  <Edit className="size-4" />
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
@@ -140,7 +152,11 @@ export function Expense({
                   })
                 }}
                 disabled={isPending}
-                aria-label={`Delete expense: ${expense.name}`}
+                aria-label={
+                  expense.is_payment
+                    ? `Undo payment: ${expense.name}`
+                    : `Delete expense: ${expense.name}`
+                }
               >
                 <X className="size-4" />
               </Button>
@@ -166,7 +182,13 @@ export function Expense({
             </span>
             <div className="flex items-center">
               <span className="text-muted-foreground text-sm">
-                {expense.line_amount < 0 ? "You get back" : "You owe"}{" "}
+                {expense.is_payment
+                  ? expense.line_amount < 0
+                    ? "You paid"
+                    : "You received"
+                  : expense.line_amount < 0
+                    ? "You get back"
+                    : "You owe"}{" "}
               </span>
               <span
                 className={cn(

@@ -4,22 +4,6 @@
  */
 
 export interface paths {
-  "/api/authenticate/{member_id}": {
-    parameters: {
-      query?: never
-      header?: never
-      path?: never
-      cookie?: never
-    }
-    get: operations["authenticate_handler"]
-    put?: never
-    post?: never
-    delete?: never
-    options?: never
-    head?: never
-    patch?: never
-    trace?: never
-  }
   "/api/friend-requests": {
     parameters: {
       query?: never
@@ -317,11 +301,11 @@ export interface paths {
     }
     get?: never
     put?: never
-    post?: never
+    post: operations["settle_up_pool_handler"]
     delete?: never
     options?: never
     head?: never
-    patch: operations["settle_up_pool_handler"]
+    patch?: never
     trace?: never
   }
   "/api/pools/{pool_id}/toggle-hidden": {
@@ -376,23 +360,14 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
-    AuthResult:
-      | {
-          /** Format: date-time */
-          expires_at: string
-          /** Format: uuid */
-          id: string
-          is_authenticated: boolean
-          token: string
-        }
-      | {
-          /** Format: date-time */
-          expires_at?: string | null
-          /** Format: uuid */
-          id?: string | null
-          is_authenticated: boolean
-          token?: string | null
-        }
+    AuthResult: {
+      /** Format: date-time */
+      expires_at: string
+      /** Format: uuid */
+      id: string
+      is_authenticated: boolean
+      token: string
+    }
     Balance: {
       /** Format: double */
       amount: number
@@ -409,6 +384,9 @@ export interface components {
       id: string
       /** Format: date-time */
       inserted_at: string
+      /** @description A recorded payment between two members (from settling up), not a
+       *     shared expense. */
+      is_payment: boolean
       is_settled: boolean
       name: string
       notes?: string | null
@@ -485,6 +463,7 @@ export interface components {
       id: string
       /** Format: date-time */
       inserted_at: string
+      is_payment: boolean
       is_settled: boolean
       line_items: components["schemas"]["ExpenseLineItem"][]
       name: string
@@ -536,9 +515,11 @@ export interface components {
       updated_at: string
       venmo_handle?: string | null
     }
+    /** @description What a member can change about themselves. Email is deliberately not
+     *     here: it's the login and where password reset links go, so it can't be
+     *     changed. */
     MemberChangeset: {
       bio?: string | null
-      email?: string | null
       first_name?: string | null
       last_name?: string | null
       venmo_handle?: string | null
@@ -587,15 +568,20 @@ export interface components {
       id: string
       /** Format: date-time */
       inserted_at: string
-      is_hidden: boolean
       name: string
       /** Format: date-time */
       updated_at: string
     }
     PoolDetails: components["schemas"]["Pool"] & {
+      /** @description Whether you have hidden this pool (hiding is per person). */
+      is_hidden: boolean
       role: components["schemas"]["PoolRole"]
       /** Format: double */
       total_debt: number
+    }
+    PoolForMember: components["schemas"]["Pool"] & {
+      /** @description Whether you have hidden this pool (hiding is per person). */
+      is_hidden: boolean
     }
     PoolInput: {
       description?: string | null
@@ -608,6 +594,8 @@ export interface components {
       id: string
       /** Format: date-time */
       inserted_at: string
+      /** @description Whether this member has hidden the pool from their own list. */
+      is_hidden: boolean
       /** Format: uuid */
       member_id: string
       /** Format: uuid */
@@ -640,6 +628,14 @@ export interface components {
       | "already_friends"
       | "request_sent"
       | "request_received"
+    SettleUpInput: {
+      /**
+       * Format: uuid
+       * @description Settle only the balance with this member. Omit to settle all of your
+       *     balances in the pool. Other members' balances are never touched.
+       */
+      member_id?: string | null
+    }
     SignupInput: {
       email: string
       first_name: string
@@ -670,39 +666,6 @@ export interface components {
 }
 export type $defs = Record<string, never>
 export interface operations {
-  authenticate_handler: {
-    parameters: {
-      query: {
-        /** @description Token to authenticate the member */
-        token: string
-      }
-      header?: never
-      path: {
-        /** @description ID of the member to authenticate */
-        member_id: string
-      }
-      cookie?: never
-    }
-    requestBody?: never
-    responses: {
-      /** @description Authenticate a member successfully */
-      200: {
-        headers: {
-          [name: string]: unknown
-        }
-        content: {
-          "application/json": components["schemas"]["AuthResult"]
-        }
-      }
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown
-        }
-        content?: never
-      }
-    }
-  }
   list_inbound_friend_requests_handler: {
     parameters: {
       query?: never
@@ -898,14 +861,19 @@ export interface operations {
           "application/json": components["schemas"]["AuthResult"]
         }
       }
-      /** @description Incorrect credentials */
+      /** @description Incorrect email or password */
       400: {
         headers: {
           [name: string]: unknown
         }
-        content: {
-          "application/json": components["schemas"]["AuthResult"]
+        content?: never
+      }
+      /** @description Too many failed attempts for this account; try again later */
+      429: {
+        headers: {
+          [name: string]: unknown
         }
+        content?: never
       }
       /** @description Internal server error */
       500: {
@@ -1101,7 +1069,7 @@ export interface operations {
           [name: string]: unknown
         }
         content: {
-          "application/json": components["schemas"]["Pool"][]
+          "application/json": components["schemas"]["PoolForMember"][]
         }
       }
       /** @description Internal server error */
@@ -1523,14 +1491,18 @@ export interface operations {
       query?: never
       header?: never
       path: {
-        /** @description ID of the pool to settle up */
+        /** @description ID of the pool to settle up in */
         pool_id: string
       }
       cookie?: never
     }
-    requestBody?: never
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["SettleUpInput"]
+      }
+    }
     responses: {
-      /** @description Pool settled up */
+      /** @description Payments recorded; your updated pool details */
       200: {
         headers: {
           [name: string]: unknown
@@ -1538,6 +1510,20 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["PoolDetails"]
         }
+      }
+      /** @description Nothing to settle */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Pool not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
       }
       /** @description Internal server error */
       500: {

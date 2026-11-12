@@ -87,7 +87,11 @@ export function useAuthInner() {
     navigate({ to: "/", reloadDocument: true })
   }
 
-  const login = async (email: string, password: string) => {
+  /** Returns `null` on success, or a message saying what went wrong. */
+  const login = async (
+    email: string,
+    password: string
+  ): Promise<string | null> => {
     try {
       const result = await loginMutation.mutateAsync({
         body: { email, password },
@@ -95,13 +99,13 @@ export function useAuthInner() {
 
       if (result.is_authenticated && result.token) {
         await completeLogin(result.token)
-        return true
+        return null
       }
 
-      return false
-    } catch {
+      return "Invalid email or password"
+    } catch (error) {
       await clearAuthMetadata()
-      return false
+      return errorMessage(error, "Invalid email or password")
     }
   }
 

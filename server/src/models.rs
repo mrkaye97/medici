@@ -108,11 +108,14 @@ pub struct NewMember {
 }
 
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
+#[serde(deny_unknown_fields)]
 #[diesel(table_name = member)]
+/// What a member can change about themselves. Email is deliberately not
+/// here: it's the login and where password reset links go, so it can't be
+/// changed.
 pub struct MemberChangeset {
     pub first_name: Option<String>,
     pub last_name: Option<String>,
-    pub email: Option<String>,
     pub bio: Option<String>,
     pub venmo_handle: Option<String>,
 }
@@ -144,7 +147,6 @@ pub struct Pool {
     pub description: Option<String>,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    pub is_hidden: bool,
 }
 
 #[derive(Debug, Insertable, Deserialize, ToSchema)]
@@ -173,6 +175,8 @@ pub struct PoolMembership {
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub default_split_percentage: f64,
+    /// Whether this member has hidden the pool from their own list.
+    pub is_hidden: bool,
 }
 
 #[derive(Debug, Insertable, Deserialize, Selectable, ToSchema)]
@@ -202,6 +206,9 @@ pub struct Expense {
     pub notes: Option<String>,
     pub category: ExpenseCategory,
     pub split_method: SplitMethod,
+    /// A recorded payment between two members (from settling up), not a
+    /// shared expense.
+    pub is_payment: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, ToSchema)]
@@ -218,6 +225,7 @@ pub struct ExpenseWithLineItems {
     pub notes: Option<String>,
     pub category: ExpenseCategory,
     pub split_method: SplitMethod,
+    pub is_payment: bool,
     pub line_items: Vec<ExpenseLineItem>,
 }
 
@@ -233,6 +241,7 @@ pub struct NewExpense {
     pub notes: Option<String>,
     pub category: ExpenseCategory,
     pub split_method: SplitMethod,
+    pub is_payment: bool,
 }
 
 #[derive(Debug, AsChangeset, Deserialize, ToSchema)]
@@ -544,30 +553,21 @@ impl PasswordResetToken {
 }
 
 impl Pool {
-    pub fn toggle_hide(
-        conn: &mut PgConnection,
-        pool_id: uuid::Uuid,
-        is_hidden: bool,
-    ) -> QueryResult<Self> {
-        diesel::update(pool::table.filter(pool::id.eq(pool_id)))
-            .set(pool::is_hidden.eq(is_hidden))
-            .get_result(conn)
-    }
-
     pub fn create(conn: &mut PgConnection, new_pool: &NewPool) -> QueryResult<Self> {
         diesel::insert_into(pool::table)
             .values(new_pool)
             .get_result(conn)
     }
 
+    /// The member's pools, each with whether this member has hidden it.
     pub fn find_by_member_id(
         conn: &mut PgConnection,
         member_id: uuid::Uuid,
-    ) -> QueryResult<Vec<Self>> {
+    ) -> QueryResult<Vec<(Self, bool)>> {
         pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
             .filter(pool_membership::member_id.eq(member_id))
-            .select(pool::all_columns)
+            .select((pool::all_columns, pool_membership::is_hidden))
             .get_results(conn)
     }
 
@@ -575,15 +575,19 @@ impl Pool {
         conn: &mut PgConnection,
         pool_id: uuid::Uuid,
         member_id: uuid::Uuid,
-    ) -> QueryResult<(Self, PoolRole, f64)> {
+    ) -> QueryResult<(Self, PoolRole, bool, f64)> {
         let pool = pool::table
             .inner_join(pool_membership::table.on(pool::id.eq(pool_membership::pool_id)))
             .filter(pool::id.eq(pool_id))
             .filter(pool_membership::member_id.eq(member_id))
-            .select((pool::all_columns, pool_membership::role))
-            .load::<(Pool, PoolRole)>(conn)?;
+            .select((
+                pool::all_columns,
+                pool_membership::role,
+                pool_membership::is_hidden,
+            ))
+            .load::<(Pool, PoolRole, bool)>(conn)?;
 
-        let (p, role) = pool
+        let (p, role, is_hidden) = pool
             .into_iter()
             .next()
             .ok_or(diesel::result::Error::NotFound)?;
@@ -612,40 +616,7 @@ impl Pool {
             }
         }
 
-        Ok((p, role, total_debt))
-    }
-
-    pub fn settle_up(
-        conn: &mut PgConnection,
-        pool_id: uuid::Uuid,
-        confirming_member_id: uuid::Uuid,
-    ) -> () {
-        let _ = diesel::sql_query(
-            "
-            WITH expense_ids AS (
-                SELECT e.id
-                FROM expense e
-                JOIN pool_membership pm ON e.pool_id = pm.pool_id
-                JOIN member m ON pm.member_id = m.id
-                WHERE
-                    pm.pool_id = $1
-                    AND pm.member_id = $2
-                    AND e.is_settled = false
-            ), line_items AS (
-                UPDATE expense_line_item
-                SET is_settled = true
-                WHERE expense_id IN (SELECT id FROM expense_ids)
-            )
-
-            UPDATE expense
-            SET is_settled = true
-            WHERE id IN (SELECT id FROM expense_ids)
-            ;
-            ",
-        )
-        .bind::<Uuid, _>(pool_id)
-        .bind::<Uuid, _>(confirming_member_id)
-        .execute(conn);
+        Ok((p, role, is_hidden, total_debt))
     }
 }
 
@@ -681,6 +652,22 @@ pub struct MemberIdSplitPercentage {
 }
 
 impl PoolMembership {
+    /// Hide or unhide the pool for this one member only.
+    pub fn set_hidden(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        member_id: uuid::Uuid,
+        is_hidden: bool,
+    ) -> QueryResult<usize> {
+        diesel::update(
+            pool_membership::table
+                .filter(pool_membership::pool_id.eq(pool_id))
+                .filter(pool_membership::member_id.eq(member_id)),
+        )
+        .set(pool_membership::is_hidden.eq(is_hidden))
+        .execute(conn)
+    }
+
     /// The member's role in the pool, or `None` if they aren't in it.
     pub fn find_role(
         conn: &mut PgConnection,
@@ -905,6 +892,7 @@ impl Expense {
             notes: expense.notes,
             category: expense.category,
             split_method: expense.split_method,
+            is_payment: expense.is_payment,
             line_items,
         })
     }
@@ -993,6 +981,70 @@ impl Expense {
         })?;
 
         return Ok(result);
+    }
+
+    /// Who paid an expense in this pool and whether it's a payment, or
+    /// `None` if there's no such expense in the pool.
+    pub fn payer_and_kind(
+        conn: &mut PgConnection,
+        expense_id: uuid::Uuid,
+        pool_id: uuid::Uuid,
+    ) -> QueryResult<Option<(uuid::Uuid, bool)>> {
+        expense::table
+            .filter(expense::id.eq(expense_id))
+            .filter(expense::pool_id.eq(pool_id))
+            .select((expense::paid_by_member_id, expense::is_payment))
+            .first(conn)
+            .optional()
+    }
+
+    /// Record settle-up payments. Each is an expense paid by the payer with a
+    /// single share owed by the receiver, which cancels the payer's debt to
+    /// the receiver. The payer also gets a zero share so the payment shows up
+    /// in their own expense list.
+    pub fn record_payments(
+        conn: &mut PgConnection,
+        pool_id: uuid::Uuid,
+        payments: &[crate::SettlementPayment],
+    ) -> QueryResult<()> {
+        conn.transaction(|conn| {
+            for payment in payments {
+                let first_name = |conn: &mut PgConnection, id| -> QueryResult<String> {
+                    member::table
+                        .find(id)
+                        .select(member::first_name)
+                        .first::<String>(conn)
+                };
+                // Named for both people ("Erin paid Frank") so it reads right
+                // in either person's expense list.
+                let name = format!(
+                    "{} paid {}",
+                    first_name(conn, payment.payer)?,
+                    first_name(conn, payment.receiver)?
+                );
+
+                let new_expense = NewExpense {
+                    name,
+                    amount: payment.amount,
+                    is_settled: false,
+                    pool_id,
+                    paid_by_member_id: payment.payer,
+                    description: None,
+                    notes: None,
+                    category: ExpenseCategory::Miscellaneous,
+                    split_method: SplitMethod::Amount,
+                    is_payment: true,
+                };
+
+                Self::create_with_line_items(
+                    conn,
+                    &new_expense,
+                    &[payment.payer, payment.receiver],
+                    &[0.0, payment.amount],
+                )?;
+            }
+            Ok(())
+        })
     }
 
     pub fn update(

@@ -34,12 +34,10 @@ function LoginPage() {
           setError(null)
           setIsSubmitting(true)
 
-          const result = await login(email, password)
+          const failure = await login(email, password)
 
           setIsSubmitting(false)
-          if (!result) {
-            setError("Invalid email or password")
-          }
+          setError(failure)
         }}
         formType="login"
         error={error}

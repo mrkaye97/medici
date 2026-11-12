@@ -698,3 +698,180 @@ mod reset_token_tests {
         assert!(session_is_current(0, Utc.timestamp_opt(0, 0).unwrap()));
     }
 }
+
+#[cfg(test)]
+mod tighten_up_tests {
+    use crate::models::{Balance, DebtPair, PaymentDirection};
+    use crate::{
+        LOGIN_MAX_FAILURES, LOGIN_THROTTLE_WINDOW_SECONDS, LoginThrottle, SettlementPayment,
+        compute_balances_for_member, normalize_venmo_handle, settlement_payments,
+        validate_expense_amounts,
+    };
+    use uuid::Uuid;
+
+    fn id(n: u128) -> Uuid {
+        Uuid::from_u128(n)
+    }
+
+    fn balance(member: u128, amount: f64, direction: PaymentDirection) -> Balance {
+        Balance {
+            member_id: id(member),
+            amount,
+            direction,
+        }
+    }
+
+    #[test]
+    fn settling_records_payments_in_the_right_direction() {
+        let me = id(1);
+        let balances = vec![
+            balance(2, 10.0, PaymentDirection::Outbound), // I owe 2
+            balance(3, 4.255, PaymentDirection::Inbound), // 3 owes me
+        ];
+
+        assert_eq!(
+            settlement_payments(me, &balances, None),
+            vec![
+                SettlementPayment {
+                    payer: me,
+                    receiver: id(2),
+                    amount: 10.0
+                },
+                SettlementPayment {
+                    payer: id(3),
+                    receiver: me,
+                    amount: 4.26
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn settling_with_one_person_leaves_others_alone() {
+        let me = id(1);
+        let balances = vec![
+            balance(2, 10.0, PaymentDirection::Outbound),
+            balance(3, 5.0, PaymentDirection::Inbound),
+        ];
+        assert_eq!(
+            settlement_payments(me, &balances, Some(id(3))),
+            vec![SettlementPayment {
+                payer: id(3),
+                receiver: me,
+                amount: 5.0
+            }]
+        );
+        assert!(settlement_payments(me, &balances, Some(id(9))).is_empty());
+    }
+
+    #[test]
+    fn fractions_of_a_cent_are_already_settled() {
+        let balances = vec![balance(2, 0.004, PaymentDirection::Outbound)];
+        assert!(settlement_payments(id(1), &balances, None).is_empty());
+    }
+
+    #[test]
+    fn a_recorded_payment_clears_the_balance_between_the_two() {
+        // Bob owes Alice 30 (her dinner) and Carol owes Alice 30.
+        let (alice, bob, carol) = (id(1), id(2), id(3));
+        let mut debts = vec![
+            DebtPair {
+                from_member_id: bob,
+                to_member_id: alice,
+                amount: 30.0,
+            },
+            DebtPair {
+                from_member_id: carol,
+                to_member_id: alice,
+                amount: 30.0,
+            },
+        ];
+
+        let payments =
+            settlement_payments(bob, &compute_balances_for_member(bob, debts.clone()), None);
+        assert_eq!(
+            payments,
+            vec![SettlementPayment {
+                payer: bob,
+                receiver: alice,
+                amount: 30.0
+            }]
+        );
+
+        // Recording it adds "alice owes bob 30", which cancels his debt.
+        debts.push(DebtPair {
+            from_member_id: alice,
+            to_member_id: bob,
+            amount: 30.0,
+        });
+
+        assert!(compute_balances_for_member(bob, debts.clone()).is_empty());
+        // Carol still owes Alice: settling up between two people touches no one else.
+        let carol_balances = compute_balances_for_member(carol, debts);
+        assert_eq!(carol_balances.len(), 1);
+        assert_eq!(carol_balances[0].member_id, alice);
+        assert!((carol_balances[0].amount - 30.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn expense_amounts_must_match_the_split() {
+        let (a, b) = (id(1), id(2));
+        assert!(validate_expense_amounts(30.0, &[(a, 15.0), (b, 15.0)]).is_ok());
+        // Within the 5 cent tolerance for uneven splits.
+        assert!(validate_expense_amounts(10.0, &[(a, 3.33), (b, 6.66)]).is_ok());
+        assert!(validate_expense_amounts(30.0, &[(a, 15.0), (b, 10.0)]).is_err());
+        assert!(validate_expense_amounts(0.0, &[(a, 0.0)]).is_err());
+        assert!(validate_expense_amounts(f64::NAN, &[(a, 1.0)]).is_err());
+        assert!(validate_expense_amounts(10.0, &[]).is_err());
+        assert!(validate_expense_amounts(10.0, &[(a, 15.0), (b, -5.0)]).is_err());
+        assert!(validate_expense_amounts(10.0, &[(a, 5.0), (a, 5.0)]).is_err());
+    }
+
+    #[test]
+    fn venmo_handles_are_validated_and_normalized() {
+        assert_eq!(
+            normalize_venmo_handle(" @Anna-Karenina_1 "),
+            Ok("Anna-Karenina_1".to_string())
+        );
+        assert_eq!(normalize_venmo_handle(""), Ok(String::new()));
+        assert_eq!(normalize_venmo_handle("  @ "), Ok(String::new()));
+        assert!(normalize_venmo_handle("bob&amount=500").is_err());
+        assert!(normalize_venmo_handle("abc").is_err());
+        assert!(normalize_venmo_handle(&"a".repeat(31)).is_err());
+        assert!(normalize_venmo_handle("anna karenina").is_err());
+    }
+
+    #[test]
+    fn logins_lock_after_too_many_failures_then_recover() {
+        let mut throttle = LoginThrottle::default();
+        let t0 = 1_000_000;
+
+        for _ in 0..LOGIN_MAX_FAILURES {
+            assert!(throttle.check("Anna@Example.com", t0).is_ok());
+            throttle.record_failure("anna@example.com", t0);
+        }
+
+        // Locked, whatever case the email is typed in.
+        let wait = throttle.check(" ANNA@example.com", t0 + 60).unwrap_err();
+        assert_eq!(wait, LOGIN_THROTTLE_WINDOW_SECONDS - 60);
+        // Other accounts aren't affected.
+        assert!(throttle.check("bob@example.com", t0 + 60).is_ok());
+        // The window ends.
+        assert!(
+            throttle
+                .check("anna@example.com", t0 + LOGIN_THROTTLE_WINDOW_SECONDS)
+                .is_ok()
+        );
+    }
+
+    #[test]
+    fn a_successful_login_clears_failures() {
+        let mut throttle = LoginThrottle::default();
+        for _ in 0..(LOGIN_MAX_FAILURES - 1) {
+            throttle.record_failure("anna@example.com", 0);
+        }
+        throttle.record_success("anna@example.com");
+        throttle.record_failure("anna@example.com", 0);
+        assert!(throttle.check("anna@example.com", 0).is_ok());
+    }
+}

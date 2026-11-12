@@ -1,4 +1,4 @@
-import { apiClient } from "@/api/client"
+import { apiClient, errorMessage } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
@@ -47,6 +47,9 @@ export const FriendsView = ({
   const email = member?.email
   const name = `${member?.first_name} ${member?.last_name}`
   const [venmoHandle, setVenmoHandle] = useState(member?.venmo_handle || null)
+  const [venmoStatus, setVenmoStatus] = useState<
+    { kind: "saved" } | { kind: "error"; message: string } | null
+  >(null)
 
   useEffect(() => {
     if (member) {
@@ -313,6 +316,7 @@ export const FriendsView = ({
                         value={venmoHandle || ""}
                         onChange={event => {
                           setVenmoHandle(event.target.value)
+                          setVenmoStatus(null)
                         }}
                         className="flex-1"
                       />
@@ -320,16 +324,28 @@ export const FriendsView = ({
                         variant="outline"
                         onClick={async () => {
                           if (memberId) {
-                            await updateMember({
-                              body: {
-                                venmo_handle: venmoHandle || null,
-                              },
-                              headers: createAuthHeader(),
-                            })
+                            try {
+                              // An empty string clears the handle.
+                              await updateMember({
+                                body: {
+                                  venmo_handle: venmoHandle ?? "",
+                                },
+                                headers: createAuthHeader(),
+                              })
+                              setVenmoStatus({ kind: "saved" })
 
-                            await queryClient.invalidateQueries({
-                              queryKey: ["get", "/api"],
-                            })
+                              await queryClient.invalidateQueries({
+                                queryKey: ["get", "/api"],
+                              })
+                            } catch (error) {
+                              setVenmoStatus({
+                                kind: "error",
+                                message: errorMessage(
+                                  error,
+                                  "Couldn't save your Venmo handle"
+                                ),
+                              })
+                            }
                           }
                         }}
                         disabled={isPending}
@@ -338,6 +354,14 @@ export const FriendsView = ({
                         <Save className="size-4" />
                       </Button>
                     </div>
+                    {venmoStatus?.kind === "error" && (
+                      <p className="text-destructive text-xs">
+                        {venmoStatus.message}
+                      </p>
+                    )}
+                    {venmoStatus?.kind === "saved" && (
+                      <p className="text-xs text-green-600">Saved</p>
+                    )}
                   </div>
 
                   <Button
