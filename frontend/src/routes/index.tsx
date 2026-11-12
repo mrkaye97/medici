@@ -66,13 +66,22 @@ function Home() {
   const [isHiddenPoolsOpen, setIsHiddenPoolsOpen] = useState(false)
   const isLoading = isPoolsLoading
 
-  const prevHiddenCount = useRef(hiddenPools.length)
+  // Hidden pools start collapsed. Open the section only when you hide a pool
+  // while on this page, so you can see where it went. `null` until the pools
+  // have loaded, so the initial load (0 -> N hidden) doesn't count as hiding.
+  const prevHiddenCount = useRef<number | null>(null)
   useEffect(() => {
-    if (hiddenPools.length > prevHiddenCount.current) {
+    if (!data) {
+      return
+    }
+    if (
+      prevHiddenCount.current !== null &&
+      hiddenPools.length > prevHiddenCount.current
+    ) {
       setIsHiddenPoolsOpen(true)
     }
     prevHiddenCount.current = hiddenPools.length
-  }, [hiddenPools.length])
+  }, [data, hiddenPools.length])
 
   // Only blank the page on the first load. Background refetches (e.g. when
   // the window regains focus) used to unmount everything, closing open
