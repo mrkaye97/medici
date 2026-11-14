@@ -1,5 +1,4 @@
 import { apiClient, errorMessage } from "@/api/client"
-import { usePlaceholder } from "@/components/lib/placeholders"
 import { useAuth } from "@/hooks/use-auth"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useQueryClient } from "@tanstack/react-query"
@@ -40,8 +39,6 @@ export function CreatePoolModal({
     "/api/pools"
   )
 
-  const namePlaceholder = usePlaceholder("poolName", "")
-  const descriptionPlaceholder = usePlaceholder("poolDescription", "")
   const form = useForm<PoolFormValues>({
     resolver: zodResolver(poolSchema),
     defaultValues: {
@@ -107,7 +104,7 @@ export function CreatePoolModal({
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder={namePlaceholder}
+                      placeholder="Trip to Yosemite"
                       {...field}
                       type="text"
                     />
@@ -127,7 +124,7 @@ export function CreatePoolModal({
                     <Input
                       type="text"
                       {...field}
-                      placeholder={descriptionPlaceholder}
+                      placeholder="Friends trip to Yosemite, Spring 2025"
                     />
                   </FormControl>
                   <FormMessage />

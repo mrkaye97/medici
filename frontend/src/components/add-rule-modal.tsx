@@ -1,5 +1,4 @@
 import { errorMessage } from "@/api/client"
-import { usePlaceholder } from "@/components/lib/placeholders"
 import { useRules } from "@/hooks/use-rules"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
@@ -47,7 +46,6 @@ export function AddRuleModal({
     setIsCreating: setIsOpen,
   })
 
-  const rulePlaceholder = usePlaceholder("ruleExpression")
   const form = useForm<RuleFormValues>({
     resolver: zodResolver(ruleSchema),
     defaultValues: {
@@ -100,7 +98,10 @@ export function AddRuleModal({
                 <FormItem>
                   <FormLabel>Expense names matching (regex)</FormLabel>
                   <FormControl>
-                    <Input placeholder={rulePlaceholder} {...field} />
+                    <Input
+                      placeholder="e.g., Uber, Lyft, taxi, bus"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                   <p className="text-xs text-muted-foreground">

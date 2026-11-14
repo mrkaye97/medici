@@ -1,6 +1,5 @@
 import { apiClient, errorMessage } from "@/api/client"
 import { initials } from "@/components/lib/format"
-import { usePlaceholder } from "@/components/lib/placeholders"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
@@ -109,7 +108,6 @@ function VenmoDialog({
   onClose: () => void
   current: string
 }) {
-  const handlePlaceholder = usePlaceholder("venmoHandle", "")
   const { createAuthHeader } = useAuth()
   const queryClient = useQueryClient()
   const [handle, setHandle] = useState(current)
@@ -164,7 +162,7 @@ function VenmoDialog({
             <Label htmlFor="venmo-handle">Handle</Label>
             <Input
               id="venmo-handle"
-              placeholder={handlePlaceholder}
+              placeholder="@my-venmo-handle"
               value={handle}
               onChange={e => setHandle(e.target.value)}
               autoComplete="off"
